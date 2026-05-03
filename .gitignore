@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Ansible
+*.retry
+.ansible/
+
+# Local environment and lab state
+.env
+.env.*
+!.env.example
+*.log
+scripts/
+
+# Build and package outputs
+build/
+dist/
+rpmbuild/
+*.rpm
+*.tar.gz
+
+# Editor and OS noise
+.DS_Store
+*.swp
+*~
+*.cast.new*

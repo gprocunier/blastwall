@@ -1,0 +1,22 @@
+flowchart TB
+    subgraph SCOPE_STAGE["1. Scope the new surface"]
+        EXP["New exploit surface"] --> SCOPE["Define enforceable scope<br/>class, permission, type, or transition"]
+    end
+
+    subgraph POLICY_STAGE["2. Productize the policy change"]
+        POLICY["Add Blastwall policy scope"] --> REVIEW["Review impact<br/>normal automation still works"]
+        REVIEW --> VERSION["Bump policy version"]
+    end
+
+    subgraph SHIP_STAGE["3. Ship coverage through normal RHEL operations"]
+        RPM["Build policy RPM/module"] --> ROLLOUT["Roll out to managed hosts"]
+    end
+
+    subgraph SELECT_STAGE["4. Make coverage selectable before jobs run"]
+        MARK["Update IdM host marker"] --> INV["AAP inventory sync"]
+        INV --> PREFLIGHT["Preflight selects hosts<br/>with required coverage"]
+    end
+
+    SCOPE --> POLICY
+    VERSION --> RPM
+    ROLLOUT --> MARK

@@ -1,0 +1,45 @@
+---
+- name: Verify local Blastwall prerequisites
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check SELinux enforcing state
+      ansible.builtin.command: getenforce
+      register: enforcing
+      changed_when: false
+
+    - name: Check alg_socket class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/alg_socket/perms/create
+      register: alg_socket_perm
+
+    - name: Check bpf class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/bpf/perms/prog_load
+      register: bpf_perm
+
+    - name: Check packet_socket class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/packet_socket/perms/create
+      register: packet_socket_perm
+
+    - name: Check user_namespace class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/user_namespace/perms/create
+      register: userns_perm
+
+    - name: Check Blastwall SELinux user is registered
+      ansible.builtin.command: semanage user -l
+      register: semanage_users
+      changed_when: false
+
+    - name: Assert local host can enforce Blastwall
+      ansible.builtin.assert:
+        that:
+          - enforcing.stdout == 'Enforcing'
+          - alg_socket_perm.stat.exists
+          - bpf_perm.stat.exists
+          - packet_socket_perm.stat.exists
+          - userns_perm.stat.exists
+          - "'blastwall_u' in semanage_users.stdout"

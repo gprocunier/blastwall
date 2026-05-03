@@ -1,0 +1,8 @@
+; Deny user namespace creation for the blastwall automation domain.
+; User namespaces are the first step in 44% of observed kernel exploit
+; chains (Google research).  CVE-2025-38617 uses userns to obtain
+; CAP_NET_RAW unprivileged.  Automation identities should never create
+; user namespaces.
+
+(deny blastwall_t self (user_namespace (create)))
+(neverallow blastwall_t self (user_namespace (create)))

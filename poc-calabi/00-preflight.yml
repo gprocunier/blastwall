@@ -1,0 +1,136 @@
+---
+- name: Validate bastion-side PoC prerequisites
+  hosts: bastion
+  gather_facts: false
+  tasks:
+    - name: Require IdM admin password
+      ansible.builtin.assert:
+        that:
+          - blastwall_ipaadmin_password | length > 0
+        fail_msg: "Set IPA_ADMIN_PASSWORD before running this PoC."
+
+    - name: Check local Ansible dependencies
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - list
+      register: blastwall_collections
+      changed_when: false
+
+    - name: Assert required collections are installed
+      ansible.builtin.assert:
+        that:
+          - "'freeipa.ansible_freeipa' in blastwall_collections.stdout"
+          - "'eigenstate.ipa' in blastwall_collections.stdout"
+        fail_msg: >-
+          Install freeipa.ansible_freeipa and eigenstate.ipa on bastion with
+          ansible-galaxy collection install -r requirements.yml -p
+          ./collections.
+
+    - name: Check eigenstate.ipa lookup plugins are available
+      ansible.builtin.command:
+        argv:
+          - ansible-doc
+          - -t
+          - lookup
+          - "{{ item }}"
+      loop:
+        - eigenstate.ipa.selinuxmap
+        - eigenstate.ipa.hbacrule
+        - eigenstate.ipa.sudo
+      changed_when: false
+
+    - name: Check eigenstate.ipa inventory plugin is available
+      ansible.builtin.command:
+        argv:
+          - ansible-doc
+          - -t
+          - inventory
+          - eigenstate.ipa.idm
+      changed_when: false
+
+    - name: Ensure controller-side IdM Python libraries are present
+      ansible.builtin.dnf:
+        name:
+          - python3-ipalib
+          - python3-ipaclient
+          - python3-requests-gssapi
+          - krb5-workstation
+        state: present
+
+    - name: Check bastion can resolve lab hosts
+      ansible.builtin.command:
+        argv:
+          - getent
+          - hosts
+          - "{{ item }}"
+      loop:
+        - "{{ blastwall_idm_host }}"
+        - "{{ blastwall_endpoint_host }}"
+      changed_when: false
+
+- name: Validate IdM server reachability
+  hosts: idm_servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH to IdM server
+      ansible.builtin.wait_for_connection:
+        timeout: 30
+
+    - name: Verify this host is an IdM server
+      ansible.builtin.stat:
+        path: /etc/ipa/default.conf
+      register: blastwall_idm_default_conf
+
+    - name: Assert IdM configuration exists
+      ansible.builtin.assert:
+        that:
+          - blastwall_idm_default_conf.stat.exists
+        fail_msg: "/etc/ipa/default.conf not found on IdM server."
+
+    - name: Check IdM service status command is available
+      ansible.builtin.command:
+        argv:
+          - ipactl
+          - status
+      register: blastwall_ipactl_status
+      changed_when: false
+      failed_when: blastwall_ipactl_status.rc != 0
+
+- name: Validate automation endpoint target
+  hosts: automation_endpoints
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH to automation endpoint
+      ansible.builtin.wait_for_connection:
+        timeout: 30
+
+    - name: Check SELinux enforcing state
+      ansible.builtin.command:
+        argv:
+          - getenforce
+      register: blastwall_getenforce
+      changed_when: false
+
+    - name: Check alg_socket SELinux class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/alg_socket/perms/create
+      register: blastwall_alg_socket_perm
+
+    - name: Check IdM client configuration exists
+      ansible.builtin.stat:
+        path: /etc/ipa/default.conf
+      register: blastwall_ipa_client_conf
+
+    - name: Assert automation endpoint is suitable for the PoC
+      ansible.builtin.assert:
+        that:
+          - blastwall_getenforce.stdout == 'Enforcing'
+          - blastwall_alg_socket_perm.stat.exists
+          - blastwall_ipa_client_conf.stat.exists
+        fail_msg: >-
+          automation endpoint must have SELinux enforcing, alg_socket
+          policy class, and IdM client configuration.

@@ -1,0 +1,137 @@
+---
+- name: Validate Blastwall IdM state with eigenstate.ipa
+  hosts: bastion
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Require IdM admin password
+      ansible.builtin.assert:
+        that:
+          - blastwall_ipaadmin_password | length > 0
+        fail_msg: "Set IPA_ADMIN_PASSWORD before running eigenstate validation."
+
+    - name: Authenticate to IdM for eigenstate.ipa queries
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          printf '%s\n' "$IPA_ADMIN_PASSWORD" | kinit "$IPA_ADMIN_PRINCIPAL"
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+        IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
+      changed_when: false
+      no_log: true
+
+    - name: Read Blastwall SELinux user map through eigenstate.ipa
+      ansible.builtin.set_fact:
+        blastwall_eigen_selinux_map: >-
+          {{ lookup('eigenstate.ipa.selinuxmap',
+                    '%s' | format(blastwall_selinux_map),
+                    server=blastwall_idm_host,
+                    ipaadmin_principal=blastwall_ipaadmin_principal,
+                    verify='/etc/ipa/ca.crt') }}
+      no_log: true
+
+    - name: Assert SELinux user map is suitable
+      ansible.builtin.assert:
+        that:
+          - blastwall_eigen_selinux_map.exists
+          - blastwall_eigen_selinux_map.enabled
+          - blastwall_eigen_selinux_map.selinuxuser == blastwall_selinux_user
+          - blastwall_eigen_selinux_map.hbacrule == blastwall_hbac_rule
+        fail_msg: "{{ blastwall_eigen_selinux_map | to_nice_json }}"
+
+    - name: Read Blastwall HBAC rule through eigenstate.ipa
+      ansible.builtin.set_fact:
+        blastwall_eigen_hbac_rule: >-
+          {{ lookup('eigenstate.ipa.hbacrule',
+                    '%s' | format(blastwall_hbac_rule),
+                    server=blastwall_idm_host,
+                    ipaadmin_principal=blastwall_ipaadmin_principal,
+                    verify='/etc/ipa/ca.crt') }}
+      no_log: true
+
+    - name: Assert HBAC rule has the expected scope
+      ansible.builtin.assert:
+        that:
+          - blastwall_eigen_hbac_rule.exists
+          - blastwall_eigen_hbac_rule.enabled
+          - blastwall_auto_group in blastwall_eigen_hbac_rule.groups
+          - blastwall_hostgroup in blastwall_eigen_hbac_rule.hostgroups
+          - "'sshd' in blastwall_eigen_hbac_rule.services"
+        fail_msg: "{{ blastwall_eigen_hbac_rule | to_nice_json }}"
+
+    - name: Run HBAC access test through eigenstate.ipa
+      ansible.builtin.set_fact:
+        blastwall_eigen_hbac_test: >-
+          {{ lookup('eigenstate.ipa.hbacrule',
+                    '%s' | format(blastwall_auto_user),
+                    operation='test',
+                    targethost=blastwall_endpoint_host,
+                    service='sshd',
+                    server=blastwall_idm_host,
+                    ipaadmin_principal=blastwall_ipaadmin_principal,
+                    verify='/etc/ipa/ca.crt') }}
+      no_log: true
+
+    - name: Assert HBAC access test allows the PoC login
+      ansible.builtin.assert:
+        that:
+          - not blastwall_eigen_hbac_test.denied
+        fail_msg: "{{ blastwall_eigen_hbac_test | to_nice_json }}"
+
+    - name: Read Blastwall sudo rule through eigenstate.ipa
+      ansible.builtin.set_fact:
+        blastwall_eigen_sudo_rule: >-
+          {{ lookup('eigenstate.ipa.sudo',
+                    '%s' | format(blastwall_sudo_rule),
+                    sudo_object='rule',
+                    server=blastwall_idm_host,
+                    ipaadmin_principal=blastwall_ipaadmin_principal,
+                    verify='/etc/ipa/ca.crt') }}
+      no_log: true
+
+    - name: Assert sudo rule preserves Blastwall confinement
+      ansible.builtin.assert:
+        that:
+          - blastwall_eigen_sudo_rule.exists
+          - blastwall_eigen_sudo_rule.enabled
+          - blastwall_auto_group in blastwall_eigen_sudo_rule.groups
+          - blastwall_hostgroup in blastwall_eigen_sudo_rule.hostgroups
+          - >-
+            blastwall_sudo_command_group in
+            blastwall_eigen_sudo_rule.allow_sudocmdgroups
+          - "'role=unconfined_r' not in blastwall_eigen_sudo_rule.sudooptions"
+          - "'type=unconfined_t' not in blastwall_eigen_sudo_rule.sudooptions"
+          - "'role=blastwall_r' in blastwall_eigen_sudo_rule.sudooptions"
+          - "'type=blastwall_t' in blastwall_eigen_sudo_rule.sudooptions"
+        fail_msg: "{{ blastwall_eigen_sudo_rule | to_nice_json }}"
+
+    - name: Render eigenstate.ipa IdM inventory candidate view
+      ansible.builtin.command:
+        argv:
+          - ansible-inventory
+          - -i
+          - inventory-eigenstate.yml
+          - --list
+      environment:
+        IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+      register: blastwall_eigen_inventory
+      changed_when: false
+      no_log: true
+
+    - name: Assert automation endpoint is visible in eigenstate inventory
+      ansible.builtin.assert:
+        that:
+          - blastwall_endpoint_host in blastwall_eigen_inventory.stdout
+        fail_msg: >-
+          automation endpoint was not present in eigenstate.ipa inventory.
+
+    - name: Report eigenstate.ipa validation summary
+      ansible.builtin.debug:
+        msg:
+          selinux_map: "{{ blastwall_selinux_map }}"
+          hbac_rule: "{{ blastwall_hbac_rule }}"
+          sudo_rule: "{{ blastwall_sudo_rule }}"
+          target: "{{ blastwall_endpoint_host }}"

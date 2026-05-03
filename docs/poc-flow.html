@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PoC Flow | blastwall</title>
+    <meta name="description" content="End-to-end lab flow for validating Blastwall in Calabi with IdM, AAP, SELinux, and direct AF_ALG, BPF, packet_socket, userns, and self-protection denial probes plus audit evidence.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">End-to-end lab validation for the identity, policy, rollout, and proof path.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="./"><kbd>Overview</kbd></a>
+          <a href="demo.html"><kbd>Demo</kbd></a>
+          <a href="quick-demo.html"><kbd>Lab Exercise</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi"><kbd>Source Flow</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <article class="content-column markdown-body">
+        <p class="lead">This lab flow is the logistics test for the recorded demo. It is written for <a href="https://gprocunier.github.io/calabi/">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries. Calabi is the validation environment, not a Blastwall dependency; the same pattern applies to any IdM-enrolled RHEL lab with a bastion-like control point and a managed endpoint.</p>
+
+        <p>The flow configures IdM, validates the read-side gate with <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a>, builds a policy RPM, deploys it, and proves AF_ALG, BPF, packet_socket, userns, and self-protection denials from a mapped automation identity on the Calabi lab target <code>mirror-registry.workshop.lan</code>, then reads the target audit log for SELinux evidence.</p>
+
+        <section>
+          <h2>Execution Boundary</h2>
+          <p>Run these playbooks on <code>bastion-01</code>, not directly from the workstation. Stage the <code>poc-calabi/</code> directory to a bastion-local path before execution.</p>
+        </section>
+
+        <section>
+          <h2>Inputs</h2>
+          <p>Provide IdM admin credentials through the environment. The automation user password is optional and only needed when the lab path requires it.</p>
+          <pre><code>export IPA_ADMIN_PASSWORD='...'
+export BLASTWALL_AUTO_PASSWORD='...'</code></pre>
+        </section>
+
+        <section>
+          <h2>Run Order</h2>
+          <pre><code>ansible-playbook 00-preflight.yml
+ansible-playbook 10-configure-idm.yml
+ansible-playbook 15-validate-idm-with-eigenstate.yml
+ansible-playbook 20-build-policy-rpm.yml
+ansible-playbook 30-deploy-and-test.yml
+ansible-playbook 35-test-self-protection.yml</code></pre>
+        </section>
+
+        <section>
+          <h2>Expected Result</h2>
+          <ul>
+            <li><code>svc-ansible-runner</code> can SSH to <code>automation-endpoint</code>.</li>
+            <li><code>id -Z</code> returns <code>blastwall_u:blastwall_r:blastwall_t:s0</code> or the public alias.</li>
+            <li><code>sudo -n /usr/bin/id -u</code> returns <code>0</code>.</li>
+            <li>The AF_ALG/authencesn probe prints <code>BLOCKED</code>.</li>
+            <li>The BPF probe prints <code>BLOCKED</code> for <code>BPF_MAP_CREATE</code> and <code>BPF_PROG_LOAD</code>.</li>
+            <li>The packet_socket probe prints <code>BLOCKED</code> for AF_PACKET socket creation.</li>
+            <li>The userns probe prints <code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</li>
+            <li>The self-protection play temporarily exposes <code>/usr/sbin/semodule</code> through sudo, then SELinux denies execution from <code>blastwall_t</code>.</li>
+            <li>A target-side audit-log query shows SELinux denial evidence for <code>blastwall_t</code>.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Lab Scope</h2>
+          <p class="context-kicker">Full proof path</p>
+          <p class="context-copy">Use this when the question is not only whether the denial works, but whether the rollout model is visible, repeatable, and auditable.</p>
+        </section>
+        <section class="toc-block">
+          <h2>Related</h2>
+          <ol class="path-list">
+            <li><a href="./">Overview</a></li>
+            <li><a href="demo.html">Demo</a></li>
+            <li><a href="quick-demo.html">Lab Exercise</a></li>
+            <li><a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi">Source Flow</a></li>
+          </ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+flowchart TB
+    subgraph LOCAL["1. Host-local proof"]
+        DEPLOY["Policy deployment workflow"] --> RPM["Install/update<br/>blastwall-selinux RPM"]
+        RPM --> VERIFY["Verify local policy<br/>expected denials"]
+    end
+
+    subgraph IDM_STATE["2. Inventory-visible claim"]
+        IDM["Update IdM host description marker"] --> INV["eigenstate.ipa.idm inventory sync"]
+    end
+
+    subgraph AAP_DECISION["3. AAP target decision"]
+        CURRENT{"Marker matches<br/>required policy?"}
+        CURRENT -->|yes| GOOD["blastwall_policy_current<br/>preferred candidates"]
+        CURRENT -->|no| STALE["blastwall_policy_stale<br/>report/remediate"]
+    end
+
+    VERIFY --> IDM
+    INV --> CURRENT

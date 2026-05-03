@@ -1,0 +1,130 @@
+---
+- name: Remove Blastwall PoC RPM and target-side artifacts
+  hosts: automation_endpoints
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Remove Blastwall RPM
+      ansible.builtin.dnf:
+        name: "{{ blastwall_policy_name }}"
+        state: absent
+
+    - name: Remove copied probe directory
+      ansible.builtin.file:
+        path: "{{ blastwall_probe_install_dir }}"
+        state: absent
+
+    - name: Clear SSSD cache
+      ansible.builtin.command:
+        argv:
+          - sss_cache
+          - -E
+      changed_when: true
+      failed_when: false
+
+- name: Remove Blastwall IdM PoC objects
+  hosts: idm_servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Require IdM admin password
+      ansible.builtin.assert:
+        that:
+          - blastwall_ipaadmin_password | length > 0
+        fail_msg: "Set IPA_ADMIN_PASSWORD before cleanup."
+
+    - name: Authenticate to IdM CLI
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          printf '%s\n' "$IPA_ADMIN_PASSWORD" | kinit "$IPA_ADMIN_PRINCIPAL"
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+        IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
+      changed_when: false
+      no_log: true
+
+    - name: Remove SELinux user map
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - selinuxusermap-del
+          - "{{ blastwall_selinux_map }}"
+      changed_when: true
+      failed_when: false
+
+    - name: Disable sudo rule before removal
+      freeipa.ansible_freeipa.ipasudorule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_rule }}"
+        state: absent
+      no_log: true
+
+    - name: Remove sudo command group
+      freeipa.ansible_freeipa.ipasudocmdgroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_command_group }}"
+        state: absent
+      no_log: true
+
+    - name: Remove sudo commands
+      freeipa.ansible_freeipa.ipasudocmd:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_commands }}"
+        state: absent
+      no_log: true
+
+    - name: Remove HBAC rule
+      freeipa.ansible_freeipa.ipahbacrule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hbac_rule }}"
+        state: absent
+      no_log: true
+
+    - name: Remove hostgroup
+      freeipa.ansible_freeipa.ipahostgroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hostgroup }}"
+        state: absent
+      no_log: true
+
+    - name: Remove automation group
+      freeipa.ansible_freeipa.ipagroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_auto_group }}"
+        state: absent
+      no_log: true
+
+    - name: Remove automation user
+      freeipa.ansible_freeipa.ipauser:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_auto_user }}"
+        preserve: false
+        state: absent
+      no_log: true
+
+- name: Remove bastion-side build artifacts
+  hosts: bastion
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Remove local PoC state
+      ansible.builtin.file:
+        path: "{{ blastwall_state_dir }}"
+        state: absent

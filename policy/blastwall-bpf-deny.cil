@@ -1,0 +1,11 @@
+; Deny all BPF operations for the blastwall automation domain.
+; Covers CVE-2026-31525 (BPF interpreter), CVE-2026-31429 (BPF/SKB),
+; and CVE-2025-38154 (BPF sockmap).
+
+(deny blastwall_t self (bpf
+  (map_create map_read map_write prog_load prog_run)))
+(neverallow blastwall_t self (bpf
+  (map_create map_read map_write prog_load prog_run)))
+
+(deny blastwall_t self (capability2 (bpf)))
+(neverallow blastwall_t self (capability2 (bpf)))

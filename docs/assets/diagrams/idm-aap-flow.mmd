@@ -1,0 +1,8 @@
+flowchart TB
+    IDM["IdM / FreeIPA<br/>identity + host + policy truth"] --> EIGEN["eigenstate.ipa<br/>read policy state"]
+    EIGEN --> AAP["AAP preflight<br/>gate and target selection"]
+    AAP --> SSH["SSH to managed host"]
+    SSH --> PAM["SSSD + pam_selinux<br/>apply SELinux user map"]
+    PAM --> BW["blastwall_u confined session"]
+    BW --> LOCAL["Local root work<br/>inside SELinux boundary"]
+    BW --> BLOCK["Exploit surfaces denied<br/>by versioned policy"]

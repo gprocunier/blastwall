@@ -1,0 +1,26 @@
+---
+- name: Create Blastwall IdM policy objects
+  hosts: localhost
+  gather_facts: false
+  vars:
+    blastwall_automation_group: blastwall
+    blastwall_hostgroup: blastwall-managed-hosts
+    blastwall_hbac_rule: blastwall-ssh
+    blastwall_selinux_map: blastwall-root-local-map
+    blastwall_selinux_user: blastwall_u:s0-s0:c0.c1023
+    blastwall_sudo_rule: blastwall-root-local-sudo
+    blastwall_sudo_command_group: blastwall-root-local-commands
+  tasks:
+    - name: Show Blastwall IdM object model
+      ansible.builtin.debug:
+        msg:
+          - >-
+            Create these objects with freeipa.ansible_freeipa modules or the
+            equivalent ipa CLI commands from an IdM admin session.
+          - "Group={{ blastwall_automation_group }}"
+          - "Hostgroup={{ blastwall_hostgroup }}"
+          - "HBAC={{ blastwall_hbac_rule }}"
+          - >-
+            SELinux map={{ blastwall_selinux_map }} ->
+            {{ blastwall_selinux_user }}
+          - "Sudo rule={{ blastwall_sudo_rule }}"

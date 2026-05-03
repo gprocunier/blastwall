@@ -1,0 +1,25 @@
+---
+plugin: eigenstate.ipa.idm
+server: idm-01.workshop.lan
+ipaadmin_principal: >-
+  {{ lookup('env', 'IPA_ADMIN_PRINCIPAL') | default('admin', true) }}
+use_kerberos: true
+verify: /etc/ipa/ca.crt
+
+sources:
+  - hosts
+  - hbacrules
+
+hbacrule_filter:
+  - blastwall-ssh
+
+host_filter_from_groups: true
+
+hostvars_include:
+  - idm_fqdn
+  - idm_description
+  - idm_os
+  - idm_hostgroups
+
+compose:
+  ansible_host: idm_fqdn

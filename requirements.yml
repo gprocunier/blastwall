@@ -1,0 +1,4 @@
+---
+collections:
+  - name: eigenstate.ipa
+  - name: freeipa.ansible_freeipa

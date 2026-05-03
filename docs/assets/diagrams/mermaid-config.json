@@ -1,0 +1,38 @@
+{
+  "theme": "base",
+  "securityLevel": "loose",
+  "flowchart": {
+    "curve": "linear",
+    "htmlLabels": true
+  },
+  "themeVariables": {
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#151515",
+    "primaryBorderColor": "#c7c7c7",
+    "lineColor": "#4d4d4d",
+    "secondaryColor": "#f2f2f2",
+    "secondaryTextColor": "#151515",
+    "secondaryBorderColor": "#c7c7c7",
+    "tertiaryColor": "#fce3e3",
+    "tertiaryTextColor": "#151515",
+    "tertiaryBorderColor": "#ee0000",
+    "background": "#ffffff",
+    "mainBkg": "#ffffff",
+    "clusterBkg": "#ffffff",
+    "clusterBorder": "#c7c7c7",
+    "actorBkg": "#ffffff",
+    "actorBorder": "#c7c7c7",
+    "actorTextColor": "#151515",
+    "labelBoxBkgColor": "#ffffff",
+    "labelTextColor": "#151515",
+    "edgeLabelBackground": "#ffffff",
+    "signalColor": "#4d4d4d",
+    "signalTextColor": "#151515",
+    "noteBkgColor": "#f2f2f2",
+    "noteBorderColor": "#c7c7c7",
+    "noteTextColor": "#151515",
+    "sequenceNumberColor": "#151515",
+    "fontFamily": "Red Hat Text, Helvetica, Arial, sans-serif"
+  },
+  "themeCSS": ".node rect, .node polygon, .node path, .node circle { stroke-width: 1.5px; }\n.nodeLabel, .label foreignObject div, .edgeLabel { font-family: 'Red Hat Text', Helvetica, Arial, sans-serif !important; color: #151515 !important; }\n.cluster-label text, .cluster-label span { font-family: 'Red Hat Text', Helvetica, Arial, sans-serif !important; font-weight: 500; color: #151515 !important; }\n.edgePath .path, .flowchart-link { stroke: #4d4d4d !important; stroke-width: 1.5px !important; stroke-linecap: square; }\n.marker path { fill: #4d4d4d !important; stroke: #4d4d4d !important; }\n.actor { stroke-width: 1.5px !important; }"
+}

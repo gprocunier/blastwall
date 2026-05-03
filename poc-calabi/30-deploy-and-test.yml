@@ -1,0 +1,339 @@
+---
+- name: Install Blastwall policy RPM on automation endpoint
+  hosts: automation_endpoints
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure local policy support packages are present
+      ansible.builtin.dnf:
+        name:
+          - policycoreutils
+          - policycoreutils-python-utils
+          - python3-libselinux
+          - audit
+        state: present
+
+    - name: Copy Blastwall RPM to automation endpoint
+      ansible.builtin.copy:
+        src: "{{ blastwall_rpm_path }}"
+        dest: "/tmp/{{ blastwall_policy_nevra }}.noarch.rpm"
+        mode: "0644"
+
+    - name: Install Blastwall RPM
+      ansible.builtin.dnf:
+        name: "/tmp/{{ blastwall_policy_nevra }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+
+    - name: Create probe directory
+      ansible.builtin.file:
+        path: "{{ blastwall_probe_install_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install safe AF_ALG probe
+      ansible.builtin.copy:
+        dest: "{{ blastwall_probe_path }}"
+        mode: "0755"
+        content: |
+          #!/usr/bin/env python3
+          import errno
+          import socket
+          import sys
+
+          AF_ALG = getattr(socket, "AF_ALG", 38)
+
+          def main():
+              try:
+                  sock = socket.socket(AF_ALG, socket.SOCK_SEQPACKET, 0)
+              except PermissionError as exc:
+                  if exc.errno in (errno.EACCES, errno.EPERM):
+                      print(
+                          "BLOCKED: AF_ALG socket creation denied with "
+                          f"errno {exc.errno}"
+                      )
+                      return 0
+                  print(
+                      f"FAIL: unexpected socket permission error: {exc}",
+                      file=sys.stderr,
+                  )
+                  return 1
+              except OSError as exc:
+                  print(
+                      f"SKIP: could not create AF_ALG socket: {exc}",
+                      file=sys.stderr,
+                  )
+                  return 77
+
+              try:
+                  sock.bind(("aead", "authencesn(hmac(sha256),cbc(aes))"))
+              except PermissionError as exc:
+                  if exc.errno in (errno.EACCES, errno.EPERM):
+                      print(
+                          "BLOCKED: AF_ALG authencesn bind denied with "
+                          f"errno {exc.errno}"
+                      )
+                      return 0
+                  print(
+                      f"FAIL: unexpected permission error: {exc}",
+                      file=sys.stderr,
+                  )
+                  return 1
+              except OSError as exc:
+                  print(f"INFO: bind did not reach success path: {exc}")
+                  return 0
+              finally:
+                  sock.close()
+
+              print("FAIL: authencesn AF_ALG bind succeeded")
+              return 1
+
+          if __name__ == "__main__":
+              raise SystemExit(main())
+
+    - name: Install safe BPF probe
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../tests/trigger-bpf-deny.py"
+        dest: "{{ blastwall_bpf_probe_path }}"
+        mode: "0755"
+
+    - name: Install safe packet_socket probe
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../tests/trigger-packet-socket-deny.py"
+        dest: "{{ blastwall_packet_socket_probe_path }}"
+        mode: "0755"
+
+    - name: Install safe userns probe
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../tests/trigger-userns-deny.py"
+        dest: "{{ blastwall_userns_probe_path }}"
+        mode: "0755"
+
+    - name: Clear SSSD caches after IdM policy changes
+      ansible.builtin.command:
+        argv:
+          - sss_cache
+          - -E
+      changed_when: true
+      failed_when: false
+
+    - name: Restart SSSD after policy change
+      ansible.builtin.systemd:
+        name: sssd
+        state: restarted
+
+    - name: Verify Blastwall modules are installed
+      ansible.builtin.command:
+        argv:
+          - semodule
+          - -l
+      register: blastwall_semodule_list
+      changed_when: false
+
+    - name: Assert Blastwall modules are visible
+      ansible.builtin.assert:
+        that:
+          - "'blastwall' in blastwall_semodule_list.stdout"
+          - "'blastwall-alg-socket-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-bpf-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-packet-socket-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-userns-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-policy-selfprotect' in blastwall_semodule_list.stdout"
+        fail_msg: "{{ blastwall_semodule_list.stdout }}"
+
+    - name: Verify Blastwall SELinux user is registered
+      ansible.builtin.command:
+        argv:
+          - semanage
+          - user
+          - -l
+      register: blastwall_semanage_user
+      changed_when: false
+
+    - name: Assert Blastwall SELinux user exists locally
+      ansible.builtin.assert:
+        that:
+          - "'blastwall_u' in blastwall_semanage_user.stdout"
+
+- name: Exercise Blastwall as the IdM-mapped automation user
+  hosts: bastion
+  gather_facts: false
+  environment:
+    KRB5CCNAME: "{{ blastwall_auto_ccache }}"
+  vars:
+    blastwall_ssh_base:
+      - ssh
+      - -o
+      - GSSAPIAuthentication=yes
+      - -o
+      - PreferredAuthentications=gssapi-with-mic
+      - -o
+      - PubkeyAuthentication=no
+      - -o
+      - PasswordAuthentication=no
+      - -o
+      - StrictHostKeyChecking=no
+      - -o
+      - UserKnownHostsFile=/dev/null
+      - "{{ blastwall_auto_user }}@{{ blastwall_endpoint_host }}"
+  tasks:
+    - name: Require automation user password for Kerberos proof
+      ansible.builtin.assert:
+        that:
+          - blastwall_auto_password | length > 0
+        fail_msg: "Set BLASTWALL_AUTO_PASSWORD or IPA_ADMIN_PASSWORD before running the GSSAPI proof."
+
+    - name: Obtain Kerberos ticket for automation user
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          printf '%s\n' "$BLASTWALL_AUTO_PASSWORD" | kinit "$BLASTWALL_AUTO_USER"
+      args:
+        executable: /bin/bash
+      environment:
+        KRB5CCNAME: "{{ blastwall_auto_ccache }}"
+        BLASTWALL_AUTO_USER: "{{ blastwall_auto_user }}"
+        BLASTWALL_AUTO_PASSWORD: "{{ blastwall_auto_password }}"
+      changed_when: false
+      no_log: true
+
+    - name: Wait until the IdM automation user can SSH to automation endpoint
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + ['id', '-Z'] }}"
+      register: blastwall_login_context
+      changed_when: false
+      retries: 12
+      delay: 10
+      until: blastwall_login_context.rc == 0
+
+    - name: Assert login context is Blastwall-confined
+      ansible.builtin.assert:
+        that:
+          - blastwall_login_context.stdout in blastwall_expected_contexts
+        fail_msg: >-
+          Expected one of {{ blastwall_expected_contexts }}, got
+          {{ blastwall_login_context.stdout }}.
+
+    - name: Check sudo can reach UID 0
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + ['sudo', '-n', '/usr/bin/id', '-u'] }}"
+      register: blastwall_sudo_uid
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: blastwall_sudo_uid.rc == 0
+
+    - name: Check sudo preserves Blastwall SELinux type
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + ['sudo', '-n', '/usr/bin/id', '-Z'] }}"
+      register: blastwall_sudo_context
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: blastwall_sudo_context.rc == 0
+
+    - name: Assert sudo remains confined
+      ansible.builtin.assert:
+        that:
+          - blastwall_sudo_uid.stdout == '0'
+          - blastwall_sudo_context.stdout in blastwall_expected_contexts
+        fail_msg: >-
+          sudo result uid={{ blastwall_sudo_uid.stdout }},
+          context={{ blastwall_sudo_context.stdout }}.
+
+    - name: Run safe AF_ALG authencesn probe as mapped automation user
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + [blastwall_probe_path] }}"
+      register: blastwall_probe
+      changed_when: false
+
+    - name: Assert AF_ALG probe is blocked
+      ansible.builtin.assert:
+        that:
+          - >-
+            'BLOCKED:' in
+            (blastwall_probe.stdout ~ blastwall_probe.stderr)
+        fail_msg: >-
+          stdout={{ blastwall_probe.stdout }},
+          stderr={{ blastwall_probe.stderr }}
+
+    - name: Run safe BPF probe as mapped automation user
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + [blastwall_bpf_probe_path] }}"
+      register: blastwall_bpf_probe
+      changed_when: false
+
+    - name: Assert BPF probe is blocked
+      ansible.builtin.assert:
+        that:
+          - >-
+            'BLOCKED:' in
+            (blastwall_bpf_probe.stdout ~ blastwall_bpf_probe.stderr)
+        fail_msg: >-
+          stdout={{ blastwall_bpf_probe.stdout }},
+          stderr={{ blastwall_bpf_probe.stderr }}
+
+    - name: Run safe packet_socket probe as mapped automation user
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + [blastwall_packet_socket_probe_path] }}"
+      register: blastwall_packet_socket_probe
+      changed_when: false
+
+    - name: Assert packet_socket probe is blocked
+      ansible.builtin.assert:
+        that:
+          - >-
+            'BLOCKED:' in
+            (blastwall_packet_socket_probe.stdout ~ blastwall_packet_socket_probe.stderr)
+        fail_msg: >-
+          stdout={{ blastwall_packet_socket_probe.stdout }},
+          stderr={{ blastwall_packet_socket_probe.stderr }}
+
+    - name: Run safe userns probe as mapped automation user
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + [blastwall_userns_probe_path] }}"
+      register: blastwall_userns_probe
+      changed_when: false
+
+    - name: Assert userns probe is blocked
+      ansible.builtin.assert:
+        that:
+          - >-
+            'BLOCKED:' in
+            (blastwall_userns_probe.stdout ~ blastwall_userns_probe.stderr)
+        fail_msg: >-
+          stdout={{ blastwall_userns_probe.stdout }},
+          stderr={{ blastwall_userns_probe.stderr }}
+
+    - name: Show Blastwall proof
+      ansible.builtin.debug:
+        msg:
+          login_context: "{{ blastwall_login_context.stdout }}"
+          sudo_context: "{{ blastwall_sudo_context.stdout }}"
+          afalg_probe: "{{ blastwall_probe.stdout }}"
+          bpf_probe: "{{ blastwall_bpf_probe.stdout }}"
+          packet_socket_probe: "{{ blastwall_packet_socket_probe.stdout }}"
+          userns_probe: "{{ blastwall_userns_probe.stdout }}"
+
+- name: Collect audit evidence from automation endpoint
+  hosts: automation_endpoints
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Look for Blastwall syscall denial evidence
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          grep -a 'subj=blastwall' /var/log/audit/audit.log |
+            tr '\035' '\n' |
+            grep -E 'type=SYSCALL.*(syscall=41|syscall=321|syscall=272).*exit=-13|SYSCALL=(socket|bpf|unshare).*AUID="{{ blastwall_auto_user }}"' |
+            sed -E 's/.*audit\(([^)]*)\).*syscall=([0-9]+).*exit=(-?[0-9]+).*comm="([^"]+)".*subj=([^ ]+).*/type=SYSCALL audit(\1) syscall=\2 exit=\3 comm="\4" subj=\5/; s/.*SYSCALL=([^ ]+).*AUID="([^"]+)".*/ARCH SYSCALL=\1 AUID="\2"/' |
+            tail -n 16 || true
+      args:
+        executable: /bin/bash
+      register: blastwall_audit_evidence
+      changed_when: false
+
+    - name: Show audit evidence when present
+      ansible.builtin.debug:
+        var: blastwall_audit_evidence.stdout_lines

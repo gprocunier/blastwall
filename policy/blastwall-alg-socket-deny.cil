@@ -1,0 +1,17 @@
+; SELinux userspace 3.6+ CIL deny rule.
+;
+; The reference-policy user template can inherit broad socket permissions from
+; the base policy.  A CIL deny rule subtracts alg_socket permissions from any
+; matching allow rules, which is exactly what this PoC needs for the Copy Fail
+; exploit surface.  The following neverallow is checked after deny processing
+; and guards against future policy drift.
+
+(deny blastwall_t self (alg_socket
+  (accept append bind connect create getattr getopt ioctl listen lock map
+   name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+   setattr setopt shutdown write)))
+
+(neverallow blastwall_t self (alg_socket
+  (accept append bind connect create getattr getopt ioctl listen lock map
+   name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+   setattr setopt shutdown write)))

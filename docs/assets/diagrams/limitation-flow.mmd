@@ -1,0 +1,10 @@
+flowchart TD
+    EXPLOIT["Copy Fail path"] --> SOCK["AF_ALG socket"]
+    SOCK --> BIND["bind(authencesn...)"]
+    BIND --> VULN["vulnerable kernel path"]
+
+    BPF["block-copyfail<br/>BPF LSM approach"] --> PRECISE["Inspect sockaddr_alg<br/>deny only authencesn"]
+    SELINUX["Blastwall<br/>SELinux approach"] --> BROAD["Deny alg_socket class<br/>for automation domain"]
+
+    PRECISE --> SOCK
+    BROAD --> SOCK

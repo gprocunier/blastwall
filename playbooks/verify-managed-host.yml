@@ -1,0 +1,103 @@
+---
+- name: Verify Blastwall managed-host confinement
+  hosts: blastwall_policy_current
+  gather_facts: false
+  vars:
+    blastwall_expected_contexts:
+      - blastwall_u:blastwall_r:blastwall_root_local_t:s0
+      - blastwall_u:blastwall_r:blastwall_t:s0
+    blastwall_trigger_path: >-
+      {{ playbook_dir }}/../tests/trigger-copyfail-afalg.py
+    blastwall_bpf_trigger_path: >-
+      {{ playbook_dir }}/../tests/trigger-bpf-deny.py
+    blastwall_packet_socket_trigger_path: >-
+      {{ playbook_dir }}/../tests/trigger-packet-socket-deny.py
+    blastwall_userns_trigger_path: >-
+      {{ playbook_dir }}/../tests/trigger-userns-deny.py
+  tasks:
+    - name: Capture login SELinux context
+      ansible.builtin.command: id -Z
+      register: blastwall_idz
+      changed_when: false
+
+    - name: Assert login context is confined
+      ansible.builtin.assert:
+        that:
+          - blastwall_idz.stdout in blastwall_expected_contexts
+        fail_msg: >-
+          Expected one of {{ blastwall_expected_contexts }}, got
+          {{ blastwall_idz.stdout }}.
+
+    - name: Capture sudo identity and SELinux context
+      ansible.builtin.command: sudo sh -c 'id -u; id -Z'
+      register: blastwall_sudo_id
+      changed_when: false
+
+    - name: Assert sudo reaches UID 0 without leaving Blastwall type
+      ansible.builtin.assert:
+        that:
+          - blastwall_sudo_id.stdout_lines[0] == '0'
+          - blastwall_sudo_id.stdout_lines[1] in blastwall_expected_contexts
+        fail_msg: >-
+          sudo did not preserve Blastwall confinement:
+          {{ blastwall_sudo_id.stdout_lines }}
+
+    - name: Copy AF_ALG trigger to target
+      ansible.builtin.copy:
+        src: "{{ blastwall_trigger_path }}"
+        dest: /tmp/trigger-copyfail-afalg.py
+        mode: "0755"
+
+    - name: Verify AF_ALG authencesn bind is blocked
+      ansible.builtin.command: /tmp/trigger-copyfail-afalg.py
+      register: blastwall_trigger
+      changed_when: false
+
+    - name: Show AF_ALG trigger result
+      ansible.builtin.debug:
+        var: blastwall_trigger.stdout
+
+    - name: Copy BPF trigger to target
+      ansible.builtin.copy:
+        src: "{{ blastwall_bpf_trigger_path }}"
+        dest: /tmp/trigger-bpf-deny.py
+        mode: "0755"
+
+    - name: Verify BPF map creation is blocked
+      ansible.builtin.command: /tmp/trigger-bpf-deny.py
+      register: blastwall_bpf_trigger
+      changed_when: false
+
+    - name: Show BPF trigger result
+      ansible.builtin.debug:
+        var: blastwall_bpf_trigger.stdout
+
+    - name: Copy packet_socket trigger to target
+      ansible.builtin.copy:
+        src: "{{ blastwall_packet_socket_trigger_path }}"
+        dest: /tmp/trigger-packet-socket-deny.py
+        mode: "0755"
+
+    - name: Verify AF_PACKET socket creation is blocked
+      ansible.builtin.command: /tmp/trigger-packet-socket-deny.py
+      register: blastwall_packet_socket_trigger
+      changed_when: false
+
+    - name: Show packet_socket trigger result
+      ansible.builtin.debug:
+        var: blastwall_packet_socket_trigger.stdout
+
+    - name: Copy userns trigger to target
+      ansible.builtin.copy:
+        src: "{{ blastwall_userns_trigger_path }}"
+        dest: /tmp/trigger-userns-deny.py
+        mode: "0755"
+
+    - name: Verify user namespace creation is blocked
+      ansible.builtin.command: /tmp/trigger-userns-deny.py
+      register: blastwall_userns_trigger
+      changed_when: false
+
+    - name: Show userns trigger result
+      ansible.builtin.debug:
+        var: blastwall_userns_trigger.stdout

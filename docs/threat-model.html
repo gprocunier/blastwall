@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>blastwall | threat model</title>
+    <meta name="description" content="Threat model for Blastwall: scope, trust boundaries, adversary model, and attack paths.">
+    <meta property="og:title" content="blastwall threat model">
+    <meta property="og:description" content="Threat model for Blastwall: scope, trust boundaries, adversary model, and attack paths.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gprocunier.github.io/blastwall/threat-model.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">SELinux Automation Boundary</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">The faster automation moves, the more it needs a hard boundary before it reaches the systems people depend on.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="demo.html"><kbd>Demo</kbd></a>
+          <a href="quick-demo.html"><kbd>Lab Exercise</kbd></a>
+          <a href="poc-flow.html"><kbd>PoC Flow</kbd></a>
+          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">I want to be explicit about what Blastwall defends, what it assumes, and where it can be attacked.  If I am going to argue that automation should start constrained, I should also say where the constraints stop working.</p>
+
+        <section id="scope">
+          <h2>1. Purpose and Scope</h2>
+          <h3>What I Am Trying To Protect</h3>
+          <p>Blastwall confines privileged automation identities on managed RHEL hosts.  It maps them into a restricted SELinux user (<code>blastwall_u</code>) that denies access to known exploit surfaces.  The confinement lifecycle (policy authoring, RPM packaging, deployment, verification, IdM marker, AAP preflight) is built to ship exploit surface denials faster than kernel patches move through the fleet.</p>
+          <p>That is the scope.  I am not trying to solve all of host security.  I am trying to make sure that when my automation lands on a managed host, the session starts inside a boundary that blocks known-dangerous surfaces.</p>
+
+          <h3>What I Am Not Trying To Protect</h3>
+          <ul>
+            <li><strong>Human operator sessions.</strong> Blastwall applies only to automation identities mapped into <code>blastwall_u</code> via IdM SELinux user maps.  If you log in as yourself, you are not affected.</li>
+            <li><strong>Container or VM workloads.</strong> The confinement operates at the SSH login layer via <code>pam_selinux</code>.  It has nothing to say about container runtimes, pod security, or hypervisor-level isolation.</li>
+            <li><strong>Non-RHEL systems.</strong> The model depends on SELinux targeted policy, IdM/FreeIPA, and SSSD.  It is not portable.</li>
+            <li><strong>AAP controller infrastructure.</strong> The controller is a trusted component.  Securing it is a separate problem.</li>
+            <li><strong>IdM/FreeIPA infrastructure.</strong> IdM is the policy system of record.  If IdM is compromised, Blastwall cannot help.</li>
+          </ul>
+
+          <h3>Relationship to Other Mitigations</h3>
+          <p>Blastwall does not replace kernel patches or BPF LSM mitigations like <code>block-copyfail</code>.  Kernel patches fix the vulnerability.  BPF LSM blocks the exact exploit argument.  Blastwall reduces the blast radius for automation identities while those other mitigations are still moving through the fleet.</p>
+          <p>I think of them as three layers, not three alternatives.</p>
+        </section>
+
+        <section id="threat-landscape">
+          <h2>2. Threat Landscape</h2>
+          <p>I made the high-level argument in <a href="./#threat-landscape">Why This Matters Now</a>: AI-accelerated vulnerability research is compressing the timeline between discovery and weaponization, and unconfined automation is the blast radius amplifier.  Here I want to break down why that matters structurally.</p>
+
+          <h3>Why I Treat Automation As A Harder Problem Than Operator Compromise</h3>
+          <p>When an operator gets compromised, the blast radius is bounded by what that one person was doing at the time.  One session, one host, one set of open connections.  It is bad, but it is containable.</p>
+          <p>The reason I treat automation differently is that it breaks all three of those bounds at once:</p>
+          <ol>
+            <li><strong>Reach.</strong> A single automation identity typically has HBAC access to tens, hundreds, or thousands of hosts.  Compromising that identity does not give the attacker one target.  It gives them a target list.</li>
+            <li><strong>Speed.</strong> Automation moves at machine speed with no human decision-making in the loop.  An attacker who can inject into that execution path inherits the same speed.</li>
+            <li><strong>Privilege assumption.</strong> Automation identities are often configured with broad sudo access because the alternative is per-task privilege scoping, which most teams never finish.  The practical result is that automation lands as root with few constraints.</li>
+          </ol>
+          <p>Those three properties together are what turn a single kernel exploit into fleet-wide lateral movement.  That is the failure mode I built Blastwall to prevent.</p>
+
+          <h3>Why The Patch Cycle Is Not Fast Enough</h3>
+          <p>The reason I do not rely on patching alone is timing.  A kernel vulnerability goes through discovery, disclosure, patch development, distribution packaging, staged rollout, and production deployment.  In most enterprises that takes weeks to months.</p>
+          <p>During that entire window, every unconfined automation identity on every unpatched host is exposed.  The exploit surface is live, the automation has access, and the only thing between the attacker and lateral movement is whether they have found the vulnerability yet.</p>
+          <p>AI-accelerated vulnerability research changes that side of the equation.  The volume of discoverable kernel exploit surfaces will increase faster than patch cycles can absorb them.  I built Blastwall around the assumption that confinement must be in place before the CVE number is assigned, not after.  If I wait for the patch, I am defending a window that is already open.</p>
+
+          <h3>What This Means For Confinement</h3>
+          <p>So I cannot be reactive.  I cannot wait for a specific CVE and then build a specific deny rule.  I need automation identities to start inside a boundary that blocks broad classes of dangerous surfaces by default, and I need the lifecycle to add new deny scopes faster than kernel patches move through the fleet.</p>
+          <p>That is the design constraint behind Blastwall's architecture: versioned policy RPMs, IdM-visible coverage markers, and AAP preflight gates that fail closed when the required coverage is not present.</p>
+        </section>
+
+        <section id="adversary">
+          <h2>3. Adversary Model</h2>
+          <h3>Who I Am Defending Against</h3>
+          <p>A remote attacker who has obtained or developed a weaponized kernel exploit targeting a surface reachable from automation sessions.  The attacker's goal is lateral movement: use the automation identity's access, speed, and host reach to compromise the fleet.</p>
+
+          <h3>What I Assume The Attacker Can Do</h3>
+          <ul>
+            <li>Discover and weaponize kernel vulnerabilities, potentially using AI-accelerated research tools</li>
+            <li>Reach hosts that automation identities have access to (directly or through an initial foothold)</li>
+            <li>Chain exploits if the initial surface (e.g., AF_ALG socket creation) is available from the automation session</li>
+            <li>Observe public information about the target's automation architecture</li>
+          </ul>
+
+          <h3>What I Do Not Assume</h3>
+          <ul>
+            <li>Compromise of IdM/FreeIPA (trusted infrastructure)</li>
+            <li>Compromise of the AAP controller (trusted infrastructure)</li>
+            <li>Compromise of kernel integrity on the managed host (SELinux enforcement depends on a non-compromised kernel)</li>
+            <li>Physical access to managed hosts</li>
+            <li>Supply chain compromise of the RPM build or delivery pipeline</li>
+          </ul>
+          <p>If any of these are violated, the attacker is operating outside the boundaries I designed Blastwall to defend.  Each represents a separate security domain with its own controls.</p>
+        </section>
+
+        <section id="boundaries">
+          <h2>4. Trust Boundaries</h2>
+          <figure class="diagram-card" id="trust-boundaries-diagram">
+            <figcaption>
+              <strong>Trust Boundaries</strong>
+              <span>AAP and IdM are trusted infrastructure; the mapped automation session is the untrusted subject SELinux confines on the managed host.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/trust-boundaries.svg" alt="Blastwall trust boundaries between AAP, IdM, managed host, kernel, and automation session">
+          </figure>
+          <h3>Boundary Descriptions</h3>
+          <ol>
+            <li><strong>AAP controller.</strong> Trusted. Runs preflight validation before dispatching jobs. If compromised, the attacker can bypass preflight, but SELinux enforcement on managed hosts is independent and remains intact.</li>
+            <li><strong>IdM/FreeIPA.</strong> Trusted. Authoritative source for identity mapping, HBAC rules, SELinux user maps, and sudo policy. Blastwall reads this state; it does not independently verify it.</li>
+            <li><strong>Network transport.</strong> SSH with Kerberos authentication. The trust boundary is at the managed host's <code>pam_selinux</code> resolution, not at the network layer.</li>
+            <li><strong>Managed host kernel.</strong> Trusted. SELinux enforcement is a kernel function. If the kernel is compromised, the attacker can disable or bypass SELinux policy. That is the fundamental assumption that bounds all SELinux-based confinement.</li>
+            <li><strong>Automation session.</strong> Untrusted. This is the subject I am confining. The session runs as <code>blastwall_u:blastwall_r:blastwall_t</code> with deny rules stripping access to specified exploit surfaces.</li>
+          </ol>
+        </section>
+
+        <section id="assumptions">
+          <h2>5. Assumptions</h2>
+          <p>Every one of these must hold for the confinement to work.  If any assumption is violated, the corresponding attack path in Section 6 becomes viable.</p>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Assumption</th><th>If Violated</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>A-1</td><td>SELinux is in enforcing mode on managed hosts</td><td>Policy becomes audit-only; no enforcement (AP-1)</td></tr>
+              <tr><td>A-2</td><td>The managed host kernel is not compromised</td><td>Attacker can disable SELinux entirely (AP-1)</td></tr>
+              <tr><td>A-3</td><td>IdM/FreeIPA is authoritative and secured independently</td><td>Attacker can modify identity mappings, HBAC, sudo (AP-3, AP-5)</td></tr>
+              <tr><td>A-4</td><td>SSSD correctly applies SELinux user maps at login</td><td>Session may land in wrong SELinux context (AP-4)</td></tr>
+              <tr><td>A-5</td><td>RPM delivery chain has integrity</td><td>Attacker can ship policy that removes deny rules</td></tr>
+              <tr><td>A-6</td><td>Sudo rules are reviewed before expansion</td><td>Confinement erodes through operational convenience (AP-2)</td></tr>
+              <tr><td>A-7</td><td>AAP controller is secured independently</td><td>Attacker can bypass preflight and SSH directly (AP-5)</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="attack-paths">
+          <h2>6. Attack Paths</h2>
+
+          <h3>AP-1: Kernel Privilege Escalation</h3>
+          <p>An attacker with code execution inside <code>blastwall_t</code> exploits a kernel vulnerability to escape SELinux confinement entirely.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>A kernel privilege escalation vulnerability exists and is reachable from the confined domain.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Complete bypass of all Blastwall controls.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>None within Blastwall. Fundamental SELinux limitation. Kernel patching and defense-in-depth (seccomp, BPF LSM, hardware isolation) are the appropriate mitigations.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Accepted. If the attacker already has a kernel escape, my assumptions are violated and I am in a different fight.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>AP-2: Sudo Expansion Granting Policy Modification</h3>
+          <p>An automation team expands the sudo command allowlist to include <code>semodule</code>, <code>semanage</code>, or write access to <code>/etc/selinux/</code>.  The <code>blastwall_t</code> domain can then modify or remove its own confinement policy.</p>
+          <p>This is the attack path I worry about most.  Not because it requires a sophisticated attacker, but because it happens through ordinary operational pressure.  Someone needs broader sudo access for a legitimate task, the allowlist grows, and one day it includes <code>semodule</code>.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>Sudo rule expanded without security review of SELinux implications.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Automation identity can remove deny rules, disabling enforcement.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Preflight audits sudo rule for <code>unconfined_r</code>/<code>unconfined_t</code> leakage. The self-protection policy denies direct policy-management execution and policy-store writes from <code>blastwall_t</code>.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Moderate. Direct policy manipulation is blocked locally, but indirect sudo escape and IdM-side changes still need review.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>AP-3: IdM Host Marker Spoofing</h3>
+          <p>An attacker (or misconfigured automation) writes a false <code>blastwall_policy_state=active</code> marker to a host's IdM description. The preflight gate selects that host even though no policy is installed.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>Attacker has <code>ipa host-mod</code> access.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Jobs run on hosts that lack confinement policy.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Verification playbook checks actual SELinux context and runs AF_ALG, BPF, packet_socket, and userns probes after deployment. But that is a point-in-time check, not continuous verification.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Moderate. String-based marker has no cryptographic binding to actual policy state.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>AP-4: SSSD Cache Race</h3>
+          <p>Between SSSD cache invalidation and the next login, the SELinux user map may not be applied. A login during this window may result in an unconfined session.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>SSSD cache recently cleared. Login occurs before cache is populated with correct map.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Session lands in <code>unconfined_u</code> instead of <code>blastwall_u</code>.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Deployment playbook clears cache and restarts SSSD. Verification step confirms correct context.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Low. Race window is small (seconds) and caught by verification.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>AP-5: AAP Controller Compromise</h3>
+          <p>An attacker compromises the AAP controller and bypasses preflight, SSHing directly to managed hosts.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>AAP controller is compromised.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Preflight gates bypassed. SELinux enforcement on managed hosts is independent and remains intact.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Host-local SELinux enforcement does not depend on the controller.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Moderate. Attacker may target hosts where policy is not installed (stale hosts) since preflight would have filtered those out.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>AP-6: Uncovered Exploit Surfaces</h3>
+          <p>The attacker targets a kernel exploit surface not denied by current policy.  The policy now denies <code>alg_socket</code> (Copy Fail), <code>bpf</code> (CVE-2026-31525, CVE-2026-31429, CVE-2025-38154), <code>packet_socket</code> (CVE-2025-38617, CVE-2026-31504), and <code>userns_create</code> (an exploit chain enabler; 44% of kernel exploits require user namespaces). It also protects the policy-management surface from direct modification by <code>blastwall_t</code>.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>Weaponized exploit exists for an uncovered surface.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Attacker exploits the vulnerability from within the confined session.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>The demonstrated automation deny scope blocks <code>alg_socket</code>, <code>bpf</code>, <code>packet_socket</code>, and <code>userns_create</code>.  The self-protection scope denies direct policy manipulation.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Moderate. The current scope blocks the surfaces that have strong exploit value and low expected value for privileged automation. Other kernel surfaces remain candidates only when the exploit signal and automation tradeoff justify adding them to the policy lifecycle.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>AP-7: Policy Conflicts With Existing SELinux Modules</h3>
+          <p>The Blastwall policy module conflicts with existing targeted policy or third-party modules, causing unexpected denials or grants.</p>
+          <table>
+            <tbody>
+              <tr><td><strong>Preconditions</strong></td><td>Managed host has SELinux modules that interact with Blastwall types or permissions.</td></tr>
+              <tr><td><strong>Impact</strong></td><td>Ranges from broken automation (false denials) to weakened confinement (unintended grants).</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Minimal policy surface. <code>neverallow</code> prevents re-grants of denied permissions.</td></tr>
+              <tr><td><strong>Residual risk</strong></td><td>Low for the current focused policy. Increases as coverage expands.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="mitigations">
+          <h2>7. Mitigations Summary</h2>
+          <table>
+            <thead>
+              <tr><th>Attack Path</th><th>Status</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>AP-1: Kernel privilege escalation</td><td>Accepted risk</td><td>Fundamental SELinux limitation; out of scope</td></tr>
+              <tr><td>AP-2: Sudo expansion</td><td>Partially mitigated</td><td>Direct semodule-style policy manipulation is blocked by self-protection; indirect sudo escape still needs review</td></tr>
+              <tr><td>AP-3: Host marker spoofing</td><td>Partially mitigated</td><td>Verification playbook catches post-deployment; no cryptographic binding</td></tr>
+              <tr><td>AP-4: SSSD cache race</td><td>Mitigated</td><td>Small window, caught by verification step</td></tr>
+              <tr><td>AP-5: Controller compromise</td><td>Partially mitigated</td><td>Host-local enforcement independent; stale host selection is residual risk</td></tr>
+              <tr><td>AP-6: Uncovered surfaces</td><td>Partially mitigated</td><td>AF_ALG, BPF, packet_socket, userns covered; policy self-protection added; future scopes require coverage-selection review</td></tr>
+              <tr><td>AP-7: Policy conflicts</td><td>Low risk</td><td>Minimal surface; neverallow guards against re-grants</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+
+        <section id="future-work">
+          <h2>8. Future Work</h2>
+          <ul>
+            <li><strong>Coverage selection review.</strong> Define the exploit-signal, automation-impact, and verification criteria a new deny surface must satisfy before it becomes a Blastwall policy scope.</li>
+            <li><strong>Cryptographic policy attestation.</strong> Replace string-based IdM host markers with a signed statement of policy version and enforcement state.</li>
+            <li><strong>Sudo expansion impact analysis.</strong> Tooling or preflight checks that evaluate whether a proposed sudo rule change grants access to policy modification tools.</li>
+            <li><strong>Continuous confinement verification.</strong> Extend the verification model from point-in-time playbook checks to periodic or event-driven re-validation.</li>
+            <li><strong>Multi-host scaling validation.</strong> Demonstrate the preflight and deployment lifecycle against an inventory of 10+ hosts with mixed policy coverage states.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Threat Model</h2>
+          <p class="context-kicker">Scope and attack paths</p>
+          <p class="context-copy">What Blastwall defends, what it assumes, and where it can be attacked.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#scope">Scope</a></li>
+            <li><a href="#threat-landscape">Threat Landscape</a></li>
+            <li><a href="#adversary">Adversary Model</a></li>
+            <li><a href="#boundaries">Trust Boundaries</a></li>
+            <li><a href="#assumptions">Assumptions</a></li>
+            <li><a href="#attack-paths">Attack Paths</a></li>
+            <li><a href="#mitigations">Mitigations</a></li>
+            <li><a href="#future-work">Future Work</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Source</h2>
+          <p>The source of record is <a href="https://github.com/gprocunier/blastwall/blob/main/THREAT-MODEL.md"><code>THREAT-MODEL.md</code></a> in the repository root.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>GPL-3.0 licensed proof of concept. Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

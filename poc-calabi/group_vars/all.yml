@@ -1,0 +1,75 @@
+---
+blastwall_lab_domain: workshop.lan
+blastwall_ipa_realm: WORKSHOP.LAN
+
+blastwall_idm_host: idm-01.workshop.lan
+blastwall_endpoint_host: automation-endpoint.workshop.lan
+
+blastwall_ipaadmin_principal: admin
+blastwall_ipaadmin_password: >-
+  {{ lookup('env', 'IPA_ADMIN_PASSWORD') | default('', true) }}
+
+blastwall_auto_user: svc-ansible-runner
+blastwall_auto_first: Service
+blastwall_auto_last: Ansible Runner
+blastwall_auto_group: blastwall
+blastwall_auto_password: >-
+  {{ lookup('env', 'BLASTWALL_AUTO_PASSWORD') |
+  default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+
+blastwall_hostgroup: blastwall-managed-hosts
+blastwall_hbac_rule: blastwall-ssh
+blastwall_selinux_map: blastwall-root-local-map
+blastwall_selinux_user: blastwall_u:s0
+blastwall_selinux_user_order_entry: "{{ blastwall_selinux_user }}"
+blastwall_sudo_rule: blastwall-root-local-sudo
+blastwall_sudo_command_group: blastwall-root-local-commands
+blastwall_sudo_commands:
+  - /usr/bin/id
+blastwall_sudo_options:
+  - "!authenticate"
+  - role=blastwall_r
+  - type=blastwall_t
+
+blastwall_state_dir: /var/tmp/blastwall-poc
+blastwall_auto_ccache: "{{ blastwall_state_dir }}/krb5cc_{{ blastwall_auto_user }}"
+
+blastwall_policy_version: 0.4.0
+blastwall_policy_release: "1"
+blastwall_policy_name: blastwall-selinux
+blastwall_policy_nevra: >-
+  {{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{
+  blastwall_policy_release }}
+blastwall_rpmbuild_root: "{{ blastwall_state_dir }}/rpmbuild"
+blastwall_source_parent: "{{ blastwall_state_dir }}/source"
+blastwall_source_dir: >-
+  {{ blastwall_source_parent }}/{{ blastwall_policy_name }}-{{
+  blastwall_policy_version }}
+blastwall_artifact_dir: "{{ blastwall_state_dir }}/artifacts"
+blastwall_rpm_path: >-
+  {{ blastwall_artifact_dir }}/{{ blastwall_policy_nevra }}.noarch.rpm
+
+blastwall_expected_contexts:
+  - blastwall_u:blastwall_r:blastwall_t:s0
+  - blastwall_u:blastwall_r:blastwall_root_local_t:s0
+
+blastwall_probe_install_dir: /usr/local/libexec/blastwall-poc
+blastwall_probe_path: >-
+  {{ blastwall_probe_install_dir }}/trigger-copyfail-afalg.py
+blastwall_bpf_probe_path: >-
+  {{ blastwall_probe_install_dir }}/trigger-bpf-deny.py
+blastwall_packet_socket_probe_path: >-
+  {{ blastwall_probe_install_dir }}/trigger-packet-socket-deny.py
+blastwall_userns_probe_path: >-
+  {{ blastwall_probe_install_dir }}/trigger-userns-deny.py
+blastwall_deny_scopes:
+  - name: alg_socket
+    marker: blastwall_policy_alg_socket=denied
+  - name: bpf
+    marker: blastwall_policy_bpf=denied
+  - name: policy_selfprotect
+    marker: blastwall_policy_selfprotect=denied
+  - name: packet_socket
+    marker: blastwall_policy_packet_socket=denied
+  - name: userns
+    marker: blastwall_policy_userns=denied

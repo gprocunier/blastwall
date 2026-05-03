@@ -1,0 +1,396 @@
+---
+- name: Build Blastwall SELinux policy RPM on bastion
+  hosts: bastion
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure shared Blastwall state directory is traversable
+      ansible.builtin.file:
+        path: "{{ blastwall_state_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install RPM build dependencies
+      ansible.builtin.dnf:
+        name:
+          - rpm-build
+          - make
+          - checkpolicy
+          - selinux-policy-devel
+          - policycoreutils
+          - policycoreutils-python-utils
+        state: present
+
+    - name: Create RPM build directories
+      ansible.builtin.file:
+        path: "{{ blastwall_rpmbuild_root }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - BUILD
+        - RPMS
+        - SOURCES
+        - SPECS
+        - SRPMS
+
+    - name: Recreate source directory
+      ansible.builtin.file:
+        path: "{{ blastwall_source_dir }}"
+        state: absent
+
+    - name: Create source subdirectories
+      ansible.builtin.file:
+        path: "{{ blastwall_source_dir }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - contexts
+
+    - name: Write reference-policy source
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall.te"
+        mode: "0644"
+        content: |
+          policy_module(blastwall, 0.4.0)
+
+          ########################################
+          #
+          # Blastwall login/admin user domain.
+          #
+
+          role blastwall_r;
+          userdom_admin_user_template(blastwall)
+          ssh_dyntransition_to(blastwall_t)
+          typealias blastwall_t alias blastwall_root_local_t;
+
+    - name: Write alg_socket CIL deny module
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall-alg-socket-deny.cil"
+        mode: "0644"
+        content: |
+          (deny blastwall_t self (alg_socket
+            (accept append bind connect create getattr getopt ioctl listen
+             lock map name_bind read recv_msg recvfrom relabelfrom relabelto
+             send_msg sendto
+             setattr setopt shutdown write)))
+          (neverallow blastwall_t self (alg_socket
+            (accept append bind connect create getattr getopt ioctl listen
+             lock map name_bind read recv_msg recvfrom relabelfrom relabelto
+             send_msg sendto
+             setattr setopt shutdown write)))
+
+    - name: Write BPF CIL deny module
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall-bpf-deny.cil"
+        mode: "0644"
+        content: |
+          (deny blastwall_t self (bpf
+            (map_create map_read map_write prog_load prog_run)))
+          (neverallow blastwall_t self (bpf
+            (map_create map_read map_write prog_load prog_run)))
+          (deny blastwall_t self (capability2 (bpf)))
+          (neverallow blastwall_t self (capability2 (bpf)))
+
+    - name: Write packet_socket CIL deny module
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall-packet-socket-deny.cil"
+        mode: "0644"
+        content: |
+          (deny blastwall_t self (packet_socket
+            (accept append bind connect create getattr getopt ioctl listen
+             lock map name_bind read recv_msg recvfrom relabelfrom relabelto
+             send_msg sendto setattr setopt shutdown write)))
+          (neverallow blastwall_t self (packet_socket
+            (accept append bind connect create getattr getopt ioctl listen
+             lock map name_bind read recv_msg recvfrom relabelfrom relabelto
+             send_msg sendto setattr setopt shutdown write)))
+
+    - name: Write userns CIL deny module
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall-userns-deny.cil"
+        mode: "0644"
+        content: |
+          (deny blastwall_t self (user_namespace (create)))
+          (neverallow blastwall_t self (user_namespace (create)))
+
+    - name: Write policy self-protection CIL deny module
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../policy/blastwall-policy-selfprotect.cil"
+        dest: "{{ blastwall_source_dir }}/blastwall-policy-selfprotect.cil"
+        mode: "0644"
+
+    - name: Write SELinux login context
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/contexts/blastwall_u"
+        mode: "0644"
+        content: |
+          system_r:init_t:s0 blastwall_r:blastwall_t:s0
+          system_r:local_login_t:s0 blastwall_r:blastwall_t:s0
+          system_r:remote_login_t:s0 blastwall_r:blastwall_t:s0
+          system_r:sshd_t:s0 blastwall_r:blastwall_t:s0
+          system_r:sshd_session_t:s0 blastwall_r:blastwall_t:s0
+          system_r:cockpit_session_t:s0 blastwall_r:blastwall_t:s0
+          system_r:crond_t:s0 blastwall_r:blastwall_t:s0
+
+    - name: Write source Makefile
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/Makefile"
+        mode: "0644"
+        content: |
+          .RECIPEPREFIX := >
+          POLICY := blastwall
+          SELINUX_DEVEL ?= /usr/share/selinux/devel
+
+          all: $(POLICY).pp
+
+          $(POLICY).pp: $(POLICY).te
+          >$(MAKE) -f $(SELINUX_DEVEL)/Makefile $(POLICY).pp
+
+          clean:
+          >rm -f *.pp *.mod *.fc.tmp
+          >rm -rf tmp
+
+    - name: Create source archive
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -C
+          - "{{ blastwall_source_parent }}"
+          - -czf
+          - >-
+            {{ blastwall_rpmbuild_root }}/SOURCES/{{
+            blastwall_policy_name }}-{{ blastwall_policy_version }}.tar.gz
+          - "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}"
+      changed_when: true
+
+    - name: Write RPM spec
+      ansible.builtin.copy:
+        dest: >-
+          {{ blastwall_rpmbuild_root }}/SPECS/{{ blastwall_policy_name }}.spec
+        mode: "0644"
+        content: |
+          Name:           blastwall-selinux
+          Version:        0.4.0
+          Release:        1
+          Summary:        SELinux policy for the Blastwall automation PoC
+          License:        MIT
+          BuildArch:      noarch
+          Source0:        %{name}-%{version}.tar.gz
+          BuildRequires:  make
+          BuildRequires:  checkpolicy
+          BuildRequires:  selinux-policy-devel
+          Requires:       policycoreutils
+          Requires:       policycoreutils-python-utils
+          Requires:       selinux-policy-targeted
+
+          %description
+          SELinux policy module and login context for the Blastwall PoC.
+
+          %prep
+          %setup -q
+
+          %build
+          make
+
+          %install
+          install -D -m 0644 blastwall.pp \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall.pp
+          install -D -m 0644 blastwall-alg-socket-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-alg-socket-deny.cil
+          install -D -m 0644 blastwall-bpf-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil
+          install -D -m 0644 blastwall-packet-socket-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil
+          install -D -m 0644 blastwall-userns-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil
+          install -D -m 0644 blastwall-policy-selfprotect.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
+          install -D -m 0644 contexts/blastwall_u \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
+
+          %post
+          semodule -i \
+            %{_datadir}/selinux/packages/blastwall/blastwall.pp \
+            %{_datadir}/selinux/packages/blastwall/blastwall-alg-socket-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
+          install -D -m 0644 \
+            %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u \
+            /etc/selinux/targeted/contexts/users/blastwall_u
+          if semanage user -l | awk '{print $1}' | grep -qx blastwall_u; then
+            semanage user -m -R blastwall_r -r s0 blastwall_u
+          else
+            semanage user -a -R blastwall_r -r s0 blastwall_u
+          fi
+          restorecon -R /etc/selinux/targeted/contexts/users || true
+
+          %preun
+          if [ "$1" -eq 0 ]; then
+            semodule -r blastwall-policy-selfprotect || true
+            semodule -r blastwall-userns-deny || true
+            semodule -r blastwall-packet-socket-deny || true
+            semodule -r blastwall-bpf-deny || true
+            semodule -r blastwall-alg-socket-deny || true
+            semodule -r blastwall || true
+            semanage user -d blastwall_u || true
+            rm -f /etc/selinux/targeted/contexts/users/blastwall_u
+          fi
+
+          %files
+          %{_datadir}/selinux/packages/blastwall/blastwall.pp
+          %{_datadir}/selinux/packages/blastwall/blastwall-alg-socket-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
+          %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
+
+          %changelog
+          * Sun May 03 2026 Blastwall PoC <root@localhost> - 0.3.0-1
+          - Add policy self-protection deny scope
+
+          * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.4.0-1
+          - Add packet_socket deny scope (CVE-2025-38617, CVE-2026-31504)
+          - Add user namespace creation deny scope (exploit chain enabler)
+
+          * Fri May 02 2026 Blastwall PoC <root@localhost> - 0.2.0-1
+          - Add BPF deny scope (CVE-2026-31525, CVE-2026-31429, CVE-2025-38154)
+          - Multi-scope deny architecture
+
+          * Fri May 01 2026 Blastwall PoC <root@localhost> - 0.1.0-6
+          - Initial Calabi PoC policy package
+
+    - name: Build policy RPM
+      ansible.builtin.command:
+        argv:
+          - rpmbuild
+          - --define
+          - "_topdir {{ blastwall_rpmbuild_root }}"
+          - -ba
+          - >-
+            {{ blastwall_rpmbuild_root }}/SPECS/{{ blastwall_policy_name
+            }}.spec
+      changed_when: true
+
+    - name: Analyze deny impact against shipped targeted policy
+      block:
+        - name: Build temporary base module for impact analysis
+          ansible.builtin.command:
+            argv:
+              - make
+              - -C
+              - "{{ blastwall_source_dir }}"
+          changed_when: true
+
+        - name: Load base blastwall module without deny rules
+          ansible.builtin.command:
+            argv:
+              - semodule
+              - -i
+              - "{{ blastwall_source_dir }}/blastwall.pp"
+
+        - name: Query BPF permissions granted to blastwall_t by targeted policy
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, bpf]
+          register: bpf_baseline
+          failed_when: false
+
+        - name: Query packet_socket permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, packet_socket]
+          register: packet_socket_baseline
+          failed_when: false
+
+        - name: Query user_namespace permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, user_namespace]
+          register: userns_baseline
+          failed_when: false
+
+        - name: Query CAP_BPF permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, capability2, -p, bpf]
+          register: cap_bpf_baseline
+          failed_when: false
+
+        - name: Query alg_socket permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, alg_socket]
+          register: alg_socket_baseline
+          failed_when: false
+
+        - name: Query SELinux security class permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, security]
+          register: security_baseline
+          failed_when: false
+
+        - name: Query semanage executable access granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -t, semanage_exec_t, -c, file]
+          register: semanage_exec_baseline
+          failed_when: false
+
+        - name: Remove temporary base module
+          ansible.builtin.command:
+            argv: [semodule, -r, blastwall]
+          failed_when: false
+
+        - name: Report targeted policy grants that deny rules will subtract
+          ansible.builtin.debug:
+            msg: |
+              === Policy impact analysis ===
+              Permissions the deny rules will remove from blastwall_t:
+
+              --- alg_socket grants (denied by blastwall-alg-socket-deny.cil) ---
+              {{ alg_socket_baseline.stdout | default('(none found)') }}
+
+              --- bpf grants (denied by blastwall-bpf-deny.cil) ---
+              {{ bpf_baseline.stdout | default('(none found)') }}
+
+              --- capability2/bpf grants (denied by blastwall-bpf-deny.cil) ---
+              {{ cap_bpf_baseline.stdout | default('(none found)') }}
+
+              --- packet_socket grants (denied by blastwall-packet-socket-deny.cil) ---
+              {{ packet_socket_baseline.stdout | default('(none found)') }}
+
+              --- user_namespace grants (denied by blastwall-userns-deny.cil) ---
+              {{ userns_baseline.stdout | default('(none found)') }}
+
+              --- security class grants (denied by blastwall-policy-selfprotect.cil) ---
+              {{ security_baseline.stdout | default('(none found)') }}
+
+              --- semanage_exec_t grants (denied by blastwall-policy-selfprotect.cil) ---
+              {{ semanage_exec_baseline.stdout | default('(none found)') }}
+
+              If any of these permissions are required by legitimate automation
+              tasks, the corresponding deny scope must be reviewed before
+              deployment.
+      rescue:
+        - name: Impact analysis could not complete
+          ansible.builtin.debug:
+            msg: >-
+              Policy impact analysis skipped. Run sesearch manually against
+              the target host's policy to verify deny rules do not conflict
+              with required automation capabilities.
+
+    - name: Create artifact directory
+      ansible.builtin.file:
+        path: "{{ blastwall_artifact_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy RPM to stable artifact path
+      ansible.builtin.copy:
+        remote_src: true
+        src: >-
+          {{ blastwall_rpmbuild_root }}/RPMS/noarch/{{
+          blastwall_policy_nevra }}.noarch.rpm
+        dest: "{{ blastwall_rpm_path }}"
+        mode: "0644"
+
+    - name: Show built RPM path
+      ansible.builtin.debug:
+        msg: "{{ blastwall_rpm_path }}"

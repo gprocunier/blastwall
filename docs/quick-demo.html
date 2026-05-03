@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lab Exercise | blastwall</title>
+    <meta name="description" content="Lab exercise flow for installing Blastwall policy, configuring IdM, and verifying confined automation behavior.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">A short path through the Blastwall argument: install the host policy, map the automation identity, then prove the session starts constrained.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="./"><kbd>Overview</kbd></a>
+          <a href="demo.html"><kbd>Demo</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="poc-flow.html"><kbd>PoC Flow</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <article class="content-column markdown-body">
+        <p class="lead">This is the shortest version of the idea. I want a managed endpoint to prove three things before I trust it for privileged automation: the local policy is installed, IdM maps the automation identity into the confined SELinux user, and AAP can see enough policy state to fail closed before it runs.</p>
+
+        <section>
+          <h2>Managed Host Setup</h2>
+          <p>Install the local SELinux policy on each managed RHEL host that should accept the confined automation identity.</p>
+          <pre><code>sudo make -C policy install
+sudo install -D -m 0644 \
+  policy/contexts/blastwall_u \
+  /etc/selinux/targeted/contexts/users/blastwall_u
+sudo semanage user -a -R blastwall_r -r s0 blastwall_u</code></pre>
+        </section>
+
+        <section>
+          <h2>IdM Objects</h2>
+          <p>Create the automation group, managed-host group, HBAC rule, sudo rule, and SELinux user map described by the IdM object model. Apply the equivalent FreeIPA module or <code>ipa</code> CLI workflow from a host with an admin ticket.</p>
+          <pre><code>idm/bootstrap-blastwall.yml
+poc-calabi/10-configure-idm.yml</code></pre>
+        </section>
+
+        <section>
+          <h2>AAP Inventory And Gate</h2>
+          <p>Sync inventory from the <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> inventory source, then run the preflight before any mutation job.</p>
+          <pre><code>inventory/blastwall-idm.yml
+playbooks/preflight.yml</code></pre>
+        </section>
+
+        <section>
+          <h2>Verification</h2>
+          <p>Run the managed-host verification playbook. The expected result is a confined SELinux context and blocked AF_ALG/authencesn, BPF, packet_socket, and userns probes on the automation endpoint.</p>
+          <pre><code>playbooks/verify-managed-host.yml</code></pre>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Demo Boundary</h2>
+          <p class="context-kicker">Small path first</p>
+          <p class="context-copy">Use this when you want the shortest route through local policy, IdM mapping, AAP preflight, and runtime verification.</p>
+        </section>
+        <section class="toc-block">
+          <h2>Related</h2>
+          <ol class="path-list">
+            <li><a href="./">Overview</a></li>
+            <li><a href="demo.html">Demo</a></li>
+            <li><a href="poc-flow.html">PoC Flow</a></li>
+            <li><a href="https://github.com/gprocunier/blastwall#quick-demo-flow">README Section</a></li>
+          </ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

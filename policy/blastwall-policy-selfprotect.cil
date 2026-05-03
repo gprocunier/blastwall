@@ -1,0 +1,90 @@
+; Prevent the blastwall automation domain from changing the policy that
+; confines it.  This scope is different from exploit-surface rules such as
+; alg_socket or bpf: it protects the integrity of the Blastwall boundary.
+
+(deny blastwall_t security_t (security
+  (load_policy setbool setcheckreqprot setenforce setsecparam)))
+(neverallow blastwall_t security_t (security
+  (load_policy setbool setcheckreqprot setenforce setsecparam)))
+
+(deny blastwall_t self (capability2 (mac_admin mac_override)))
+(neverallow blastwall_t self (capability2 (mac_admin mac_override)))
+
+(deny blastwall_t semanage_exec_t (file (execute execute_no_trans map open read)))
+(neverallow blastwall_t semanage_exec_t (file (execute execute_no_trans map open read)))
+
+(deny blastwall_t setsebool_exec_t (file (execute execute_no_trans map open read)))
+(neverallow blastwall_t setsebool_exec_t (file (execute execute_no_trans map open read)))
+
+(deny blastwall_t load_policy_exec_t (file (execute execute_no_trans map open read)))
+(neverallow blastwall_t load_policy_exec_t (file (execute execute_no_trans map open read)))
+
+(deny blastwall_t selinux_config_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+(neverallow blastwall_t selinux_config_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+
+(deny blastwall_t selinux_config_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t selinux_config_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+
+(deny blastwall_t default_context_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+(neverallow blastwall_t default_context_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+
+(deny blastwall_t default_context_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t default_context_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+
+(deny blastwall_t file_context_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+(neverallow blastwall_t file_context_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+
+(deny blastwall_t file_context_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t file_context_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+
+(deny blastwall_t selinux_login_config_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+(neverallow blastwall_t selinux_login_config_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+
+(deny blastwall_t selinux_login_config_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t selinux_login_config_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+
+(deny blastwall_t semanage_store_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+(neverallow blastwall_t semanage_store_t (dir
+  (add_name create remove_name rename reparent rmdir setattr write
+   relabelfrom relabelto)))
+
+(deny blastwall_t semanage_store_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t semanage_store_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+
+(deny blastwall_t semanage_read_lock_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t semanage_read_lock_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+
+(deny blastwall_t semanage_trans_lock_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))
+(neverallow blastwall_t semanage_trans_lock_t (file
+  (append create link lock rename setattr unlink write relabelfrom relabelto)))

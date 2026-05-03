@@ -1,0 +1,24 @@
+---
+all:
+  vars:
+    ansible_user: cloud-user
+    ansible_become: true
+    ansible_ssh_private_key_file: >-
+      {{ lookup('env', 'BLASTWALL_LAB_SSH_KEY') | default(omit, true) }}
+    ansible_ssh_common_args: >-
+      -o StrictHostKeyChecking=no
+      -o UserKnownHostsFile=/dev/null
+  children:
+    bastion:
+      hosts:
+        bastion-01.workshop.lan:
+          ansible_connection: local
+          ansible_become: true
+    idm_servers:
+      hosts:
+        idm-01.workshop.lan:
+          ansible_host: 172.16.0.10
+    automation_endpoints:
+      hosts:
+        automation-endpoint.workshop.lan:
+          ansible_host: 172.16.0.20

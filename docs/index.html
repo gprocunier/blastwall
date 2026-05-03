@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>blastwall | SELinux automation boundary</title>
+    <meta name="description" content="SELinux, IdM, and AAP guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
+    <meta property="og:title" content="blastwall">
+    <meta property="og:description" content="SELinux, IdM, and AAP guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gprocunier.github.io/blastwall/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="blastwall">
+    <meta name="twitter:description" content="SELinux, IdM, and AAP guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">SELinux Automation Boundary</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">The faster automation moves, the more it needs a hard boundary before it reaches the systems people depend on.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="demo.html"><kbd>Demo</kbd></a>
+          <a href="quick-demo.html"><kbd>Lab Exercise</kbd></a>
+          <a href="poc-flow.html"><kbd>PoC Flow</kbd></a>
+          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead"><code>blastwall</code> is a proof of concept for using SELinux user confinement as an exploit firewall for privileged automation. The diagrams below are the argument, not decoration: they show where this model sits beside BPF LSM precision, how it moves through RHEL operations, and where AAP should decide to run, skip, or remediate.</p>
+        <p>Recent events make the argument in <a href="https://gprocunier.github.io/privileged-automation-security/">Privileged Automation Security</a> feel less theoretical. Blastwall is a concrete sketch of that concern: privileged automation should arrive constrained, observable, and policy-gated before it can touch the rest of the fleet.</p>
+
+        <section id="demo">
+          <h2>Demo</h2>
+          <p>The <a href="demo.html">demo</a> was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. In this project, Calabi is the validation lab, not a Blastwall dependency. The demo shows the proof path from <code>bastion-01</code>: IdM service identity creation, <code>eigenstate.ipa</code> read-side validation, direct GSSAPI SSH probes as <code>svc-ansible-runner</code>, target audit evidence for AF_ALG, BPF, packet_socket, and userns denials, and a final self-protection proof that blocks a sudo-expanded <code>semodule</code> breakout.</p>
+        </section>
+
+        <section id="problem">
+          <h2>The Problem</h2>
+          <p>The failure mode I am trying to avoid is simple: automation gets the same broad local shape as an operator, but it executes faster, across more hosts, and with less human friction. If that automation lands as an unconfined identity, every mistake and every exploit path starts from a position I do not want to defend.</p>
+          <p>Copy Fail is the concrete example here. Anthony Green's <a href="https://github.com/atgreen/block-copyfail">block-copyfail</a> shows the precise BPF LSM answer: inspect the AF_ALG bind argument and deny the vulnerable <code>authencesn</code> shape. Blastwall asks a different operational question: if the risky path should be unavailable to privileged automation, can I make that part of the same SELinux, IdM, AAP, and content-delivery model RHEL operators already understand?</p>
+          <figure class="diagram-card" id="copy-fail-map">
+            <figcaption>
+              <strong>Copy Fail: Precision Tool vs Automation Boundary</strong>
+              <span>This is the fork in the road. BPF LSM answers the exact kernel-argument question; Blastwall answers the identity and rollout question.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/copy-fail-map.svg" alt="Copy Fail precision tool versus Blastwall automation boundary">
+          </figure>
+        </section>
+
+
+        <section id="threat-landscape">
+          <h2>Why This Matters Now</h2>
+          <p>The rate at which new exploit surfaces are discovered is accelerating. Agentic AI tools can now perform autonomous vulnerability research: code auditing, fuzzing, binary analysis, and exploit chain construction. These tools are compressing the timeline between "vulnerability exists" and "exploit is weaponized." What once took dedicated research teams months can now surface in days or hours.</p>
+          <p>This changes the risk calculus for automation. Every automation identity that runs unconfined is a standing invitation: when the next kernel 0-day drops, that identity already has the access, the speed, and the reach to move laterally across the entire fleet before a patch is even available. Organizations that adopt broad privileged automation without confinement are building a superhighway. High speed, high privilege, low friction, and an attacker only needs one exploit to get on the road.</p>
+          <p>The question is not whether a new kernel vulnerability will appear. It is whether your automation identities are already constrained enough that the vulnerability's blast radius is bounded before you even know the CVE number. Blastwall is designed around that assumption: confine first, deny broad exploit surfaces for automation by default, and make the confinement lifecycle fast enough to add new deny scopes as threats emerge, faster than kernel patches move through the fleet.</p>
+        </section>
+
+        <section id="argument">
+          <h2>The Argument</h2>
+          <p>I do not think FreeIPA should author SELinux policy. I want IdM to map named automation identities into SELinux users and roles that already exist on the endpoint. I also do not want AAP discovering halfway through a job that the host was never in the right confinement state.</p>
+          <div class="feature-grid" aria-label="Blastwall model components">
+            <section class="feature-item">
+              <h3>Local Policy</h3>
+              <p>Managed RHEL hosts carry a versioned policy that defines <code>blastwall_u</code>, <code>blastwall_r</code>, and the confined automation domain.</p>
+            </section>
+            <section class="feature-item">
+              <h3>IdM Mapping</h3>
+              <p>IdM maps selected automation identities into that SELinux user through HBAC-linked policy and scoped sudo.</p>
+            </section>
+            <section class="feature-item">
+              <h3>AAP Gate</h3>
+              <p>AAP reads IdM state with <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> before running and fails closed on unsuitable hosts.</p>
+            </section>
+          </div>
+          <figure class="diagram-card" id="idm-aap-flow">
+            <figcaption>
+              <strong>What AAP And IdM Add</strong>
+              <span>IdM is the policy system of record, AAP consumes that policy before execution, and SELinux enforces the boundary after login.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/idm-aap-flow.svg" alt="IdM, eigenstate.ipa, AAP, SSH, and SELinux enforcement flow">
+          </figure>
+          <figure class="diagram-card" id="architecture-flow">
+            <figcaption>
+              <strong>Architecture Flow</strong>
+              <span>This is the end-to-end control path: inventory, HBAC, host markers, preflight, SELinux map, sudo, login, and the deny rule.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/architecture-flow.svg" alt="Blastwall architecture flow from AAP job to SELinux denial">
+          </figure>
+          <figure class="diagram-card" id="idm-relationship">
+            <figcaption>
+              <strong>IdM Relationship Model</strong>
+              <span>The IdM objects are deliberately ordinary: group, hostgroup, HBAC, SELinux map, and sudo rule.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/idm-relationship.svg" alt="IdM group, hostgroup, HBAC, SELinux map, and sudo relationship model">
+          </figure>
+        </section>
+
+        <section id="why-build">
+          <h2>Why I Would Build This</h2>
+          <p>I would build this because the logistics matter. In a RHEL automation estate, a versioned SELinux policy RPM is often easier to stage, promote, audit, and roll back than a new set of dynamically attached probes. That does not make SELinux more precise than BPF LSM. It makes the mitigation fit the machinery already wrapped around RHEL operations.</p>
+          <p>The point is not to replace kernel patches. The point is to make privileged automation start constrained while the real fix moves through the fleet. If the exploit can be mitigated by denying a broad surface for automation identities, I want that denial to have an artifact name, a rollout state, and an inventory-visible coverage claim.</p>
+          <figure class="diagram-card diagram-card--focus" id="rollout-flow">
+            <figcaption>
+              <strong>Why The Logistics Matter</strong>
+              <span>The useful mitigation is not only the rule. It is the path from policy source to artifact, rollout, verification, IdM marker, and AAP preflight.</span>
+            </figcaption>
+            <div class="stage-flow" role="img" aria-label="Four-stage flow from exploit surface to verified automation preflight state">
+              <ol class="stage-flow__stages">
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">1</span>
+                  <h3>Convert the exploit into managed policy</h3>
+                  <ol class="stage-flow__steps">
+                    <li>New exploit surface</li>
+                    <li>Update Blastwall policy</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">2</span>
+                  <h3>Give the mitigation an artifact lifecycle</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Build/sign policy RPM</li>
+                    <li>Publish via Satellite or content pipeline</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">3</span>
+                  <h3>Roll out and prove host-local enforcement</h3>
+                  <ol class="stage-flow__steps">
+                    <li>AAP rollout workflow</li>
+                    <li>Local verification: expected denial works</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">4</span>
+                  <h3>Feed verified state back into automation</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Update IdM host marker</li>
+                    <li>Sync <code>eigenstate.ipa</code> inventory</li>
+                    <li>AAP preflight selects current hosts</li>
+                  </ol>
+                </li>
+              </ol>
+            </div>
+          </figure>
+        </section>
+
+        <section id="scale">
+          <h2>How It Scales</h2>
+          <p>That turns emergency mitigation into ordinary operational state. Hosts are not merely patched or unpatched. For a given job, they are suitable or unsuitable based on identity mapping, HBAC, sudo policy, local SELinux enforcement, and the coverage markers AAP can see before it touches the endpoint.</p>
+          <figure class="diagram-card diagram-card--focus" id="coverage-flow">
+            <figcaption>
+              <strong>Coverage Expansion Model</strong>
+              <span>A new exploit surface should become a versioned policy scope and an inventory-visible rollout state, not untracked local emergency state.</span>
+            </figcaption>
+            <div class="stage-flow" role="img" aria-label="Four-stage coverage expansion model from new exploit surface to AAP preflight selection">
+              <ol class="stage-flow__stages">
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">1</span>
+                  <h3>Scope the new surface</h3>
+                  <ol class="stage-flow__steps">
+                    <li>New exploit surface</li>
+                    <li>Define enforceable scope: class, permission, type, or transition</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">2</span>
+                  <h3>Productize the policy change</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Add Blastwall policy scope</li>
+                    <li>Review impact: normal automation still works</li>
+                    <li>Bump policy version</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">3</span>
+                  <h3>Ship coverage through normal RHEL operations</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Build policy RPM/module</li>
+                    <li>Roll out to managed hosts</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">4</span>
+                  <h3>Make coverage selectable before jobs run</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Update IdM host marker</li>
+                    <li>AAP inventory sync</li>
+                    <li>Preflight selects hosts with required coverage</li>
+                  </ol>
+                </li>
+              </ol>
+            </div>
+          </figure>
+          <figure class="diagram-card diagram-card--focus" id="marker-flow">
+            <figcaption>
+              <strong>Host Suitability Markers</strong>
+              <span>Markers are not proof by themselves. They are the inventory-visible claim written only after local verification succeeds.</span>
+            </figcaption>
+            <div class="stage-flow stage-flow--decision" role="img" aria-label="Host suitability marker flow from local proof to inventory claim to AAP target decision">
+              <ol class="stage-flow__stages stage-flow__stages--three">
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">1</span>
+                  <h3>Host-local proof</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Policy deployment workflow</li>
+                    <li>Install/update <code>blastwall-selinux</code> RPM</li>
+                    <li>Verify local policy: expected denials are observable</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">2</span>
+                  <h3>Inventory-visible claim</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Update IdM host description marker</li>
+                    <li>Sync <code>eigenstate.ipa.idm</code> inventory</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">3</span>
+                  <h3>AAP target decision</h3>
+                  <div class="stage-flow__question">Marker matches required policy?</div>
+                  <div class="stage-flow__outcomes">
+                    <p><strong>Yes</strong><span><code>blastwall_policy_current</code><br>preferred candidates</span></p>
+                    <p><strong>No</strong><span><code>blastwall_policy_stale</code><br>report/remediate</span></p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </figure>
+          <figure class="diagram-card" id="candidate-flow">
+            <figcaption>
+              <strong>Candidate Selection With Multiple Coverages</strong>
+              <span>As policy expands, AAP can prefer hosts that satisfy the exact coverage required by a job and skip or remediate stale hosts.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/candidate-flow.svg" alt="AAP candidate selection with multiple coverage markers">
+          </figure>
+        </section>
+
+        <section id="runtime">
+          <h2>Runtime Enforcement</h2>
+          <p>The final decision still happens on the host. The point of the IdM and AAP work is to make sure the session arrives in the right SELinux user and role before local root work begins.</p>
+          <figure class="diagram-card" id="runtime-flow">
+            <figcaption>
+              <strong>Runtime Enforcement Flow</strong>
+              <span>This is where the preflight decision turns into a host-local SELinux decision for the mapped automation session.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/runtime-flow.svg" alt="Runtime enforcement sequence for mapped automation sessions">
+          </figure>
+        </section>
+
+        <section id="tradeoff">
+          <h2>The Tradeoff</h2>
+          <p>BPF LSM is the precision tool. It can inspect kernel hook arguments and preserve unrelated AF_ALG use. Blastwall is the identity, policy, and delivery model. It blocks a broader SELinux surface for a narrower subject: privileged automation mapped into <code>blastwall_u</code>.</p>
+          <p>That tradeoff is often acceptable for automation. Many jobs should not need AF_ALG, raw packet sockets, BPF, or user namespace creation. Blocking those surfaces for automation identities is part of the point.</p>
+          <figure class="diagram-card" id="limitation-flow">
+            <figcaption>
+              <strong>Important Limitation</strong>
+              <span>SELinux cannot match the authencesn argument. Blastwall accepts a broader deny for the narrower automation subject.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/limitation-flow.svg" alt="SELinux broad class denial versus BPF LSM argument precision">
+          </figure>
+        </section>
+
+        <section id="layout">
+          <h2>Repository Layout</h2>
+          <table>
+            <thead>
+              <tr><th>Path</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>policy/</code></td><td>SELinux reference-policy module and CIL deny rule.</td></tr>
+              <tr><td><code>idm/</code></td><td>IdM group, hostgroup, HBAC, sudo, and SELinux user-map object model.</td></tr>
+              <tr><td><code>inventory/</code></td><td><a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa.idm</code></a> inventory source for AAP.</td></tr>
+              <tr><td><code>playbooks/</code></td><td>Preflight, deployment, and verification playbooks.</td></tr>
+              <tr><td><code>poc-calabi/</code></td><td>Calabi lab exercise for replaying the proof path after watching the demo.</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Project</h2>
+          <p class="context-kicker">Identity-scoped mitigation</p>
+          <p class="context-copy">The enforcement lives on the host, but the decision to run starts from IdM policy and AAP preflight state.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#problem">Problem</a></li>
+            <li><a href="#threat-landscape">Threat Landscape</a></li>
+            <li><a href="#argument">Argument</a></li>
+            <li><a href="#why-build">Why Build</a></li>
+            <li><a href="#scale">Scale</a></li>
+            <li><a href="#runtime">Runtime</a></li>
+            <li><a href="#tradeoff">Tradeoff</a></li>
+            <li><a href="#layout">Repository</a></li>
+            <li><a href="demo.html">Demo</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Requirements</h2>
+          <p>RHEL with SELinux enforcing, SELinux userspace 3.6+, IdM/FreeIPA, AAP, and <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> for inventory-aware gates.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>GPL-3.0 licensed proof of concept. Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

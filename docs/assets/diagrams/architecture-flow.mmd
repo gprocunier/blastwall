@@ -1,0 +1,12 @@
+flowchart LR
+    AAP["AAP job<br/>automation identity"] --> INV["eigenstate.ipa.idm<br/>IdM-backed inventory"]
+    INV --> HBAC["HBAC-scoped hosts<br/>blastwall-ssh"]
+    INV --> MARKERS["Host markers<br/>current or stale policy"]
+    HBAC --> PREFLIGHT["Preflight gate"]
+    MARKERS --> PREFLIGHT
+    PREFLIGHT --> MAP["SELinux user map<br/>blastwall-root-local-map"]
+    PREFLIGHT --> SUDO["Sudo policy<br/>blastwall-root-local-sudo"]
+    PREFLIGHT --> RUN["Run job on selected hosts"]
+    RUN --> LOGIN["SSH login via SSSD + pam_selinux"]
+    LOGIN --> DOMAIN["blastwall_u:blastwall_r:blastwall_t<br/>alias: blastwall_root_local_t"]
+    DOMAIN --> DENY["CIL deny<br/>no alg_socket, bpf, packet_socket, userns;<br/>policy self-protection"]

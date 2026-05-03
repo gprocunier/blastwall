@@ -1,0 +1,13 @@
+; Deny all AF_PACKET socket operations for the blastwall automation domain.
+; Covers CVE-2025-38617 (packet_set_ring race, privilege escalation +
+; container escape) and CVE-2026-31504 (packet_release fanout UAF).
+; Both are unfixed in RHEL 7-10 as of May 2026.
+
+(deny blastwall_t self (packet_socket
+  (accept append bind connect create getattr getopt ioctl listen lock map
+   name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+   setattr setopt shutdown write)))
+(neverallow blastwall_t self (packet_socket
+  (accept append bind connect create getattr getopt ioctl listen lock map
+   name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+   setattr setopt shutdown write)))

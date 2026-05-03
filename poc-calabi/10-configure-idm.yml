@@ -1,0 +1,282 @@
+---
+- name: Configure IdM objects for the Blastwall PoC
+  hosts: idm_servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Require IdM admin password
+      ansible.builtin.assert:
+        that:
+          - blastwall_ipaadmin_password | length > 0
+        fail_msg: "Set IPA_ADMIN_PASSWORD before configuring IdM."
+
+    - name: Require automation user password
+      ansible.builtin.assert:
+        that:
+          - blastwall_auto_password | length > 0
+        fail_msg: "Set BLASTWALL_AUTO_PASSWORD or IPA_ADMIN_PASSWORD before configuring the service account."
+
+    - name: Ensure Blastwall automation user exists
+      freeipa.ansible_freeipa.ipauser:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_auto_user }}"
+        first: "{{ blastwall_auto_first }}"
+        last: "{{ blastwall_auto_last }}"
+        homedir: "/home/{{ blastwall_auto_user }}"
+        shell: /bin/bash
+        password: "{{ blastwall_auto_password | default(omit, true) }}"
+        state: present
+      no_log: true
+
+    - name: Ensure Blastwall automation group exists
+      freeipa.ansible_freeipa.ipagroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_auto_group }}"
+        description: Blastwall confined automation identities
+        state: present
+      no_log: true
+
+    - name: Add automation user to Blastwall group
+      freeipa.ansible_freeipa.ipagroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_auto_group }}"
+        user:
+          - "{{ blastwall_auto_user }}"
+        action: member
+        state: present
+      no_log: true
+
+    - name: Ensure Blastwall managed-host group exists
+      freeipa.ansible_freeipa.ipahostgroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hostgroup }}"
+        description: Hosts eligible for Blastwall-confined automation
+        state: present
+      no_log: true
+
+    - name: Add automation endpoint to Blastwall hostgroup
+      freeipa.ansible_freeipa.ipahostgroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hostgroup }}"
+        host:
+          - "{{ blastwall_endpoint_host }}"
+        action: member
+        state: present
+      no_log: true
+
+    - name: Ensure Blastwall HBAC rule exists
+      freeipa.ansible_freeipa.ipahbacrule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hbac_rule }}"
+        description: Allow Blastwall automation SSH to automation endpoint
+        state: present
+      no_log: true
+
+    - name: Attach members to Blastwall HBAC rule
+      freeipa.ansible_freeipa.ipahbacrule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hbac_rule }}"
+        group:
+          - "{{ blastwall_auto_group }}"
+        hostgroup:
+          - "{{ blastwall_hostgroup }}"
+        hbacsvc:
+          - sshd
+        action: member
+        state: present
+      no_log: true
+
+    - name: Enable Blastwall HBAC rule
+      freeipa.ansible_freeipa.ipahbacrule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_hbac_rule }}"
+        state: enabled
+      no_log: true
+
+    - name: Ensure sudo commands exist
+      freeipa.ansible_freeipa.ipasudocmd:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_commands }}"
+        state: present
+      no_log: true
+
+    - name: Ensure sudo command group exists
+      freeipa.ansible_freeipa.ipasudocmdgroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_command_group }}"
+        description: Commands allowed for Blastwall local-root testing
+        state: present
+      no_log: true
+
+    - name: Add commands to sudo command group
+      freeipa.ansible_freeipa.ipasudocmdgroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_command_group }}"
+        sudocmd: "{{ blastwall_sudo_commands }}"
+        action: member
+        state: present
+      no_log: true
+
+    - name: Ensure Blastwall sudo rule exists
+      freeipa.ansible_freeipa.ipasudorule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_rule }}"
+        description: Root EUID for Blastwall automation without unconfined type
+        group:
+          - "{{ blastwall_auto_group }}"
+        hostgroup:
+          - "{{ blastwall_hostgroup }}"
+        allow_sudocmdgroup:
+          - "{{ blastwall_sudo_command_group }}"
+        runasuser:
+          - root
+        sudooption: "{{ blastwall_sudo_options }}"
+        state: present
+      no_log: true
+
+    - name: Enable Blastwall sudo rule
+      freeipa.ansible_freeipa.ipasudorule:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: server
+        name: "{{ blastwall_sudo_rule }}"
+        state: enabled
+      no_log: true
+
+    - name: Authenticate to IdM CLI for SELinux map commands
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          printf '%s\n' "$IPA_ADMIN_PASSWORD" | kinit "$IPA_ADMIN_PRINCIPAL"
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+        IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
+      changed_when: false
+      no_log: true
+
+    - name: Read IdM SELinux user map order
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - config-show
+          - --all
+          - --raw
+      register: blastwall_ipa_config_show
+      changed_when: false
+
+    - name: Extract IdM SELinux user map order
+      ansible.builtin.set_fact:
+        blastwall_current_selinux_order: >-
+          {{ blastwall_ipa_config_show.stdout |
+          regex_search('ipaselinuxusermaporder: (.+)', '\1') |
+          first }}
+
+    - name: Add Blastwall SELinux user to IdM ordering list
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - config-mod
+          - >-
+            --ipaselinuxusermaporder={{ blastwall_current_selinux_order }}${{
+            blastwall_selinux_user_order_entry }}
+      when: >-
+        blastwall_selinux_user_order_entry not in
+        blastwall_current_selinux_order.split('$')
+      changed_when: true
+
+    - name: Check whether Blastwall SELinux user map exists
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - selinuxusermap-show
+          - "{{ blastwall_selinux_map }}"
+      register: blastwall_selinux_map_show
+      changed_when: false
+      failed_when: false
+
+    - name: Create Blastwall SELinux user map when absent
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - selinuxusermap-add
+          - "{{ blastwall_selinux_map }}"
+          - "--hbacrule={{ blastwall_hbac_rule }}"
+          - "--selinuxuser={{ blastwall_selinux_user }}"
+      when: blastwall_selinux_map_show.rc != 0
+      changed_when: true
+
+    - name: Normalize Blastwall SELinux user map
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - selinuxusermap-mod
+          - "{{ blastwall_selinux_map }}"
+          - "--hbacrule={{ blastwall_hbac_rule }}"
+          - "--selinuxuser={{ blastwall_selinux_user }}"
+      register: blastwall_selinux_map_mod
+      changed_when: >-
+        'Modified SELinux User Map' in blastwall_selinux_map_mod.stdout
+      failed_when:
+        - blastwall_selinux_map_mod.rc != 0
+        - >-
+          'no modifications to be performed' not in
+          blastwall_selinux_map_mod.stderr
+
+    - name: Enable Blastwall SELinux user map
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - selinuxusermap-enable
+          - "{{ blastwall_selinux_map }}"
+      register: blastwall_selinux_map_enable
+      changed_when: >-
+        'Enabled SELinux User Map' in blastwall_selinux_map_enable.stdout
+      failed_when:
+        - blastwall_selinux_map_enable.rc != 0
+        - >-
+          'already enabled' not in
+          (blastwall_selinux_map_enable.stdout ~
+          blastwall_selinux_map_enable.stderr)
+
+    - name: Verify HBAC grants the automation user SSH to automation endpoint
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - hbactest
+          - "--user={{ blastwall_auto_user }}"
+          - "--host={{ blastwall_endpoint_host }}"
+          - --service=sshd
+      register: blastwall_hbactest
+      changed_when: false
+
+    - name: Assert HBAC allows the PoC login
+      ansible.builtin.assert:
+        that:
+          - "'Access granted: True' in blastwall_hbactest.stdout"
+        fail_msg: "{{ blastwall_hbactest.stdout }}"

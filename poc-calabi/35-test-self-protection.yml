@@ -1,0 +1,180 @@
+---
+- name: Prove Blastwall policy self-protection blocks sudo expansion
+  hosts: bastion
+  become: false
+  gather_facts: false
+  environment:
+    KRB5CCNAME: "{{ blastwall_auto_ccache }}"
+  vars:
+    blastwall_selfprotect_sudo_command: /usr/sbin/semodule
+    blastwall_ssh_base:
+      - ssh
+      - -o
+      - GSSAPIAuthentication=yes
+      - -o
+      - PreferredAuthentications=gssapi-with-mic
+      - -o
+      - PubkeyAuthentication=no
+      - -o
+      - PasswordAuthentication=no
+      - -o
+      - StrictHostKeyChecking=no
+      - -o
+      - UserKnownHostsFile=/dev/null
+      - "{{ blastwall_auto_user }}@{{ blastwall_endpoint_host }}"
+  tasks:
+    - name: Run self-protection validation with temporary sudo expansion
+      block:
+        - name: Require IdM admin and automation credentials
+          ansible.builtin.assert:
+            that:
+              - blastwall_ipaadmin_password | length > 0
+              - blastwall_auto_password | length > 0
+            fail_msg: >-
+              Set IPA_ADMIN_PASSWORD and BLASTWALL_AUTO_PASSWORD before running
+              the self-protection validation.
+
+        - name: Add semodule to the Blastwall sudo command group temporarily
+          ansible.builtin.shell:
+            cmd: |
+              set -euo pipefail
+              printf '%s\n' '{{ blastwall_ipaadmin_password }}' | kinit '{{ blastwall_ipaadmin_principal }}' >/dev/null
+              ipa sudocmd-show '{{ blastwall_selfprotect_sudo_command }}' >/dev/null 2>&1 || \
+                ipa sudocmd-add '{{ blastwall_selfprotect_sudo_command }}' >/dev/null 2>&1 || true
+              ipa sudocmdgroup-add-member '{{ blastwall_sudo_command_group }}' \
+                --sudocmds='{{ blastwall_selfprotect_sudo_command }}' >/dev/null 2>&1 || true
+              ipa sudocmdgroup-show '{{ blastwall_sudo_command_group }}' | grep -F '{{ blastwall_selfprotect_sudo_command }}' >/dev/null
+          args:
+            executable: /bin/bash
+          changed_when: true
+          no_log: true
+
+        - name: Refresh SSSD after temporary sudo expansion
+          ansible.builtin.command:
+            argv: [sss_cache, -E]
+          delegate_to: "{{ blastwall_endpoint_host }}"
+          become: true
+          changed_when: true
+          failed_when: false
+
+        - name: Restart SSSD after temporary sudo expansion
+          ansible.builtin.systemd:
+            name: sssd
+            state: restarted
+          delegate_to: "{{ blastwall_endpoint_host }}"
+          become: true
+
+        - name: Obtain Kerberos ticket for automation user
+          ansible.builtin.shell:
+            cmd: |
+              set -euo pipefail
+              printf '%s\n' "$BLASTWALL_AUTO_PASSWORD" | kinit "$BLASTWALL_AUTO_USER"
+          args:
+            executable: /bin/bash
+          environment:
+            KRB5CCNAME: "{{ blastwall_auto_ccache }}"
+            BLASTWALL_AUTO_USER: "{{ blastwall_auto_user }}"
+            BLASTWALL_AUTO_PASSWORD: "{{ blastwall_auto_password }}"
+          changed_when: false
+          no_log: true
+
+        - name: Wait until the temporary sudo command is visible to the automation user
+          ansible.builtin.command:
+            argv: "{{ blastwall_ssh_base + ['sudo', '-n', '-l'] }}"
+          register: blastwall_sudo_listing
+          changed_when: false
+          retries: 12
+          delay: 10
+          until:
+            - blastwall_sudo_listing.rc == 0
+            - blastwall_selfprotect_sudo_command in blastwall_sudo_listing.stdout
+
+        - name: Attempt to remove a Blastwall deny module through the expanded sudo path
+          ansible.builtin.command:
+            argv: >-
+              {{ blastwall_ssh_base + ['sudo', '-n',
+                                      blastwall_selfprotect_sudo_command,
+                                      '-r', 'blastwall-bpf-deny'] }}
+          register: blastwall_selfprotect_attempt
+          changed_when: false
+          failed_when: false
+
+        - name: Assert SELinux blocked policy manipulation
+          ansible.builtin.assert:
+            that:
+              - blastwall_selfprotect_attempt.rc != 0
+              - >-
+                'not allowed' not in
+                (blastwall_selfprotect_attempt.stdout ~ blastwall_selfprotect_attempt.stderr)
+              - >-
+                'Permission denied' in
+                (blastwall_selfprotect_attempt.stdout ~ blastwall_selfprotect_attempt.stderr)
+            fail_msg: >-
+              Expected SELinux to deny semodule execution from blastwall_t.
+              rc={{ blastwall_selfprotect_attempt.rc }}
+              stdout={{ blastwall_selfprotect_attempt.stdout }}
+              stderr={{ blastwall_selfprotect_attempt.stderr }}
+
+        - name: Verify Blastwall deny modules are still installed after failed removal
+          ansible.builtin.command:
+            argv: [semodule, -l]
+          register: blastwall_modules_after_selfprotect
+          delegate_to: "{{ blastwall_endpoint_host }}"
+          become: true
+          changed_when: false
+
+        - name: Assert deny modules survived the manipulation attempt
+          ansible.builtin.assert:
+            that:
+              - "'blastwall-alg-socket-deny' in blastwall_modules_after_selfprotect.stdout"
+              - "'blastwall-bpf-deny' in blastwall_modules_after_selfprotect.stdout"
+              - "'blastwall-packet-socket-deny' in blastwall_modules_after_selfprotect.stdout"
+              - "'blastwall-userns-deny' in blastwall_modules_after_selfprotect.stdout"
+              - "'blastwall-policy-selfprotect' in blastwall_modules_after_selfprotect.stdout"
+            fail_msg: "{{ blastwall_modules_after_selfprotect.stdout }}"
+
+        - name: Collect audit evidence for the self-protection denial
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              grep -aE '(subj|scontext)=blastwall' /var/log/audit/audit.log |
+                grep -E 'semanage_exec_t|load_policy|setenforce|setbool|mac_admin|mac_override' |
+                tail -n 12 || true
+          args:
+            executable: /bin/bash
+          register: blastwall_selfprotect_audit
+          delegate_to: "{{ blastwall_endpoint_host }}"
+          become: true
+          changed_when: false
+
+        - name: Show self-protection proof
+          ansible.builtin.debug:
+            msg:
+              sudo_expansion_seen: >-
+                {{ blastwall_selfprotect_sudo_command in
+                   blastwall_sudo_listing.stdout }}
+              semodule_attempt_rc: "{{ blastwall_selfprotect_attempt.rc }}"
+              semodule_attempt_stderr: "{{ blastwall_selfprotect_attempt.stderr }}"
+              audit_evidence: "{{ blastwall_selfprotect_audit.stdout_lines }}"
+      always:
+        - name: Remove temporary semodule command from Blastwall sudo command group
+          ansible.builtin.shell:
+            cmd: |
+              set -euo pipefail
+              printf '%s\n' '{{ blastwall_ipaadmin_password }}' | kinit '{{ blastwall_ipaadmin_principal }}' >/dev/null
+              ipa sudocmdgroup-remove-member '{{ blastwall_sudo_command_group }}' \
+                --sudocmds='{{ blastwall_selfprotect_sudo_command }}' >/dev/null 2>&1 || true
+              ipa sudocmd-del '{{ blastwall_selfprotect_sudo_command }}' >/dev/null 2>&1 || true
+          args:
+            executable: /bin/bash
+          changed_when: true
+          failed_when: false
+          no_log: true
+
+        - name: Refresh SSSD after removing temporary sudo expansion
+          ansible.builtin.command:
+            argv: [sss_cache, -E]
+          delegate_to: "{{ blastwall_endpoint_host }}"
+          become: true
+          changed_when: true
+          failed_when: false

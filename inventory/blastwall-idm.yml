@@ -1,0 +1,44 @@
+---
+plugin: eigenstate.ipa.idm
+server: "{{ lookup('env', 'IPA_SERVER') }}"
+use_kerberos: true
+kerberos_keytab: "{{ lookup('env', 'IPA_KEYTAB') }}"
+verify: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
+
+sources:
+  - hosts
+  - hbacrules
+
+hbacrule_filter:
+  - blastwall-ssh
+
+host_filter_from_groups: true
+
+hostvars_include:
+  - idm_fqdn
+  - idm_description
+  - idm_os
+  - idm_hostgroups
+
+compose:
+  ansible_host: idm_fqdn
+
+groups:
+  blastwall_policy_current: >-
+    idm_description is defined and
+    'blastwall_policy_rpm=blastwall-selinux-0.4.0-1' in idm_description and
+    'blastwall_policy_state=active' in idm_description and
+    'blastwall_policy_alg_socket=denied' in idm_description and
+    'blastwall_policy_bpf=denied' in idm_description and
+    'blastwall_policy_selfprotect=denied' in idm_description and
+    'blastwall_policy_packet_socket=denied' in idm_description and
+    'blastwall_policy_userns=denied' in idm_description
+  blastwall_policy_stale: >-
+    idm_description is not defined or
+    'blastwall_policy_rpm=blastwall-selinux-0.4.0-1' not in idm_description or
+    'blastwall_policy_state=active' not in idm_description or
+    'blastwall_policy_alg_socket=denied' not in idm_description or
+    'blastwall_policy_bpf=denied' not in idm_description or
+    'blastwall_policy_selfprotect=denied' not in idm_description or
+    'blastwall_policy_packet_socket=denied' not in idm_description or
+    'blastwall_policy_userns=denied' not in idm_description

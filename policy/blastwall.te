@@ -1,0 +1,17 @@
+policy_module(blastwall, 0.3.0)
+
+########################################
+#
+# Blastwall login/admin user domain.
+#
+# The reference-policy template creates:
+# - blastwall_r
+# - blastwall_t
+# - blastwall_sudo_t and related sudo support where available
+#
+# The typealias gives the PoC a more descriptive public context name while
+# keeping the template-generated user domain intact.
+#
+
+userdom_admin_user_template(blastwall)
+typealias blastwall_t alias blastwall_root_local_t;

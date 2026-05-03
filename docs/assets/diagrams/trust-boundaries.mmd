@@ -1,0 +1,11 @@
+flowchart TB
+    subgraph TRUSTED["Trusted Infrastructure"]
+        AAP["AAP Controller<br/>preflight validation"] --> IDM["IdM / FreeIPA<br/>policy system of record"]
+    end
+
+    AAP -->|"SSH (Kerberos-authenticated)"| SSSD
+
+    subgraph HOST["Managed Host"]
+        SSSD["SSSD + pam_selinux<br/>apply SELinux user map"] --> KERNEL["Kernel: SELinux policy enforcement<br/>(TRUSTED)"]
+        KERNEL --> SESSION["Automation session<br/>blastwall_u:blastwall_r:blastwall_t<br/>(UNTRUSTED subject)"]
+    end

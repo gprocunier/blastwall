@@ -1,0 +1,79 @@
+---
+- name: Deploy Blastwall SELinux policy and publish host marker
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    blastwall_policy_rpm: blastwall-selinux-0.4.0-1
+    blastwall_project_dir: /opt/blastwall
+    blastwall_policy_dir: "{{ blastwall_project_dir }}/policy"
+    blastwall_selinux_type: targeted
+    blastwall_selinux_user: blastwall_u
+    blastwall_selinux_role: blastwall_r
+    blastwall_selinux_range: s0
+    blastwall_update_idm_marker: true
+    blastwall_policy_marker: >-
+      blastwall_policy_rpm={{ blastwall_policy_rpm }};
+      blastwall_policy_state=active;
+      blastwall_policy_alg_socket=denied;
+      blastwall_policy_bpf=denied;
+      blastwall_policy_selfprotect=denied;
+      blastwall_policy_packet_socket=denied;
+      blastwall_policy_userns=denied
+  tasks:
+    - name: Check SELinux policy development Makefile
+      ansible.builtin.stat:
+        path: /usr/share/selinux/devel/Makefile
+      register: blastwall_selinux_devel_makefile
+
+    - name: Assert host can build and install local SELinux policy
+      ansible.builtin.assert:
+        that:
+          - blastwall_selinux_devel_makefile.stat.exists
+        fail_msg: >-
+          Missing selinux-policy-devel
+          (/usr/share/selinux/devel/Makefile).
+
+    - name: Install Blastwall policy modules
+      ansible.builtin.command:
+        cmd: make -C "{{ blastwall_policy_dir }}" install
+      changed_when: true
+
+    - name: Install Blastwall SELinux login context
+      ansible.builtin.copy:
+        src: "{{ blastwall_policy_dir }}/contexts/{{ blastwall_selinux_user }}"
+        dest: >-
+          /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+
+    - name: Register Blastwall SELinux user
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if semanage user -l | awk '{print $1}' | grep -qx "${SELINUX_USER}"; then
+          semanage user -m -R "${SELINUX_ROLE}" -r "${SELINUX_RANGE}" "${SELINUX_USER}"
+        else
+          semanage user -a -R "${SELINUX_ROLE}" -r "${SELINUX_RANGE}" "${SELINUX_USER}"
+        fi
+      args:
+        executable: /bin/bash
+      environment:
+        SELINUX_USER: "{{ blastwall_selinux_user }}"
+        SELINUX_ROLE: "{{ blastwall_selinux_role }}"
+        SELINUX_RANGE: "{{ blastwall_selinux_range }}"
+      changed_when: true
+
+    - name: Restore SELinux user context directory labels
+      ansible.builtin.command:
+        cmd: >-
+          restorecon -R
+          /etc/selinux/{{ blastwall_selinux_type }}/contexts/users
+      changed_when: false
+
+    - name: Publish Blastwall host marker to IdM
+      ansible.builtin.command:
+        cmd: ipa host-mod "{{ inventory_hostname }}" --desc "{{ blastwall_policy_marker }}"
+      changed_when: true
+      when: blastwall_update_idm_marker | bool
