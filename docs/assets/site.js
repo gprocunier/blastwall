@@ -691,7 +691,8 @@ const docsMap = [
     pages: [
       { href: "./", paths: ["", "index.html"], label: "Overview" },
       { href: "architecture.html", label: "Architecture" },
-      { href: "day2-operations.html", label: "Day 2 Operations" }
+      { href: "day2-operations.html", label: "Day 2 Operations" },
+      { href: "openshift-spo.html", label: "OpenShift/SPO" }
     ]
   },
   {
@@ -708,7 +709,8 @@ const docsMap = [
       { href: "quick-demo.html", label: "AAP Lab" },
       { href: "demo.html", label: "Ansible Demo" },
       { href: "ansible-lab.html", label: "Ansible Lab" },
-      { href: "poc-flow.html", label: "Ansible Lab Flow" }
+      { href: "poc-flow.html", label: "Ansible Lab Flow" },
+      { href: "openshift-spo-demo.html", label: "OpenShift/SPO Demo" }
     ]
   },
   {

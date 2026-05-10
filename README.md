@@ -37,10 +37,12 @@ The GitHub Pages site is the best entry point:
 | --- | --- |
 | Understand the 2-minute model | [`Architecture`](https://gprocunier.github.io/blastwall/architecture.html) |
 | Understand where policy comes from and how it is maintained | [`Day 2 Operations`](https://gprocunier.github.io/blastwall/day2-operations.html) |
+| Understand the OpenShift workload path | [`OpenShift/SPO`](https://gprocunier.github.io/blastwall/openshift-spo.html) |
 | Watch the operator-facing proof | [`AAP Demo`](https://gprocunier.github.io/blastwall/aap-demo.html) |
 | Inspect the bootstrap and host-local mechanics | [`Ansible Demo`](https://gprocunier.github.io/blastwall/demo.html) |
 | Reproduce the AAP recording | [`AAP Lab`](https://gprocunier.github.io/blastwall/quick-demo.html) |
 | Reproduce the Ansible-only proof | [`Ansible Lab`](https://gprocunier.github.io/blastwall/ansible-lab.html) |
+| Record the OpenShift/SPO proof | [`OpenShift/SPO Demo`](https://gprocunier.github.io/blastwall/openshift-spo-demo.html) |
 | Understand the IdM relationship model | [`IdM Control Model`](https://gprocunier.github.io/blastwall/idm-control-model.html) |
 | Understand the SELinux boundary | [`SELinux Control Model`](https://gprocunier.github.io/blastwall/selinux-control-model.html) |
 | Compare Blastwall with adjacent tools | [`Comparison`](https://gprocunier.github.io/blastwall/comparable-approaches.html) |
@@ -74,6 +76,7 @@ preflight selection, workflow node status, and managed-host verification output.
 | Path | Purpose |
 | --- | --- |
 | `policy/` | SELinux reference-policy module and CIL deny rule. |
+| `openshift/spo/` | Security Profiles Operator profile, SCC, RBAC, examples, and UBI-based validation harness for OpenShift workloads. |
 | `idm/` | IdM group, hostgroup, HBAC, sudo, and SELinux user-map examples. |
 | `inventory/` | `eigenstate.ipa.idm` inventory source for AAP. |
 | `playbooks/` | Preflight, deployment, credential smoke, and verification playbooks. |
@@ -87,6 +90,7 @@ preflight selection, workflow node status, and managed-host verification output.
 - RHEL or compatible hosts with SELinux enforcing.
 - IdM/FreeIPA for identity, HBAC, sudo, SELinux user mapping, and host markers.
 - AAP/Automation Controller for the Controller-based workflow.
+- OpenShift with Security Profiles Operator for the OpenShift workload path.
 - [`eigenstate.ipa`](https://gprocunier.github.io/eigenstate-ipa/) for
   inventory-aware IdM state.
 - Ansible collection dependencies from `collections/requirements.yml`.
@@ -104,6 +108,8 @@ The docs intentionally separate reader needs:
 - `architecture.html` explains the control chain and authority boundaries.
 - `day2-operations.html` explains where policy comes from, how operators build
   a baseline disposition, and how new CVEs become tested deny scopes.
+- `openshift-spo.html` explains the OpenShift workload confinement path with
+  Security Profiles Operator, SCC selection, and safe node validation.
 - demo pages explain what the recordings prove.
 - lab pages guide replay from a prepared environment.
 - comparison and threat-model pages review scope fit, assumptions, attack

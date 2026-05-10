@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenShift/SPO Demo | blastwall</title>
+    <meta name="description" content="CLI demo path for the Blastwall OpenShift Security Profiles Operator workload profile.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Demo</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">A command-line proof for the OpenShift/SPO workload profile, SCC binding, and safe validation probes.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">This demo proves both OpenShift workload classes: standard <code>blastwall</code> and nested <code>blastwall-nested</code>. The standard class blocks workload-created user namespaces; the nested class opts into pod-level user namespace behavior while keeping the Dirty Frag and Copy Fail surface denies.</p>
+
+        <section id="demo-player">
+          <h2>OpenShift/SPO Demo</h2>
+          <div
+            data-asciinema-src="blastwall-openshift-spo.cast"
+            data-asciinema-poster="npt:0:08"
+            data-asciinema-speed="1.45"
+            data-asciinema-idle-time-limit="4"
+            data-asciinema-terminal-font-family="'MesloGL Nerd Font Mono', 'MesloLGL Nerd Font Mono', 'Red Hat Mono', Consolas, monospace"
+            data-asciinema-terminal-font-size="7pt"
+            data-asciinema-cols="220"
+            data-asciinema-rows="42"
+          ></div>
+        </section>
+
+        <section id="demo-evidence-flow">
+          <h2>Evidence Flow</h2>
+          <figure class="diagram-card" id="openshift-spo-demo-evidence-flow">
+            <figcaption>
+              <strong>CLI Proof Sequence</strong>
+              <span>The cast moves from cluster capability, to admission, to runtime context, to safe node validation.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/openshift-spo-demo-evidence-flow.svg" alt="OpenShift SPO demo evidence flow from schema and profile readiness through SCC checks, UBI workload proof, and validation pass summaries">
+          </figure>
+        </section>
+
+        <section id="sequence">
+          <h2>Execution Sequence</h2>
+          <pre><code class="language-bash">oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2
+
+oc apply -k openshift/spo
+
+oc -n blastwall-spo wait \
+  --for=condition=ready rawselinuxprofile/blastwall \
+  --timeout=180s
+
+oc -n blastwall-spo wait \
+  --for=condition=ready rawselinuxprofile/blastwallnested \
+  --timeout=180s
+
+oc -n blastwall-spo get rawselinuxprofile \
+  -o custom-columns=NAME:.metadata.name,STATUS:.status.status,USAGE:.status.usage
+
+oc get scc blastwall-confined \
+  -o jsonpath='{.seLinuxContext.seLinuxOptions.type}{"\n"}'
+
+oc get scc blastwall-nested \
+  -o jsonpath='{.seLinuxContext.seLinuxOptions.type}{" userNamespaceLevel="}{.userNamespaceLevel}{"\n"}'
+
+oc auth can-i use scc/blastwall-confined \
+  --as system:serviceaccount:blastwall-workloads:blastwall-runner \
+  -n blastwall-workloads 2>/dev/null
+
+oc auth can-i use scc/blastwall-nested \
+  --as system:serviceaccount:blastwall-workloads:blastwall-nested-runner \
+  -n blastwall-workloads 2>/dev/null
+
+oc auth can-i use scc/blastwall-nested \
+  --as system:serviceaccount:blastwall-workloads:blastwall-runner \
+  -n blastwall-workloads 2>/dev/null
+
+oc apply -f openshift/spo/examples/blastwall-protected-deployment.yaml
+oc apply -f openshift/spo/examples/blastwall-nested-deployment.yaml
+
+oc -n blastwall-workloads rollout status deploy/blastwall-demo --timeout=180s
+oc -n blastwall-workloads rollout status deploy/blastwall-nested-demo --timeout=180s
+
+oc -n blastwall-workloads exec deploy/blastwall-demo -- \
+  sh -c 'id -Z 2>/dev/null || cat /proc/self/attr/current'
+
+oc -n blastwall-workloads exec deploy/blastwall-nested-demo -- \
+  sh -c 'id -Z 2>/dev/null || cat /proc/self/attr/current; cat /proc/self/uid_map; cat /proc/self/gid_map'
+
+printf '\n=== Blastwall OpenShift node validation ===\n'
+printf 'standard: blastwall-confined -> blastwall_.process\n'
+printf 'nested:   blastwall-nested   -> blastwallnested_.process\n'
+printf 'scope:    safe UBI probe pods across the lab node set\n\n'
+
+openshift/spo/scripts/validate-blastwall-spo-nodes.sh --class both --all</code></pre>
+        </section>
+
+        <section id="evidence-map">
+          <h2>Evidence Map</h2>
+          <p>The recording follows the same operator-facing shape as the Ansible and AAP casts: state the boundary, show the control objects, run the workload, and read the enforcement proof.</p>
+
+          <h3>SPO API and bundle apply</h3>
+          <pre><code class="language-text">rawselinuxprofiles.security-profiles-operator.x-k8s.io
+rawselinuxprofile.security-profiles-operator.x-k8s.io/blastwall condition met
+rawselinuxprofile.security-profiles-operator.x-k8s.io/blastwallnested condition met</code></pre>
+          <p>The demo starts by proving the RawSelinuxProfile API exists, then applies the Blastwall OpenShift bundle.</p>
+
+          <h3>Two workload classes</h3>
+          <pre><code class="language-text">blastwall        Installed  blastwall.process
+blastwallnested  Installed  blastwallnested.process</code></pre>
+          <p>The public classes are <code>blastwall</code> and <code>blastwall-nested</code>. The nested enforcing profile resource is <code>blastwallnested</code>. On the validated lab, <code>status.usage</code> reports the SPO profile usage string; SCC admission and <code>id -Z</code> show the runtime pod type.</p>
+
+          <h3>SCC admission boundary</h3>
+          <pre><code class="language-text">blastwall-confined  blastwall_.process        false
+blastwall-nested    blastwallnested_.process  RequirePodLevel  false
+
+yes
+yes
+no</code></pre>
+          <p>The standard service account can use the standard SCC. The nested service account can use the nested SCC. The standard service account cannot borrow the nested exception.</p>
+
+          <h3>UBI workload proof</h3>
+          <pre><code class="language-text">blastwall-demo-...        scc=blastwall-confined
+blastwall-nested-demo-... scc=blastwall-nested hostUsers=false
+
+system_u:system_r:blastwall_.process:s0:c12,c34
+system_u:system_r:blastwallnested_.process:s0:c12,c34
+         0 1000840000 65536
+         0 1000840000 65536</code></pre>
+          <p>The demo workloads use a UBI Python image. The pod output proves SCC selection, the OpenShift SELinux workload type, and the nested pod user namespace mapping.</p>
+
+          <h3>Safe probe output</h3>
+          <pre><code class="language-text">=== Blastwall OpenShift node validation ===
+standard: blastwall-confined -> blastwall_.process
+nested:   blastwall-nested   -> blastwallnested_.process
+scope:    safe UBI probe pods across the lab node set
+
+BLOCKED: NETLINK_XFRM: errno 13: Permission denied
+BLOCKED: AF_RXRPC: errno 13: Permission denied
+BLOCKED: AF_ALG: errno 13: Permission denied
+BLOCKED: AF_PACKET: errno 13: Permission denied
+SKIP: userns: errno 38: Function not implemented
+BLOCKED: bpf: errno 1: Operation not permitted
+SKIP: io_uring_setup: errno 38: Function not implemented
+
+standard_profile: passed
+nested_profile: passed</code></pre>
+          <p>The probes are safe entry-point checks. The result does not claim every <code>EPERM</code> is SELinux by itself; the proof is the combination of SPO readiness, SCC admission, pod SELinux context, and blocked or skipped probes from the confined workload type.</p>
+        </section>
+
+        <section id="expected-output">
+          <h2>Expected Output</h2>
+          <p>The exact pod name and MCS categories vary by namespace. The important parts are the SCC names, the class-specific SELinux types, <code>hostUsers=false</code> for nested, and probe classifications that are operator-readable.</p>
+          <pre><code class="language-text">blastwall.process
+blastwallnested.process
+
+blastwall_.process
+blastwallnested_.process userNamespaceLevel=RequirePodLevel
+
+blastwall-confined
+blastwall-nested
+
+yes
+yes
+no
+
+system_u:system_r:blastwall_.process:s0:c12,c34
+system_u:system_r:blastwallnested_.process:s0:c12,c34
+
+uid_map: 0 1000840000 65536
+gid_map: 0 1000840000 65536
+
+PASS: selinux_context: system_u:system_r:blastwall_.process:s0:c12,c34
+BLOCKED: NETLINK_XFRM: errno 13: Permission denied
+BLOCKED: AF_RXRPC: errno 13: Permission denied
+BLOCKED: AF_ALG: errno 13: Permission denied
+BLOCKED: AF_PACKET: errno 13: Permission denied
+SKIP: userns: errno 38: Function not implemented
+BLOCKED: bpf: errno 1: Operation not permitted
+SKIP: io_uring_setup: errno 38: Function not implemented
+
+standard_profile: passed
+nested_profile: passed</code></pre>
+          <p><code>SKIP</code> is acceptable when a kernel feature is unavailable or a node class is not schedulable for this non-privileged validation pod. <code>FAIL</code> means the workload did not run under the expected type or a protected entry point succeeded.</p>
+        </section>
+
+        <section id="what-it-proves">
+          <h2>What It Proves</h2>
+          <ul>
+            <li>SPO can carry both Blastwall workload classes as Kubernetes custom resources.</li>
+            <li>SCC selection can move only approved service accounts into <code>blastwall_.process</code> or <code>blastwallnested_.process</code>.</li>
+            <li>The OpenShift workload path keeps pod MCS categories instead of forcing the RHEL login-domain context.</li>
+            <li>The nested class allows pod-level user namespace behavior without reopening xfrm, RxRPC, AF_ALG, BPF, packet socket, or io_uring.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Demo</h2>
+          <p class="context-kicker">CLI proof path</p>
+          <p class="context-copy">Record from an SPO-enabled OpenShift cluster with <code>openshift/spo/scripts/record-openshift-spo-demo.sh</code>.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#demo-player">OpenShift/SPO Demo</a></li>
+            <li><a href="#demo-evidence-flow">Evidence Flow</a></li>
+            <li><a href="#sequence">Execution Sequence</a></li>
+            <li><a href="#evidence-map">Evidence Map</a></li>
+            <li><a href="#expected-output">Expected Output</a></li>
+            <li><a href="#what-it-proves">What It Proves</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="openshift-spo.html">OpenShift/SPO</a> explains the control model and validation rules.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

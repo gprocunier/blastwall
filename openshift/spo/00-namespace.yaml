@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blastwall-spo
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: selinux-profile
+    blastwall.io/profile: openshift-spo
+  annotations:
+    blastwall.io/source: openshift/spo

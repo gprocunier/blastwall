@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blastwall-demo
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall-demo
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: blastwall-demo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: blastwall-demo
+        blastwall.io/profile: openshift-spo
+        blastwall.io/workload-class: blastwall
+      annotations:
+        openshift.io/required-scc: blastwall-confined
+    spec:
+      serviceAccountName: blastwall-runner
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: demo
+          image: registry.access.redhat.com/ubi9/python-312:latest
+          command:
+            - /bin/bash
+            - -lc
+            - sleep infinity
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+      tolerations:
+        - key: node-role.kubernetes.io/worker
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/infra
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule

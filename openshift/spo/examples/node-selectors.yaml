@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: blastwall-node-selector-examples
+items:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: blastwall-worker-node-selector
+      namespace: blastwall-workloads
+    data:
+      selector: "node-role.kubernetes.io/worker="
+      use: "Default test target for worker nodes."
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: blastwall-infra-node-selector
+      namespace: blastwall-workloads
+    data:
+      selector: "node-role.kubernetes.io/infra="
+      use: "Use only when infra nodes are schedulable for this validation."
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: blastwall-control-plane-node-selector
+      namespace: blastwall-workloads
+    data:
+      selector: "node-role.kubernetes.io/master= or node-role.kubernetes.io/control-plane="
+      use: "Use only when cluster policy intentionally allows test pods on control-plane nodes."

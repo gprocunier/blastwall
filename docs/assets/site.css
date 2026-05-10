@@ -885,6 +885,18 @@ a {
   width: min(100%, 28rem);
 }
 
+#openshift-spo-control-flow .diagram-artifact {
+  width: min(100%, 20rem);
+}
+
+#openshift-spo-workload-classes .diagram-artifact {
+  width: min(100%, 44rem);
+}
+
+#openshift-spo-demo-evidence-flow .diagram-artifact {
+  width: min(100%, 22rem);
+}
+
 .diagram-card--focus .diagram-artifact {
   min-width: min(100%, 34rem);
 }

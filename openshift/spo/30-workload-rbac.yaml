@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: blastwall-runner
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: validation
+    blastwall.io/profile: openshift-spo
+  annotations:
+    blastwall.io/source: openshift/spo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: use-blastwall-confined-scc
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: workload-binding
+    blastwall.io/profile: openshift-spo
+  annotations:
+    blastwall.io/source: openshift/spo
+rules:
+  - apiGroups:
+      - security.openshift.io
+    resources:
+      - securitycontextconstraints
+    resourceNames:
+      - blastwall-confined
+    verbs:
+      - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: blastwall-runner-uses-confined-scc
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: workload-binding
+    blastwall.io/profile: openshift-spo
+  annotations:
+    blastwall.io/source: openshift/spo
+subjects:
+  - kind: ServiceAccount
+    name: blastwall-runner
+    namespace: blastwall-workloads
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: use-blastwall-confined-scc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: blastwall-nested-runner
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: validation
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall-nested
+  annotations:
+    blastwall.io/source: openshift/spo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: use-blastwall-nested-scc
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: workload-binding
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall-nested
+  annotations:
+    blastwall.io/source: openshift/spo
+rules:
+  - apiGroups:
+      - security.openshift.io
+    resources:
+      - securitycontextconstraints
+    resourceNames:
+      - blastwall-nested
+    verbs:
+      - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: blastwall-nested-runner-uses-nested-scc
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: workload-binding
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall-nested
+  annotations:
+    blastwall.io/source: openshift/spo
+subjects:
+  - kind: ServiceAccount
+    name: blastwall-nested-runner
+    namespace: blastwall-workloads
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: use-blastwall-nested-scc

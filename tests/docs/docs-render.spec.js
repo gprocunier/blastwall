@@ -12,6 +12,8 @@ const pages = [
   "day2-operations.html",
   "glossary.html",
   "idm-control-model.html",
+  "openshift-spo.html",
+  "openshift-spo-demo.html",
   "poc-flow.html",
   "quick-demo.html",
   "reference.html",
@@ -139,10 +141,11 @@ test.describe("GitHub Pages rendering", () => {
     const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
     const expectedSources = {
       "demo.html": "blastwall-poc.cast",
-      "aap-demo.html": "blastwall-aap.cast"
+      "aap-demo.html": "blastwall-aap.cast",
+      "openshift-spo-demo.html": "blastwall-openshift-spo.cast"
     };
 
-    for (const path of ["demo.html", "aap-demo.html"]) {
+    for (const path of ["demo.html", "aap-demo.html", "openshift-spo-demo.html"]) {
       const failedLocalResponses = [];
       page.on("response", (response) => {
         if (response.url().startsWith(baseUrl) && response.status() >= 400) {
@@ -168,6 +171,20 @@ test.describe("GitHub Pages rendering", () => {
     expect(cast).toContain("NETLINK_XFRM");
     expect(cast).toContain("AF_RXRPC");
     expect(cast).toContain("Blastwall 0.5.2");
+  });
+
+  test("OpenShift SPO demo cast carries dual workload evidence", () => {
+    const demoHtml = readText(path.join(docsRoot, "openshift-spo-demo.html"));
+    const cast = readText(path.join(docsRoot, "blastwall-openshift-spo.cast"));
+
+    expect(demoHtml).toContain("UBI workload proof");
+    expect(cast).toContain("blastwallnested");
+    expect(cast).toContain("blastwall-confined");
+    expect(cast).toContain("blastwall-nested");
+    expect(cast).toContain("Profile class: standard");
+    expect(cast).toContain("Profile class: nested");
+    expect(cast).toContain("standard_profile: passed");
+    expect(cast).toContain("nested_profile: passed");
   });
 
   test("dense diagrams can be enlarged in place", async ({ page }, testInfo) => {
@@ -224,7 +241,7 @@ test.describe("GitHub Pages rendering", () => {
     const demoLinks = await page.locator(".docs-map__group", { hasText: "Demos And Labs" }).locator("a").evaluateAll((links) =>
       links.map((link) => link.textContent.trim())
     );
-    expect(demoLinks).toEqual(["AAP Demo", "AAP Lab", "Ansible Demo", "Ansible Lab", "Ansible Lab Flow"]);
+    expect(demoLinks).toEqual(["AAP Demo", "AAP Lab", "Ansible Demo", "Ansible Lab", "Ansible Lab Flow", "OpenShift/SPO Demo"]);
   });
 
   test("glossary hash targets clear the sticky header", async ({ page }, testInfo) => {

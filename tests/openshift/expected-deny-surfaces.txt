@@ -1,0 +1,8 @@
+user_namespace
+netlink_xfrm_socket
+rxrpc_socket
+packet_socket
+alg_socket
+bpf
+capability2 (bpf)
+io_uring

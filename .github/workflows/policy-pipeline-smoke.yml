@@ -67,6 +67,7 @@ jobs:
               "policy_project_sync",
               "policy_inventory_sync",
               "build_policy_rpm",
+              "render_spo_policy_crs",
               "install_candidate_policy_rpm",
               "verify_candidate_host",
               "promote_policy_marker",
@@ -81,6 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           build_id="$(jq -r '.results[] | select(.identifier == "build_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+          render_spo_id="$(jq -r '.results[] | select(.identifier == "render_spo_policy_crs") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
           install_id="$(jq -r '.results[] | select(.identifier == "install_candidate_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
           verify_id="$(jq -r '.results[] | select(.identifier == "verify_candidate_host") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
           promote_id="$(jq -r '.results[] | select(.identifier == "promote_policy_marker") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
@@ -89,6 +91,20 @@ jobs:
           awx jobs stdout "${build_id}" | tee /tmp/blastwall-policy-pipeline-build.log
           grep -F 'policy_pipeline_build' /tmp/blastwall-policy-pipeline-build.log
           grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-build.log
+
+          awx jobs stdout "${render_spo_id}" | tee /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'spo_policy_crs_render' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall-spo-crs.yaml' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'RawSelinuxProfile' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'spo_profiles' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall-nested' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'spo_profile_resources' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwallnested' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'spo_sccs' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall-confined' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall-nested' /tmp/blastwall-policy-pipeline-render-spo.log
 
           awx jobs stdout "${install_id}" | tee /tmp/blastwall-policy-pipeline-install.log
           grep -F 'policy_pipeline_install' /tmp/blastwall-policy-pipeline-install.log

@@ -104,7 +104,7 @@
           <h2>Policy Pipeline</h2>
           <p>The policy repository should behave like any other production control. The main branch holds the master policy baseline. A new deny scope starts on a feature branch, proves that the policy still compiles, proves that normal automation still works, proves that the new surface is denied, and only then becomes a promoted artifact.</p>
           <p>The runner can be GitHub Actions, a GitLab runner, Tekton, AAP, or a mix of them. The important part is the contract: build the RPM, run unit checks, replay the automation corpus, run safe denial probes, keep the logs, and promote only when the evidence says the baseline is still usable.</p>
-          <p>The Calabi lab now has that loop as a runnable AAP workflow. <code>Blastwall policy pipeline</code> starts with the synced Git project, builds a candidate <code>blastwall-selinux</code> RPM from <code>policy/</code>, installs it on the selected lab endpoint, verifies the confined context and deny probes, then updates the IdM host marker through the FreeIPA collection. After the marker moves, the workflow resyncs inventory through <code>eigenstate.ipa</code> and runs preflight against the promoted state.</p>
+          <p>The Calabi lab now has that loop as a runnable AAP workflow. <code>Blastwall policy pipeline</code> starts with the synced Git project, builds a candidate <code>blastwall-selinux</code> RPM from <code>policy/</code>, renders an OpenShift/SPO CR bundle from the same policy version, installs the RPM on the selected lab endpoint, verifies the confined context and deny probes, then updates the IdM host marker through the FreeIPA collection. After the marker moves, the workflow resyncs inventory through <code>eigenstate.ipa</code> and runs preflight against the promoted state.</p>
           <figure class="diagram-card diagram-card--focus" id="day2-aap-policy-pipeline">
             <figcaption>
               <strong>The Day 2 loop is runnable in AAP.</strong>
@@ -131,6 +131,7 @@ awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
             <tbody>
               <tr><td data-label="AAP Node"><code>policy_project_sync</code></td><td data-label="Evidence It Produces">The workflow starts from the selected Git state.</td><td data-label="Why It Matters">Policy is sourced from the repository, not hand-edited on a host.</td></tr>
               <tr><td data-label="AAP Node"><code>build_policy_rpm</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_build: passed</code> and the candidate NEVRA.</td><td data-label="Why It Matters">The RPM is a versioned artifact built from checked-out <code>policy/</code> source.</td></tr>
+              <tr><td data-label="AAP Node"><code>render_spo_policy_crs</code></td><td data-label="Evidence It Produces"><code>spo_policy_crs_render: passed</code> and <code>blastwall-spo-crs.yaml</code>.</td><td data-label="Why It Matters">The same policy version produces an OpenShift/SPO workload-profile bundle without requiring cluster credentials.</td></tr>
               <tr><td data-label="AAP Node"><code>install_candidate_policy_rpm</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_install: passed</code> and installed package state.</td><td data-label="Why It Matters">The candidate artifact is on the host before verification starts.</td></tr>
               <tr><td data-label="AAP Node"><code>verify_candidate_host</code></td><td data-label="Evidence It Produces">Confined SELinux context and blocked probe output.</td><td data-label="Why It Matters">The new marker is not trusted until the host-local boundary is proven.</td></tr>
               <tr><td data-label="AAP Node"><code>promote_policy_marker</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_promotion: passed</code> and the promoted marker.</td><td data-label="Why It Matters">The marker write uses the FreeIPA collection after host verification succeeds.</td></tr>
@@ -164,6 +165,7 @@ awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
             <img class="diagram-artifact" src="assets/diagrams/day2-pipeline-engines.svg" alt="Pipeline engine options feeding a common evidence bundle, promotion decision, content repository, and AAP preflight">
           </figure>
           <p>In a live enterprise shape, I would let CI own fast build and unit feedback, then let AAP own operator-visible rollout and verification. That gives developers quick branch feedback without hiding the production gate from the automation platform that will enforce it.</p>
+          <p>The pipeline now has two governed outputs: a RHEL/IdM policy RPM for managed-host SSH automation and an <a href="openshift-spo.html">OpenShift/SPO</a> CR bundle for selected pod workloads. The OpenShift render node writes <code>/var/tmp/blastwall-policy-pipeline/artifacts/openshift-spo/blastwall-spo-crs.yaml</code>; applying and validating that bundle remains a separate cluster change-control step.</p>
         </section>
 
         <section id="run-policy-pipeline">
@@ -258,6 +260,7 @@ awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|bw_rpm=blas
           <h2>When A New CVE Lands</h2>
           <p>A new CVE should not immediately become a permanent Blastwall rule. It should become a triage question: is this surface reachable from the automation domain, does normal automation need it, and can the denial be verified safely?</p>
           <p>Dirty Frag is the current example. Public disclosure landed on May 7, 2026. The Blastwall response added two narrow policy files, <code>policy/blastwall-xfrm-deny.cil</code> and <code>policy/blastwall-rxrpc-deny.cil</code>, plus a safe probe that only checks whether the confined automation identity can open the xfrm and RxRPC entry points. The exploit mechanics are not part of the test path.</p>
+          <p>That deny-scope decision now has two artifact targets. The RHEL path subtracts xfrm and RxRPC from <code>blastwall_t</code> for login-domain automation. The OpenShift/SPO path carries two workload classes: <code>blastwall</code> for standard workloads and <code>blastwall-nested</code> for the explicit pod-level user namespace exception. Both OpenShift classes preserve the native pod context shape <code>system_u:system_r:&lt;spo-type&gt;:s0:cX,cY</code>.</p>
           <figure class="diagram-card" id="day2-new-cve-loop">
             <figcaption>
               <strong>New CVEs enter as triage before baseline.</strong>
@@ -317,7 +320,7 @@ awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|bw_rpm=blas
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="selinux-control-model.html">SELinux Control Model</a> explains host-local enforcement. <a href="reference.html#policy-artifacts">Reference</a> lists exact policy artifacts.</p>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="selinux-control-model.html">SELinux Control Model</a> explains host-local enforcement. <a href="openshift-spo.html">OpenShift/SPO</a> covers workload confinement. <a href="openshift-spo-demo.html">OpenShift/SPO Demo</a> covers the CLI proof path. <a href="reference.html#policy-artifacts">Reference</a> lists exact policy artifacts.</p>
         </section>
       </aside>
     </main>

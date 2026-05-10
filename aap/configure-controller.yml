@@ -517,6 +517,8 @@
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
           extra_data:
             blastwall_policy_pipeline_build_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+        - identifier: render_spo_policy_crs
+          template: Blastwall render SPO policy CRs
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
@@ -555,6 +557,7 @@
         - identifier: build_policy_rpm
           template: Blastwall build policy RPM
           success_nodes:
+            - render_spo_policy_crs
             - install_candidate_policy_rpm
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM

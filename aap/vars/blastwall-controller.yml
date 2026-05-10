@@ -94,6 +94,10 @@ blastwall_aap_job_templates:
       - "{{ blastwall_aap_policy_idm_credential }}"
       - "{{ blastwall_aap_policy_machine_credential }}"
     limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+  - name: Blastwall render SPO policy CRs
+    playbook: playbooks/render-spo-policy-crs.yml
+    credentials: []
+    limit: ""
   - name: Blastwall install candidate policy RPM
     playbook: playbooks/install-policy-rpm.yml
     credentials:

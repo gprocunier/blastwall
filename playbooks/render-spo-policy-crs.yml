@@ -1,0 +1,158 @@
+---
+- name: Render Blastwall OpenShift/SPO policy CR bundle
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    blastwall_policy_name: blastwall-selinux
+    blastwall_policy_version: >-
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
+    blastwall_policy_release: >-
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+    blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
+    blastwall_spo_profiles:
+      - blastwall
+      - blastwall-nested
+    blastwall_spo_profile_resources:
+      - blastwall
+      - blastwallnested
+    blastwall_spo_sccs:
+      - blastwall-confined
+      - blastwall-nested
+    blastwall_spo_namespace: blastwall-spo
+    blastwall_spo_workload_namespace: blastwall-workloads
+    blastwall_spo_artifact_dir: /var/tmp/blastwall-policy-pipeline/artifacts/openshift-spo
+    blastwall_spo_bundle_path: "{{ blastwall_spo_artifact_dir }}/blastwall-spo-crs.yaml"
+    blastwall_spo_manifest_files:
+      - openshift/spo/00-namespace.yaml
+      - openshift/spo/05-workload-namespace.yaml
+      - openshift/spo/10-rawselinuxprofile-blastwall.yaml
+      - openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+      - openshift/spo/20-scc-blastwall-confined.yaml
+      - openshift/spo/30-workload-rbac.yaml
+      - openshift/spo/40-test-harness-configmap.yaml
+      - openshift/spo/examples/blastwall-protected-deployment.yaml
+      - openshift/spo/examples/blastwall-nested-deployment.yaml
+      - openshift/spo/tests/50-validation-job.yaml
+    blastwall_spo_common_labels:
+      blastwall.io/profile: openshift-spo
+      blastwall.io/policy-version: "{{ blastwall_policy_version }}"
+      blastwall.io/policy-release: "{{ blastwall_policy_release }}"
+    blastwall_spo_common_annotations:
+      blastwall.io/policy-version: "{{ blastwall_policy_version }}"
+      blastwall.io/policy-release: "{{ blastwall_policy_release }}"
+      blastwall.io/policy-nevra: "{{ blastwall_policy_nevra }}"
+      blastwall.io/source: "{{ lookup('env', 'GITHUB_SHA') | default('local-render', true) }}"
+  tasks:
+    - name: Assert source manifests exist
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../{{ item }}"
+      loop: "{{ blastwall_spo_manifest_files }}"
+      loop_control:
+        label: "{{ item }}"
+      register: blastwall_spo_manifest_stats
+
+    - name: Capture missing source manifests
+      ansible.builtin.set_fact:
+        blastwall_spo_missing_manifests: >-
+          {{
+            blastwall_spo_manifest_stats.results
+            | selectattr('stat.exists', 'equalto', false)
+            | map(attribute='item')
+            | list
+          }}
+
+    - name: Require all source manifests
+      ansible.builtin.assert:
+        that:
+          - blastwall_spo_missing_manifests | length == 0
+        fail_msg: "Missing OpenShift/SPO manifests: {{ blastwall_spo_missing_manifests | join(', ') }}"
+
+    - name: Read OpenShift/SPO source manifests
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/../{{ item }}"
+      loop: "{{ blastwall_spo_manifest_files }}"
+      loop_control:
+        label: "{{ item }}"
+      register: blastwall_spo_manifest_sources
+
+    - name: Build parsed SPO bundle object list
+      ansible.builtin.set_fact:
+        blastwall_spo_bundle_objects: >-
+          {{
+            (blastwall_spo_bundle_objects | default([])) +
+            (
+              item.content | b64decode | from_yaml_all | list
+              | reject('equalto', None)
+              | list
+            )
+          }}
+      loop: "{{ blastwall_spo_manifest_sources.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Add policy labels and annotations to bundle objects
+      ansible.builtin.set_fact:
+        blastwall_spo_rendered_objects: "{{ (blastwall_spo_rendered_objects | default([])) + [rendered_object] }}"
+      vars:
+        rendered_object: >-
+          {{
+            item | combine({
+              'metadata': (
+                (item.metadata | default({})) | combine({
+                  'labels': ((item.metadata.labels | default({})) | combine(blastwall_spo_common_labels)),
+                  'annotations': ((item.metadata.annotations | default({})) | combine(blastwall_spo_common_annotations))
+                }, recursive=True)
+              )
+            }, recursive=True)
+          }}
+      loop: "{{ blastwall_spo_bundle_objects }}"
+      loop_control:
+        label: "{{ item.kind }}/{{ item.metadata.name | default('unnamed') }}"
+
+    - name: Capture forbidden fleet-governance objects
+      ansible.builtin.set_fact:
+        blastwall_spo_forbidden_objects: >-
+          {{
+            blastwall_spo_rendered_objects
+            | selectattr('kind', 'in', ['Policy', 'ConfigurationPolicy', 'Placement', 'PlacementBinding'])
+            | map(attribute='kind')
+            | list
+          }}
+
+    - name: Assert rendered bundle excludes fleet-governance kinds
+      ansible.builtin.assert:
+        that:
+          - blastwall_spo_forbidden_objects | length == 0
+        fail_msg: "OpenShift/SPO bundle must not contain fleet-governance object kinds: {{ blastwall_spo_forbidden_objects | join(', ') }}"
+
+    - name: Create OpenShift/SPO artifact directory
+      ansible.builtin.file:
+        path: "{{ blastwall_spo_artifact_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Write OpenShift/SPO CR bundle
+      ansible.builtin.copy:
+        dest: "{{ blastwall_spo_bundle_path }}"
+        mode: "0644"
+        content: |
+          # Rendered by playbooks/render-spo-policy-crs.yml.
+          # Fleet-governance objects are intentionally not included in this bundle.
+          {% for object in blastwall_spo_rendered_objects %}
+          ---
+          {{ object | to_nice_yaml(indent=2, sort_keys=false) }}
+          {% endfor %}
+
+    - name: Report OpenShift/SPO render evidence
+      ansible.builtin.debug:
+        msg:
+          spo_policy_crs_render: passed
+          spo_policy_bundle: "{{ blastwall_spo_bundle_path }}"
+          spo_profile_kind: RawSelinuxProfile
+          spo_profiles: "{{ blastwall_spo_profiles | join(', ') }}"
+          spo_profile_resources: "{{ blastwall_spo_profile_resources | join(', ') }}"
+          spo_sccs: "{{ blastwall_spo_sccs | join(', ') }}"
+          spo_profile_namespace: "{{ blastwall_spo_namespace }}"
+          spo_workload_namespace: "{{ blastwall_spo_workload_namespace }}"
+          policy_nevra: "{{ blastwall_policy_nevra }}"

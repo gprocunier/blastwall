@@ -59,10 +59,12 @@
             <tbody>
               <tr><td data-label="I need...">The 2-minute concept</td><td data-label="Start With"><a href="architecture.html">Architecture</a></td><td data-label="What You Will Know">How IdM, eigenstate.ipa, AAP, SSH, SELinux, and audit evidence divide the work.</td></tr>
               <tr><td data-label="I need...">To operate the policy after the proof</td><td data-label="Start With"><a href="day2-operations.html">Day 2 Operations</a></td><td data-label="What You Will Know">Where policy comes from, how to build a baseline disposition, and how new CVEs become tested deny scopes.</td></tr>
+              <tr><td data-label="I need...">OpenShift workload confinement</td><td data-label="Start With"><a href="openshift-spo.html">OpenShift/SPO</a></td><td data-label="What You Will Know">How SPO installs the <code>blastwall</code> and <code>blastwall-nested</code> workload classes, SCC selects each type, and safe UBI probes validate selected nodes.</td></tr>
               <tr><td data-label="I need...">Proof in Ansible Automation Platform</td><td data-label="Start With"><a href="aap-demo.html">AAP Demo</a></td><td data-label="What You Will Know">What Controller shows: credential smoke, inventory sync, preflight, workflow nodes, and managed-host verification.</td></tr>
               <tr><td data-label="I need...">Proof without AAP</td><td data-label="Start With"><a href="demo.html">Ansible Demo</a></td><td data-label="What You Will Know">How the bootstrap path creates IdM state, rolls out policy, runs direct probes, reads audit evidence, and proves self-protection.</td></tr>
               <tr><td data-label="I need...">To replay the AAP proof</td><td data-label="Start With"><a href="quick-demo.html">AAP Lab</a></td><td data-label="What You Will Know">How to replay the prepared AAP proof with <code>awx</code> and inspect expected output.</td></tr>
               <tr><td data-label="I need...">To replay the non-AAP proof</td><td data-label="Start With"><a href="ansible-lab.html">Ansible Lab</a></td><td data-label="What You Will Know">How to replay the Ansible-only path from <code>bastion-01</code> and inspect host-local SELinux evidence.</td></tr>
+              <tr><td data-label="I need...">To record the OpenShift path</td><td data-label="Start With"><a href="openshift-spo-demo.html">OpenShift/SPO Demo</a></td><td data-label="What You Will Know">The CLI proof sequence for profile readiness, SCC admission, pod SELinux context, and blocked or skipped safe probes.</td></tr>
               <tr><td data-label="I need...">To challenge the security claim</td><td data-label="Start With"><a href="threat-model.html">Threat Model</a></td><td data-label="What You Will Know">The assumptions, attack paths, mitigations, residual risks, and future work.</td></tr>
               <tr><td data-label="I need...">Implementation details</td><td data-label="Start With"><a href="reference.html">Reference</a></td><td data-label="What You Will Know">Exact AAP objects, IdM records, SELinux contexts, probes, artifacts, hostnames, and outputs.</td></tr>
             </tbody>
@@ -131,6 +133,7 @@
         <section id="proof">
           <h2>Proof Paths</h2>
           <p>The AAP demo is the path I would show first: it is the operator-facing proof with Controller objects, workflow launch, credential smoke, preflight, and managed-host verification. The Ansible demo is the bootstrap proof: it shows the IdM shape, policy rollout, direct probes, audit evidence, and self-protection mechanics without relying on AAP.</p>
+          <p>The <a href="openshift-spo.html">OpenShift/SPO path</a> is a separate workload proof. It does not force pods into the RHEL login-domain context; it uses SPO and SCC to run selected workloads in standard <code>blastwall</code> or explicit-exception <code>blastwall-nested</code> classes.</p>
           <p>Both recordings were made in <a href="glossary.html#calabi">Calabi</a>, a nested-KVM lab with a real IdM server, bastion host, mirror registry, Kerberos flow, and managed endpoint. Calabi is the validation environment, not a Blastwall runtime requirement.</p>
         </section>
 
@@ -206,6 +209,7 @@
             </thead>
             <tbody>
               <tr><td><code>policy/</code></td><td>SELinux reference-policy module and CIL deny rule.</td></tr>
+              <tr><td><code>openshift/spo/</code></td><td>OpenShift Security Profiles Operator profile, SCC, RBAC, examples, and safe validation harness.</td></tr>
               <tr><td><code>idm/</code></td><td>IdM group, hostgroup, HBAC, sudo, and SELinux user-map object model.</td></tr>
               <tr><td><code>inventory/</code></td><td><a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa.idm</code></a> inventory source for AAP.</td></tr>
               <tr><td><code>playbooks/</code></td><td>Preflight, deployment, credential smoke, and verification playbooks.</td></tr>
