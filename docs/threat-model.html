@@ -177,7 +177,7 @@
           </table>
 
           <h3>AP-3: IdM Host Marker Spoofing</h3>
-          <p>An attacker (or misconfigured automation) writes a false <code>bw_state=active</code> marker to a host's IdM description. The preflight gate selects that host even though no policy is installed.</p>
+          <p>An attacker (or misconfigured automation) writes a false marker into a host's <code>userClass</code>. The preflight gate selects that host even though no policy is installed.</p>
           <p>The <a href="architecture.html#evidence-loop">architecture evidence loop</a> treats markers as selection hints, not as enforcement proof. The AAP demo keeps the current and stale host output visible for this reason.</p>
           <table>
             <tbody>

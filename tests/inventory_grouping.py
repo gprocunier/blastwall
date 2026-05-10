@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import json
+import re
 import sys
 
 
@@ -10,28 +11,65 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "inventory-policy-markers.json"
 
 ACCEPTED_POLICY_RPMS = [
-    "bw_rpm=blastwall-selinux-0.5.2-1",
+    "blastwall-selinux-0.5.2-1",
 ]
 
-REQUIRED_MARKERS = [
-    "bw_state=active",
-    "bw_alg=deny",
-    "bw_bpf=deny",
-    "bw_self=deny",
-    "bw_pkt=deny",
-    "bw_userns=deny",
-    "bw_iou=deny",
-    "bw_xfrm=deny",
-    "bw_rxrpc=deny",
-]
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+REQUIRED_MARKERS = {
+    "state": "active",
+    "alg": "deny",
+    "bpf": "deny",
+    "self": "deny",
+    "pkt": "deny",
+    "userns": "deny",
+    "iou": "deny",
+    "xfrm": "deny",
+    "rxrpc": "deny",
+}
 
 
-def is_current(description: str) -> bool:
-    return (
-        bool(description)
-        and any(marker in description for marker in ACCEPTED_POLICY_RPMS)
-        and all(marker in description for marker in REQUIRED_MARKERS)
-    )
+def fail(message: str) -> None:
+    print(f"FAIL: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def parse_marker(marker):
+    if not marker.startswith("blastwall:"):
+        return {}
+
+    return {
+        key: value
+        for key, value in (
+            token.split("=", 1)
+            for token in marker.removeprefix("blastwall:").split(";")
+            if "=" in token
+        )
+    }
+
+
+def is_current(userclass) -> bool:
+    if isinstance(userclass, str):
+        userclass = [userclass]
+
+    if not isinstance(userclass, list):
+        return False
+
+    for marker in userclass:
+        parsed = parse_marker(marker)
+        if not parsed:
+            continue
+
+        if parsed.get("rpm") not in ACCEPTED_POLICY_RPMS:
+            continue
+
+        if not SHA256_RE.match(parsed.get("rpm_sha256", "")):
+            continue
+
+        if all(parsed.get(marker_name) == value for marker_name, value in REQUIRED_MARKERS.items()):
+            return True
+
+    return False
 
 
 fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -41,7 +79,9 @@ actual = {
 }
 
 for host in fixture["hosts"]:
-    group = "blastwall_policy_current" if is_current(host.get("description", "")) else "blastwall_policy_stale"
+    if "description" in host:
+        fail("fixture host entries should use idm_userclass, not description")
+    group = "blastwall_policy_current" if is_current(host.get("idm_userclass", [])) else "blastwall_policy_stale"
     actual[group].append(host["name"])
 
 if actual != fixture["expected"]:

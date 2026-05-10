@@ -40,6 +40,13 @@
           <p>The recorded path uses <a href="glossary.html#awx"><code>awx</code></a> for the operator-facing surface: Controller health, object inventory, workflow graph, launch, node status, and job stdout.</p>
           <p>The refreshed workflow includes a credential smoke node before inventory sync. That makes the AAP runtime credential a visible control, not an assumption hidden behind a later preflight failure.</p>
           <p>The operational split matters. Policy <a href="glossary.html#rpm">RPM</a> rollout and marker publication happen before this workflow. AAP reads those markers as selection hints, then the verification job proves the <a href="glossary.html#selinux-context">SELinux context</a> and denial behavior on the managed host.</p>
+          <figure class="diagram-card diagram-card--focus" id="aap-demo-flow">
+            <figcaption>
+              <strong>AAP Demo Flow</strong>
+              <span>The recorded proof starts with the Controller operator surface, launches the visible workflow graph, and ends in stdout evidence from the selected host.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/aap-demo-flow.svg" alt="AAP demo flow from Controller session through AAP objects, workflow launch, completed nodes, and stdout evidence">
+          </figure>
         </section>
 
         <section id="what-this-does-not-prove">

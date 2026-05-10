@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blastwall SELinux context boundary Red Hat styled diagram" width="1280" height="430" viewBox="0 0 1280 430">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .lane rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.4; filter: url(#shadow); }
+      .lane-title { fill: #151515; font: 700 22px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 17px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 13.2px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .connector.dashed { stroke-dasharray: 8 8; }
+      .chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .chip text { fill: #be0000; font: 600 12.5px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .icon { fill: none; stroke: #ee0000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1280" height="430"/>
+  <rect class="grain" width="1280" height="430"/>
+
+  <g class="lane">
+    <rect x="42" y="54" width="1196" height="300" rx="14"/>
+    <text class="lane-title" x="640" y="92">Context boundary from login through sudo</text>
+  </g>
+
+  <g class="edges">
+    <path class="connector" d="M 260 188 H 338" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 548 188 H 626" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 836 188 H 914" marker-end="url(#arrow)"/>
+    <path class="connector dashed" d="M 1012 264 V 292 H 720 V 264" marker-end="url(#arrow)"/>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="72" y="136" width="188" height="104" rx="8"/>
+    <g class="icon" transform="translate(94 165)">
+      <ellipse cx="17" cy="8" rx="17" ry="7"/>
+      <path d="M 0 8 V 28 C 0 32 8 36 17 36 C 26 36 34 32 34 28 V 8"/>
+      <path d="M 0 18 C 0 22 8 26 17 26 C 26 26 34 22 34 18"/>
+    </g>
+    <text class="title" x="148" y="173">IdM map</text>
+    <text class="subtitle" x="148" y="194">SELinux user</text>
+    <text class="subtitle" x="148" y="212">and HBAC state</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="338" y="136" width="210" height="104" rx="8"/>
+    <g class="icon" transform="translate(360 165)">
+      <path d="M 24 14 H 28 C 32 14 34 17 34 20 C 34 23 32 26 28 26 H 24"/>
+      <path d="M 12 14 H 8 C 4 14 2 17 2 20 C 2 23 4 26 8 26 H 12"/>
+      <path d="M 11 20 H 25"/>
+    </g>
+    <text class="title" x="416" y="173">SSSD reads</text>
+    <text class="title" x="416" y="194">central state</text>
+    <text class="subtitle" x="416" y="216">during SSH login</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="626" y="136" width="210" height="128" rx="8"/>
+    <g class="icon" transform="translate(648 176)">
+      <path d="M 16 0 L 32 8 V 20 C 32 29 25 36 16 40 C 7 36 0 29 0 20 V 8 Z"/>
+      <path d="M 8 20 L 14 26 L 26 12"/>
+    </g>
+    <text class="title" x="704" y="172">pam_selinux</text>
+    <text class="title" x="704" y="193">applies label</text>
+    <text class="subtitle" x="704" y="216">blastwall_u</text>
+    <text class="subtitle" x="704" y="234">blastwall_r</text>
+    <text class="subtitle" x="704" y="252">blastwall_t:s0</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="914" y="136" width="226" height="128" rx="8"/>
+    <g class="icon" transform="translate(936 176)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 10 17 H 24"/>
+      <path d="M 17 10 V 24"/>
+    </g>
+    <text class="title" x="992" y="172">Sudo reaches</text>
+    <text class="title" x="992" y="193">UID 0</text>
+    <text class="subtitle" x="992" y="216">delegated privilege</text>
+    <text class="subtitle" x="992" y="234">still inside</text>
+    <text class="subtitle" x="992" y="252">blastwall_t</text>
+  </g>
+
+  <g class="chip">
+    <rect x="650" y="314" width="140" height="30" rx="5"/>
+    <text x="720" y="334">domain persists</text>
+  </g>
+</svg>

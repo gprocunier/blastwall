@@ -3,120 +3,21 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lab Flow | blastwall</title>
-    <meta name="description" content="End-to-end lab flow for validating Blastwall in Calabi with IdM, AAP, SELinux, and direct AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and self-protection denial probes plus audit evidence.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta http-equiv="refresh" content="0; url=ansible-lab.html#source-run-order">
+    <title>Redirecting | blastwall</title>
+    <meta name="robots" content="noindex">
+    <link rel="canonical" href="ansible-lab.html#source-run-order">
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="stylesheet" href="assets/site.css">
-    <script type="module" src="assets/site.js"></script>
   </head>
   <body>
-    <header class="site-header">
-      <div class="site-header__inner">
-        <p class="eyebrow">Blastwall Documentation</p>
-        <div class="site-brand">
-          <div>
-            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
-            <p class="site-brand__tagline">End-to-end lab validation for the identity, policy, rollout, and proof path.</p>
-          </div>
-        </div>
-        <nav class="site-header__actions" aria-label="Project links">
-          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
-          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
-          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
-        </nav>
-      </div>
-    </header>
-
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">This is the source-level runbook behind the recorded Calabi proof. It shows where the lab runs, which playbooks build the state, and what evidence should appear when the SELinux confinement is working.</p>
-
-        <p>The flow configures <a href="glossary.html#idm">IdM</a>, validates the read-side gate with <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a>, builds a policy <a href="glossary.html#rpm">RPM</a>, deploys it, and proves <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, <a href="glossary.html#io-uring">io_uring</a>, Dirty Frag xfrm/RxRPC, and self-protection denials from a mapped automation identity on the <a href="glossary.html#calabi">Calabi</a> lab target <code>mirror-registry.workshop.lan</code>, then reads the target <a href="glossary.html#audit-log">audit log</a> for <a href="glossary.html#selinux">SELinux</a> evidence.</p>
-
-        <section>
-          <h2>Execution Boundary</h2>
-          <p>Run these playbooks on <code>bastion-01</code>, not directly from the workstation. Stage the <code>poc-calabi/</code> directory to a bastion-local path before execution.</p>
-        </section>
-
-        <section>
-          <h2>Inputs</h2>
-          <p>Provide IdM credentials through the environment. Use <code>IPA_KEYTAB</code> for keytab-backed runs. The password fallback is retained for the Calabi lab path.</p>
-          <pre><code>export IPA_KEYTAB=/path/to/svc-ansible-runner.keytab
-# or, for the Calabi password fallback:
-export IPA_PASSWORD='...'
-export BLASTWALL_AUTO_PASSWORD='...'</code></pre>
-        </section>
-
-        <section>
-          <h2>Run Order</h2>
-          <p>Run the steps in order. The early playbooks create the identity and read-side state; the later playbooks mutate the managed host and prove enforcement.</p>
-          <pre><code class="language-bash">ansible-playbook 00-preflight.yml
-ansible-playbook 10-configure-idm.yml
-ansible-playbook 15-validate-idm-with-eigenstate.yml
-ansible-playbook 20-build-policy-rpm.yml
-ansible-playbook 30-deploy-and-test.yml
-ansible-playbook 35-test-self-protection.yml</code></pre>
-        </section>
-
-        <section>
-          <h2>Retry Points</h2>
-          <ul>
-            <li>Rerun <code>00-preflight.yml</code> when connectivity or inventory looks wrong.</li>
-            <li>Rerun <code>10-configure-idm.yml</code> when identities, groups, HBAC, sudo, or SELinux maps drift.</li>
-            <li>Rerun <code>15-validate-idm-with-eigenstate.yml</code> before deployment whenever IdM state changed.</li>
-            <li>Rerun <code>20-build-policy-rpm.yml</code> only when policy source or package metadata changed.</li>
-            <li>Rerun <code>30-deploy-and-test.yml</code> when the managed-host proof needs fresh evidence.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>Expected Result</h2>
-          <ul>
-            <li><code>svc-ansible-runner</code> can SSH to <code>mirror-registry.workshop.lan</code>.</li>
-            <li><code>id -Z</code> returns <code>blastwall_u:blastwall_r:blastwall_t:s0</code> or the public alias.</li>
-            <li><code>sudo -n /usr/bin/id -u</code> returns <code>0</code>.</li>
-            <li>The AF_ALG/authencesn probe prints <code>BLOCKED</code>.</li>
-            <li>The BPF probe prints <code>BLOCKED</code> for <code>BPF_MAP_CREATE</code> and <code>BPF_PROG_LOAD</code>.</li>
-            <li>The packet_socket probe prints <code>BLOCKED</code> for AF_PACKET socket creation.</li>
-            <li>The userns probe prints <code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</li>
-            <li>The io_uring probe prints <code>BLOCKED</code> for <code>io_uring_setup</code>, or <code>SKIP</code> on kernels without that object class.</li>
-            <li>The Dirty Frag probe prints <code>BLOCKED</code> for <code>NETLINK_XFRM</code> and <code>AF_RXRPC</code>, or a documented AF_RXRPC <code>SKIP</code> when that protocol is absent.</li>
-            <li>The self-protection play temporarily exposes <code>/usr/sbin/semodule</code> through sudo, then SELinux denies execution from <code>blastwall_t</code>.</li>
-            <li>A target-side audit-log query shows SELinux denial evidence for <code>blastwall_t</code>.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>Cleanup</h2>
-          <p>Use cleanup only when the lab should return to a baseline state for another recording or replay. Do not run cleanup between normal evidence reads.</p>
-          <pre><code class="language-bash">ansible-playbook 99-cleanup.yml</code></pre>
-        </section>
+        <p class="lead">The PoC runbook moved into <a href="ansible-lab.html#source-run-order">Ansible Lab</a>.</p>
       </article>
-
-      <aside class="side-column" aria-label="Page context">
-        <section class="context-block context-block--meta">
-          <h2>Lab Scope</h2>
-          <p class="context-kicker">Full proof path</p>
-          <p class="context-copy">Use this when the question is not only whether the denial works, but whether the rollout model is visible, repeatable, and auditable.</p>
-        </section>
-        <section class="toc-block">
-          <h2>Related</h2>
-          <ol class="path-list">
-            <li><a href="architecture.html">Architecture</a></li>
-            <li><a href="idm-control-model.html">IdM Control Model</a></li>
-            <li><a href="threat-model.html">Threat Model</a></li>
-            <li><a href="glossary.html">Glossary</a></li>
-            <li><a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi">PoC Source</a></li>
-          </ol>
-        </section>
-      </aside>
     </main>
-
-    <footer class="site-footer">
-      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
-    </footer>
+    <script>
+      location.replace("ansible-lab.html#source-run-order");
+    </script>
   </body>
 </html>

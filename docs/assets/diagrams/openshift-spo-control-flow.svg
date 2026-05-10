@@ -1,1 +1,110 @@
-<svg preserveAspectRatio="xMidYMid meet" id="my-svg" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="max-width: 290.078px; background-color: transparent;" viewBox="-32 -32 290.078125 549" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#my-svg{font-family:Red Hat Text,Helvetica,Arial,sans-serif;font-size:16px;fill:#151515;}#my-svg .error-icon{fill:#fce3e3;}#my-svg .error-text{fill:#151515;stroke:#151515;}#my-svg .edge-thickness-normal{stroke-width:2px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#4d4d4d;stroke:#4d4d4d;}#my-svg .marker.cross{stroke:#4d4d4d;}#my-svg svg{font-family:Red Hat Text,Helvetica,Arial,sans-serif;font-size:16px;}#my-svg .label{font-family:Red Hat Text,Helvetica,Arial,sans-serif;color:#151515;}#my-svg .cluster-label text{fill:#151515;}#my-svg .cluster-label span,#my-svg p{color:#151515;}#my-svg .label text,#my-svg span,#my-svg p{fill:#151515;color:#151515;}#my-svg .node rect,#my-svg .node circle,#my-svg .node ellipse,#my-svg .node polygon,#my-svg .node path{fill:#ffffff;stroke:#c7c7c7;stroke-width:1px;}#my-svg .flowchart-label text{text-anchor:middle;}#my-svg .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#my-svg .node .label{text-align:center;}#my-svg .node.clickable{cursor:pointer;}#my-svg .arrowheadPath{fill:#000000;}#my-svg .edgePath .path{stroke:#4d4d4d;stroke-width:2.0px;}#my-svg .flowchart-link{stroke:#4d4d4d;fill:none;}#my-svg .edgeLabel{background-color:#ffffff;text-align:center;}#my-svg .edgeLabel rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#my-svg .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#my-svg .cluster rect{fill:#ffffff;stroke:#c7c7c7;stroke-width:1px;}#my-svg .cluster text{fill:#151515;}#my-svg .cluster span,#my-svg p{color:#151515;}#my-svg div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Red Hat Text,Helvetica,Arial,sans-serif;font-size:12px;background:#fce3e3;border:1px solid #ee0000;border-radius:2px;pointer-events:none;z-index:100;}#my-svg .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#151515;}#my-svg .node rect,#my-svg .node polygon,#my-svg .node path,#my-svg .node circle{stroke-width:1.5px;}#my-svg .nodeLabel,#my-svg .label foreignObject div,#my-svg .edgeLabel{font-family:'Red Hat Text',Helvetica,Arial,sans-serif!important;color:#151515!important;}#my-svg .cluster-label text,#my-svg .cluster-label span{font-family:'Red Hat Text',Helvetica,Arial,sans-serif!important;font-weight:500;color:#151515!important;}#my-svg .edgePath .path,#my-svg .flowchart-link{stroke:#4d4d4d!important;stroke-width:1.5px!important;stroke-linecap:square;}#my-svg .marker path{fill:#4d4d4d!important;stroke:#4d4d4d!important;}#my-svg .actor{stroke-width:1.5px!important;}#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="my-svg_flowchart-pointEnd" class="marker flowchart" viewBox="0 0 10 10" refX="6" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-pointStart" class="marker flowchart" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-circleEnd" class="marker flowchart" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-circleStart" class="marker flowchart" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-crossEnd" class="marker cross flowchart" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-crossStart" class="marker cross flowchart" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M113.039,57L113.039,82L113.039,101.7" id="L-SPO-SCC-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-SPO LE-SCC" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/><path d="M113.039,164L113.039,189L113.039,208.7" id="L-SCC-RBAC-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-SCC LE-RBAC" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/><path d="M113.039,271L113.039,296L113.039,315.7" id="L-RBAC-TYPE-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-RBAC LE-TYPE" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/><path d="M113.039,378L113.039,403L113.039,422.7" id="L-TYPE-PROBE-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-TYPE LE-PROBE" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default default flowchart-label" id="flowchart-SPO-0" data-node="true" data-id="SPO" transform="translate(113.0390625, 28.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-74.6875" y="-28.5" width="149.375" height="57"/><g class="label" style="" transform="translate(-67.1875, -21)"><rect/><foreignObject width="134.375" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">SPO installs profile<br />RawSelinuxProfile</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-SCC-1" data-node="true" data-id="SCC" transform="translate(113.0390625, 135.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-69.140625" y="-28.5" width="138.28125" height="57"/><g class="label" style="" transform="translate(-61.640625, -21)"><rect/><foreignObject width="123.28125" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">SCC selects type<br />blastwall process</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-RBAC-2" data-node="true" data-id="RBAC" transform="translate(113.0390625, 242.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-112.5703125" y="-28.5" width="225.140625" height="57"/><g class="label" style="" transform="translate(-105.0703125, -21)"><rect/><foreignObject width="210.140625" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">RBAC names runner<br />service account may use SCC</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-TYPE-3" data-node="true" data-id="TYPE" transform="translate(113.0390625, 349.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-113.0390625" y="-28.5" width="226.078125" height="57"/><g class="label" style="" transform="translate(-105.5390625, -21)"><rect/><foreignObject width="211.078125" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Pod runtime context<br />system_u:system_r:*:s0:cX,cY</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-PROBE-4" data-node="true" data-id="PROBE" transform="translate(113.0390625, 456.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-97.0859375" y="-28.5" width="194.171875" height="57"/><g class="label" style="" transform="translate(-89.5859375, -21)"><rect/><foreignObject width="179.171875" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Safe UBI probes<br />PASS / BLOCKED / SKIP</span></div></foreignObject></g></g></g></g></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenShift SPO control flow Red Hat styled diagram" width="1280" height="460" viewBox="0 0 1280 460">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .lane rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.4; filter: url(#shadow); }
+      .lane-title { fill: #151515; font: 700 22px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 17px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 13px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .chip text { fill: #be0000; font: 600 12.4px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .icon { fill: none; stroke: #ee0000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1280" height="460"/>
+  <rect class="grain" width="1280" height="460"/>
+  <g class="lane">
+    <rect x="42" y="54" width="1196" height="318" rx="14"/>
+    <text class="lane-title" x="640" y="92">OpenShift control flow</text>
+  </g>
+  <g class="edges">
+    <path class="connector" d="M 268 180 H 340" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 536 180 H 608" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 804 180 H 876" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 1072 180 H 1132 V 264" marker-end="url(#arrow)"/>
+  </g>
+  <g class="node">
+    <rect class="card" x="72" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(94 157)">
+      <path d="M 16 0 L 32 8 V 20 C 32 29 25 36 16 40 C 7 36 0 29 0 20 V 8 Z"/>
+    </g>
+    <text class="title" x="150" y="164">SPO profile</text>
+    <text class="subtitle" x="150" y="185">RawSelinuxProfile</text>
+    <text class="subtitle" x="150" y="203">install + ready</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="340" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(362 160)">
+      <rect x="0" y="0" width="34" height="30" rx="4"/>
+      <path d="M 8 10 H 26"/>
+      <path d="M 8 18 H 22"/>
+    </g>
+    <text class="title" x="418" y="164">SCC selects</text>
+    <text class="title" x="418" y="185">type</text>
+    <text class="subtitle" x="418" y="205">blastwall process</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="608" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(630 160)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 10 17 H 24"/>
+      <path d="M 17 10 V 24"/>
+    </g>
+    <text class="title" x="686" y="164">RBAC names</text>
+    <text class="title" x="686" y="185">runner</text>
+    <text class="subtitle" x="686" y="205">service account</text>
+    <text class="subtitle" x="686" y="221">can use SCC</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="876" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(898 160)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 12 10 L 24 17 L 12 24 Z"/>
+    </g>
+    <text class="title" x="954" y="164">Pod runtime</text>
+    <text class="title" x="954" y="185">context</text>
+    <text class="subtitle" x="954" y="205">system_u</text>
+    <text class="subtitle" x="954" y="221">system_r + MCS</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="1038" y="264" width="188" height="74" rx="8"/>
+    <g class="icon" transform="translate(1058 279)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 8 17 L 14 23 L 26 11"/>
+    </g>
+    <text class="title" x="1112" y="293">UBI probes</text>
+    <text class="subtitle" x="1112" y="309">pass / blocked</text>
+    <text class="subtitle" x="1112" y="327">skip</text>
+  </g>
+  <g class="chip">
+    <rect x="134" y="258" width="92" height="28" rx="5"/>
+    <text x="180" y="277.5">profile</text>
+  </g>
+  <g class="chip">
+    <rect x="402" y="258" width="92" height="28" rx="5"/>
+    <text x="448" y="277.5">admission</text>
+  </g>
+  <g class="chip">
+    <rect x="670" y="258" width="92" height="28" rx="5"/>
+    <text x="716" y="277.5">authority</text>
+  </g>
+  <g class="chip">
+    <rect x="926" y="258" width="96" height="28" rx="5"/>
+    <text x="974" y="277.5">runtime</text>
+  </g>
+</svg>

@@ -648,8 +648,6 @@
             blastwall_policy_pipeline_build_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: render_spo_policy_crs
           template: Blastwall render SPO policy CRs
-        - identifier: apply_validate_spo_policy_crs
-          template: Blastwall apply and validate SPO policy CRs
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
@@ -667,6 +665,24 @@
             blastwall_policy_pipeline_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: post_promotion_preflight
           template: Blastwall preflight
+
+    - name: Ensure policy pipeline OpenShift apply validation node exists when configured
+      awx.awx.workflow_job_template_node:
+        identifier: apply_validate_spo_policy_crs
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: Blastwall apply and validate SPO policy CRs
+        state: present
+      when: blastwall_aap_openshift_kubeconfig_content | length > 0
+
+    - name: Remove policy pipeline OpenShift apply validation node when not configured
+      awx.awx.workflow_job_template_node:
+        identifier: apply_validate_spo_policy_crs
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: Blastwall apply and validate SPO policy CRs
+        state: absent
+      when: blastwall_aap_openshift_kubeconfig_content | length == 0
 
     - name: Link policy pipeline workflow nodes
       awx.awx.workflow_job_template_node:
@@ -690,9 +706,6 @@
           success_nodes:
             - render_spo_policy_crs
             - install_candidate_policy_rpm
-        - identifier: apply_validate_spo_policy_crs
-          template: Blastwall apply and validate SPO policy CRs
-          success_nodes: []
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
           success_nodes:

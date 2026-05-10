@@ -30,6 +30,11 @@
       no_log: true
       changed_when: true
 
+    - name: Remove stale ansible-builder context
+      ansible.builtin.file:
+        path: "{{ calabi_blastwall_root }}/context"
+        state: absent
+
     - name: Build Blastwall execution environment image
       ansible.builtin.command:
         argv:

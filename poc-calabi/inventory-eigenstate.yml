@@ -17,7 +17,7 @@ host_filter_from_groups: true
 
 hostvars_include:
   - idm_fqdn
-  - idm_description
+  - idm_userclass
   - idm_os
   - idm_hostgroups
 

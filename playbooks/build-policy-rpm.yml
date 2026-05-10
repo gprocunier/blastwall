@@ -261,11 +261,25 @@
         dest: "{{ blastwall_policy_artifact_path }}"
         mode: "0644"
 
+    - name: Compute policy RPM artifact SHA-256
+      ansible.builtin.stat:
+        path: "{{ blastwall_policy_artifact_path }}"
+        checksum_algorithm: sha256
+      register: blastwall_policy_artifact_checksum
+
+    - name: Publish policy RPM artifact metadata
+      ansible.builtin.set_stats:
+        data:
+          policy_nevra: "{{ blastwall_policy_nevra }}"
+          policy_rpm: "{{ blastwall_policy_artifact_path }}"
+          blastwall_policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
+
     - name: Report policy build evidence
       ansible.builtin.debug:
         msg:
           policy_pipeline_build: passed
           policy_rpm: "{{ blastwall_policy_artifact_path }}"
           policy_nevra: "{{ blastwall_policy_nevra }}"
+          policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
           support_modules: "{{ blastwall_support_policy_modules }}"
           deny_scopes: "{{ blastwall_deny_policy_modules }}"

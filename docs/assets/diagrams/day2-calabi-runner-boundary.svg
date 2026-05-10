@@ -1,1 +1,76 @@
-<svg preserveAspectRatio="xMidYMid meet" id="my-svg" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="max-width: 330px; background-color: transparent;" viewBox="-32 -32 330 442" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#my-svg{font-family:Red Hat Text,Helvetica,Arial,sans-serif;font-size:16px;fill:#151515;}#my-svg .error-icon{fill:#fce3e3;}#my-svg .error-text{fill:#151515;stroke:#151515;}#my-svg .edge-thickness-normal{stroke-width:2px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#4d4d4d;stroke:#4d4d4d;}#my-svg .marker.cross{stroke:#4d4d4d;}#my-svg svg{font-family:Red Hat Text,Helvetica,Arial,sans-serif;font-size:16px;}#my-svg .label{font-family:Red Hat Text,Helvetica,Arial,sans-serif;color:#151515;}#my-svg .cluster-label text{fill:#151515;}#my-svg .cluster-label span,#my-svg p{color:#151515;}#my-svg .label text,#my-svg span,#my-svg p{fill:#151515;color:#151515;}#my-svg .node rect,#my-svg .node circle,#my-svg .node ellipse,#my-svg .node polygon,#my-svg .node path{fill:#ffffff;stroke:#c7c7c7;stroke-width:1px;}#my-svg .flowchart-label text{text-anchor:middle;}#my-svg .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#my-svg .node .label{text-align:center;}#my-svg .node.clickable{cursor:pointer;}#my-svg .arrowheadPath{fill:#000000;}#my-svg .edgePath .path{stroke:#4d4d4d;stroke-width:2.0px;}#my-svg .flowchart-link{stroke:#4d4d4d;fill:none;}#my-svg .edgeLabel{background-color:#ffffff;text-align:center;}#my-svg .edgeLabel rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#my-svg .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#my-svg .cluster rect{fill:#ffffff;stroke:#c7c7c7;stroke-width:1px;}#my-svg .cluster text{fill:#151515;}#my-svg .cluster span,#my-svg p{color:#151515;}#my-svg div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Red Hat Text,Helvetica,Arial,sans-serif;font-size:12px;background:#fce3e3;border:1px solid #ee0000;border-radius:2px;pointer-events:none;z-index:100;}#my-svg .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#151515;}#my-svg .node rect,#my-svg .node polygon,#my-svg .node path,#my-svg .node circle{stroke-width:1.5px;}#my-svg .nodeLabel,#my-svg .label foreignObject div,#my-svg .edgeLabel{font-family:'Red Hat Text',Helvetica,Arial,sans-serif!important;color:#151515!important;}#my-svg .cluster-label text,#my-svg .cluster-label span{font-family:'Red Hat Text',Helvetica,Arial,sans-serif!important;font-weight:500;color:#151515!important;}#my-svg .edgePath .path,#my-svg .flowchart-link{stroke:#4d4d4d!important;stroke-width:1.5px!important;stroke-linecap:square;}#my-svg .marker path{fill:#4d4d4d!important;stroke:#4d4d4d!important;}#my-svg .actor{stroke-width:1.5px!important;}#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="my-svg_flowchart-pointEnd" class="marker flowchart" viewBox="0 0 10 10" refX="6" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-pointStart" class="marker flowchart" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-circleEnd" class="marker flowchart" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-circleStart" class="marker flowchart" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-crossEnd" class="marker cross flowchart" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-crossStart" class="marker cross flowchart" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M170.766,57L170.766,82L170.766,101.7" id="L-RUNNER-AAP-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-RUNNER LE-AAP" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/><path d="M130.679,164L95.516,189L95.516,208.7" id="L-AAP-EVIDENCE-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-AAP LE-EVIDENCE" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/><path d="M95.516,271L95.516,296L126.36,317.929" id="L-EVIDENCE-GATE-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-EVIDENCE LE-GATE" style="fill:none;" marker-end="url(#my-svg_flowchart-pointEnd)"/><path d="M210.852,321L246.016,296L246.016,242.5L246.016,189L215.172,167.071" id="L-GATE-AAP-0" class=" edge-thickness-normal edge-pattern-dotted flowchart-link LS-GATE LE-AAP" style="fill:none;stroke-width:2px;stroke-dasharray:3;" marker-end="url(#my-svg_flowchart-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(246.015625, 242.5)"><g class="label" transform="translate(-19.984375, -10.5)"><foreignObject width="39.96875" height="21"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel">feeds</span></div></foreignObject></g></g></g><g class="nodes"><g class="node default default flowchart-label" id="flowchart-RUNNER-0" data-node="true" data-id="RUNNER" transform="translate(170.765625, 28.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-92" y="-28.5" width="184" height="57"/><g class="label" style="" transform="translate(-84.5, -21)"><rect/><foreignObject width="169" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">GitHub dispatch<br />lab runner launches awx</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-AAP-1" data-node="true" data-id="AAP" transform="translate(170.765625, 135.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-61.96875" y="-28.5" width="123.9375" height="57"/><g class="label" style="" transform="translate(-54.46875, -21)"><rect/><foreignObject width="108.9375" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">AAP Controller<br />policy workflow</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-EVIDENCE-2" data-node="true" data-id="EVIDENCE" transform="translate(95.515625, 242.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-95.515625" y="-28.5" width="191.03125" height="57"/><g class="label" style="" transform="translate(-88.015625, -21)"><rect/><foreignObject width="176.03125" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Lab proof<br />install, verify, collect logs</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-GATE-3" data-node="true" data-id="GATE" transform="translate(170.765625, 349.5)"><rect class="basic label-container" style="" rx="0" ry="0" x="-89.2421875" y="-28.5" width="178.484375" height="57"/><g class="label" style="" transform="translate(-81.7421875, -21)"><rect/><foreignObject width="163.484375" height="42"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">IdM marker + inventory<br />preflight selects host</span></div></foreignObject></g></g></g></g></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="day2-calabi-runner-boundary Red Hat styled diagram" width="1280" height="430" viewBox="0 0 1280 430">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .lane rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.4; filter: url(#shadow); }
+      .lane-title { fill: #151515; font: 700 22px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 18px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 14px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .connector.dashed { stroke-dasharray: 8 8; }
+      .chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .chip text { fill: #be0000; font: 600 13px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .icon { fill: none; stroke: #ee0000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1280" height="430"/>
+  <rect class="grain" width="1280" height="430"/>
+
+  <g class="lane">
+    <rect x="42" y="54" width="1196" height="324" rx="14"/>
+    <text class="lane-title" x="640" y="92">Calabi runner proof boundary</text>
+  </g>
+
+  <g class="edges">
+    <path class="connector" d="M 310 168 H 370" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 610 168 H 670" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 910 168 H 970" marker-end="url(#arrow)"/>
+    <path class="connector dashed" d="M 1090 264 V 316 H 490 V 216" marker-end="url(#arrow)"/>
+    <g class="chip"><rect x="742" y="302" width="136" height="28" rx="5"/><text x="810" y="321.5">next-run input</text></g>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="70" y="120" width="240" height="96" rx="8"/>
+    <g class="icon" transform="translate(94 149)"><circle cx="17" cy="17" r="16"/><path d="M 12 10 L 24 17 L 12 24 Z"/></g>
+    <text class="title" x="154" y="157">GitHub dispatch</text>
+    <text class="subtitle" x="154" y="178">lab runner launches</text>
+    <text class="subtitle" x="154" y="196">the workflow</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="370" y="120" width="240" height="96" rx="8"/>
+    <g class="icon" transform="translate(394 149)"><rect x="0" y="4" width="34" height="26" rx="4"/><path d="M 8 13 H 26"/><path d="M 8 21 H 22"/></g>
+    <text class="title" x="454" y="157">AAP Controller</text>
+    <text class="subtitle" x="454" y="178">policy workflow</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="670" y="120" width="240" height="96" rx="8"/>
+    <g class="icon" transform="translate(694 149)"><path d="M 5 18 L 13 26 L 30 8"/><circle cx="17" cy="17" r="16"/></g>
+    <text class="title" x="754" y="157">Lab proof</text>
+    <text class="subtitle" x="754" y="178">install, verify,</text>
+    <text class="subtitle" x="754" y="196">collect logs</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="970" y="120" width="240" height="144" rx="8"/>
+    <g class="icon" transform="translate(994 161)"><path d="M 16 2 L 32 10 V 22 C 32 30 25 36 16 40 C 7 36 0 30 0 22 V 10 Z"/></g>
+    <text class="title" x="1054" y="157">IdM marker</text>
+    <text class="title" x="1054" y="178">+ inventory</text>
+    <text class="subtitle" x="1054" y="200">verified state</text>
+    <text class="subtitle" x="1054" y="218">gates future</text>
+    <text class="subtitle" x="1054" y="236">automation runs</text>
+  </g>
+</svg>

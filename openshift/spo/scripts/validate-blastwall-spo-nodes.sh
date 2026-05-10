@@ -139,7 +139,7 @@ for profile_class in "${classes[@]}"; do
     node_slug="$(echo "${node}" | tr '.[:upper:]' '-[:lower:]' | tr -cd 'a-z0-9-')"
     pod="${pod_prefix}-${node_slug}"
     oc -n "${namespace}" delete pod "${pod}" --ignore-not-found --wait=true >/dev/null
-    cat <<EOF | oc apply -f - >/dev/null
+    cat <<EOF | oc apply -f - >/dev/null 2>"${artifact_dir}/${pod}.apply.warn"
 apiVersion: v1
 kind: Pod
 metadata:

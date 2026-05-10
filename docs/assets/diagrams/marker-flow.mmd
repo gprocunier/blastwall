@@ -5,7 +5,7 @@ flowchart TB
     end
 
     subgraph IDM_STATE["2. Inventory-visible claim"]
-        IDM["Update IdM host description marker"] --> INV["eigenstate.ipa.idm inventory sync"]
+        IDM["Update IdM host userClass marker"] --> INV["eigenstate.ipa.idm inventory sync"]
     end
 
     subgraph AAP_DECISION["3. AAP target decision"]

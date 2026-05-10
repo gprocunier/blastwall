@@ -709,7 +709,6 @@ const docsMap = [
       { href: "quick-demo.html", label: "AAP Lab" },
       { href: "demo.html", label: "Ansible Demo" },
       { href: "ansible-lab.html", label: "Ansible Lab" },
-      { href: "poc-flow.html", label: "Ansible Lab Flow" },
       { href: "openshift-spo-demo.html", label: "OpenShift/SPO Demo" }
     ]
   },

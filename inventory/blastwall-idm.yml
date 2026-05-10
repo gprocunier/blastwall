@@ -15,6 +15,7 @@ host_filter_from_groups: true
 hostvars_include:
   - idm_fqdn
   - idm_description
+  - idm_userclass
   - idm_os
   - idm_hostgroups
 
@@ -23,38 +24,45 @@ compose:
 
 groups:
   blastwall_policy_current: >-
-    idm_description is defined and
-    'bw_rpm=blastwall-selinux-0.5.2-1' in idm_description and
-    'bw_state=active' in idm_description and
-    'bw_alg=deny' in idm_description and
-    'bw_bpf=deny' in idm_description and
-    'bw_self=deny' in idm_description and
-    'bw_pkt=deny' in idm_description and
-    'bw_userns=deny' in idm_description and
-    'bw_iou=deny' in idm_description and
-    'bw_xfrm=deny' in idm_description and
-    'bw_rxrpc=deny' in idm_description
+    idm_userclass is defined and
+    (
+      'state=active' in (idm_userclass | select('match', '^blastwall:') | list | join(';'))
+    ) and
+    'rpm=blastwall-selinux-0.5.2-1' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    (idm_userclass | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0 and
+    'alg=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'bpf=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'self=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'pkt=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'userns=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'iou=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'xfrm=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';')) and
+    'rxrpc=deny' in (idm_userclass | select('match', '^blastwall:') | list | join(';'))
   blastwall_policy_stale: >-
-    idm_description is not defined or
-    'bw_rpm=blastwall-selinux-0.5.2-1' not in idm_description or
-    'bw_state=active' not in idm_description or
-    'bw_alg=deny' not in idm_description or
-    'bw_bpf=deny' not in idm_description or
-    'bw_self=deny' not in idm_description or
-    'bw_pkt=deny' not in idm_description or
-    'bw_userns=deny' not in idm_description or
-    'bw_iou=deny' not in idm_description or
-    'bw_xfrm=deny' not in idm_description or
-    'bw_rxrpc=deny' not in idm_description
+    idm_userclass is not defined or
+    (
+      'rpm=blastwall-selinux-0.5.2-1' not in (idm_userclass | select('match', '^blastwall:') | list | join(';'))
+    ) or
+    (idm_userclass | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) == 0 or
+    'state=active' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'alg=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'bpf=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'self=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'pkt=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'userns=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'iou=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'xfrm=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'rxrpc=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';'))
   blastwall_policy_candidate: >-
-    idm_description is not defined or
-    'bw_rpm=blastwall-selinux-0.5.2-1' not in idm_description or
-    'bw_state=active' not in idm_description or
-    'bw_alg=deny' not in idm_description or
-    'bw_bpf=deny' not in idm_description or
-    'bw_self=deny' not in idm_description or
-    'bw_pkt=deny' not in idm_description or
-    'bw_userns=deny' not in idm_description or
-    'bw_iou=deny' not in idm_description or
-    'bw_xfrm=deny' not in idm_description or
-    'bw_rxrpc=deny' not in idm_description
+    idm_userclass is not defined or
+    'rpm=blastwall-selinux-0.5.2-1' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    (idm_userclass | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) == 0 or
+    'state=active' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'alg=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'bpf=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'self=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'pkt=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'userns=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'iou=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'xfrm=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';')) or
+    'rxrpc=deny' not in (idm_userclass | select('match', '^blastwall:') | list | join(';'))

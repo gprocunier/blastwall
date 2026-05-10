@@ -80,6 +80,13 @@
         <section id="login-path">
           <h2>Login Path</h2>
           <p>The SELinux context does not appear by accident. IdM holds the SELinux user map, SSSD reads the identity and policy state during login, and <code>pam_selinux</code> applies the mapped login label.</p>
+          <figure class="diagram-card diagram-card--focus" id="selinux-context-boundary">
+            <figcaption>
+              <strong>Context Boundary</strong>
+              <span>The IdM-controlled login path produces the SELinux label, and sudo does not move the automation process out of <code>blastwall_t</code>.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/selinux-context-boundary.svg" alt="SELinux context boundary from IdM map through SSSD, pam_selinux, blastwall_t session, and sudo UID 0 while the same domain persists">
+          </figure>
           <pre><code class="language-text">SSH login as automation identity
   -> SSSD reads IdM identity and access state
   -> pam_selinux applies the mapped SELinux user
@@ -116,6 +123,13 @@
         <section id="audit-evidence">
           <h2>Audit Evidence</h2>
           <p>Audit output is the host-local review trail. AAP and Ansible output tell the operator what the workflow saw; audit records show that the managed host enforced a policy decision for the confined subject.</p>
+          <figure class="diagram-card diagram-card--focus" id="selinux-deny-evidence">
+            <figcaption>
+              <strong>Deny And Evidence Path</strong>
+              <span>Allowed work continues under the same domain, while denied exploit surfaces produce command output and host-local audit evidence.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/selinux-deny-evidence.svg" alt="SELinux policy decision path from blastwall_t process to allowed work or denied surfaces, then to stdout and AVC audit evidence">
+          </figure>
           <p>The proof therefore reads both command output and target audit logs. Command output is easier to show. Audit evidence is harder to fake accidentally.</p>
         </section>
 

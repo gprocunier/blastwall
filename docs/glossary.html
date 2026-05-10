@@ -90,7 +90,7 @@
             <dt id="host-marker">host marker</dt>
             <dd>An IdM-visible claim written after local verification succeeds. AAP can read host markers during inventory sync, but markers are not proof by themselves.</dd>
             <dt id="coverage-marker">coverage marker</dt>
-            <dd>A compact host marker for a specific policy coverage claim, such as <code>bw_bpf=deny</code>. It helps AAP select hosts that match the job's required deny scopes without turning the IdM host description into a large payload.</dd>
+            <dd>A compact host marker for a specific policy coverage claim, such as <code>bpf=deny</code>. It helps AAP select hosts that match the job's required deny scopes from the FreeIPA <code>userClass</code> values without turning host attributes into a large payload.</dd>
             <dt id="current-host">current eligible host</dt>
             <dd>A host that preflight can target because its identity access, login mapping, and required policy coverage are current for the job.</dd>
             <dt id="stale-host">stale host</dt>
@@ -206,7 +206,7 @@
               <tr><td data-label="Category">IdM</td><td data-label="Proof"><a href="demo.html#recording-guide">Ansible proof guide</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/idm">IdM source</a></td><td data-label="Exact Names"><a href="reference.html#idm-records">IdM records</a></td></tr>
               <tr><td data-label="Category">SELinux</td><td data-label="Proof"><a href="selinux-control-model.html#deny-scopes">Deny scopes</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/policy">Policy source</a></td><td data-label="Exact Names"><a href="reference.html#selinux-contexts">SELinux contexts</a></td></tr>
               <tr><td data-label="Category">Kernel surfaces</td><td data-label="Proof"><a href="demo.html#evidence-map">Probe evidence</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/tests">Probe source</a></td><td data-label="Exact Names"><a href="reference.html#probes">Probe scripts</a></td></tr>
-              <tr><td data-label="Category">Lab</td><td data-label="Proof"><a href="ansible-lab.html#expected-output">Expected output</a></td><td data-label="Configuration"><a href="poc-flow.html">Lab flow</a></td><td data-label="Exact Names"><a href="reference.html#lab-names">Lab names</a></td></tr>
+              <tr><td data-label="Category">Lab</td><td data-label="Proof"><a href="ansible-lab.html#expected-output">Expected output</a></td><td data-label="Configuration"><a href="ansible-lab.html#source-run-order">PoC run order</a></td><td data-label="Exact Names"><a href="reference.html#lab-names">Lab names</a></td></tr>
             </tbody>
           </table>
         </section>

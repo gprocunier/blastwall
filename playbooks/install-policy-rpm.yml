@@ -94,6 +94,12 @@
           - blastwall_policy_artifact.stat.exists
         fail_msg: "Missing candidate RPM {{ blastwall_policy_artifact_path }}."
 
+    - name: Compute candidate policy RPM SHA-256
+      ansible.builtin.stat:
+        path: "{{ blastwall_policy_artifact_path }}"
+        checksum_algorithm: sha256
+      register: blastwall_policy_artifact_checksum
+
     - name: Ensure policy RPM runtime dependencies are present
       ansible.builtin.dnf:
         name:
@@ -217,8 +223,34 @@
           - "{{ blastwall_policy_nevra }}"
       changed_when: false
 
+    - name: Verify installed candidate RPM payload
+      ansible.builtin.command:
+        argv:
+          - rpm
+          - -V
+          - "{{ blastwall_policy_name }}"
+      register: blastwall_policy_rpm_verify
+      changed_when: false
+      failed_when: blastwall_policy_rpm_verify.rc not in [0, 1]
+
+    - name: Assert installed candidate RPM payload is unchanged
+      ansible.builtin.assert:
+        that:
+          - blastwall_policy_rpm_verify.rc == 0
+        fail_msg: >-
+          rpm -V {{ blastwall_policy_name }} reported drift:
+          {{ blastwall_policy_rpm_verify.stdout | default('') }}
+
+    - name: Publish installed policy RPM metadata
+      ansible.builtin.set_stats:
+        data:
+          policy_nevra: "{{ blastwall_policy_nevra }}"
+          policy_rpm: "{{ blastwall_policy_artifact_path }}"
+          blastwall_policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
+
     - name: Report policy installation evidence
       ansible.builtin.debug:
         msg:
           policy_pipeline_install: passed
           policy_nevra: "{{ blastwall_policy_nevra }}"
+          policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"

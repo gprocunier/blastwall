@@ -2,19 +2,25 @@
   "hosts": [
     {
       "name": "mirror-registry.workshop.lan",
-      "description": "bw_rpm=blastwall-selinux-0.5.0-1; bw_state=active; bw_alg=deny; bw_bpf=deny; bw_self=deny; bw_pkt=deny; bw_userns=deny; bw_iou=deny"
+      "idm_userclass": [
+        "blastwall:state=active;rpm=blastwall-selinux-0.5.0-1;rpm_sha256=1111111111111111111111111111111111111111111111111111111111111111;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny"
+      ]
     },
     {
       "name": "promoted-mirror-registry.workshop.lan",
-      "description": "bw_rpm=blastwall-selinux-0.5.2-1; bw_state=active; bw_alg=deny; bw_bpf=deny; bw_self=deny; bw_pkt=deny; bw_userns=deny; bw_iou=deny; bw_xfrm=deny; bw_rxrpc=deny"
+      "idm_userclass": [
+        "blastwall:state=active;rpm=blastwall-selinux-0.5.2-1;rpm_sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny"
+      ]
     },
     {
       "name": "stale-blastwall-01.workshop.lan",
-      "description": "bw_rpm=blastwall-selinux-0.4.0-1; bw_state=active; bw_alg=deny; bw_bpf=deny; bw_self=deny; bw_pkt=deny; bw_userns=deny"
+      "idm_userclass": [
+        "blastwall:state=active;rpm=blastwall-selinux-0.4.0-1;rpm_sha256=2222222222222222222222222222222222222222222222222222222222222222;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny"
+      ]
     },
     {
       "name": "missing-01.example.com",
-      "description": ""
+      "idm_userclass": []
     }
   ],
   "expected": {

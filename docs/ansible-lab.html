@@ -37,6 +37,13 @@
         <section id="goal">
           <h2>Goal</h2>
           <p>The exercise is successful when <a href="glossary.html#idm">IdM</a> contains the expected automation identity and policy objects, <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> can read the suitability state, the managed host enters <a href="glossary.html#selinux-context"><code>blastwall_u:blastwall_r:blastwall_t:s0</code></a>, <a href="glossary.html#sudo">sudo</a> reaches UID 0 without leaving <code>blastwall_t</code>, and the denial probes include visible Dirty Frag xfrm/RxRPC evidence.</p>
+          <figure class="diagram-card diagram-card--focus" id="ansible-lab-flow">
+            <figcaption>
+              <strong>Ansible Lab Flow</strong>
+              <span>The replay builds the IdM boundary, confirms the read-side gate, deploys policy, runs direct probes, and closes with audit plus self-protection evidence.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/ansible-lab-flow.svg" alt="Ansible lab replay flow from IdM boundary through eigenstate read-side gate, policy deployment, direct SSH probes, audit evidence, and self-protection check">
+          </figure>
         </section>
 
         <section id="prerequisites">
@@ -45,7 +52,7 @@
             <li>Run from the staged <code>poc-calabi/</code> tree on <code>bastion-01</code>.</li>
             <li>The IdM server, bastion host, managed endpoint, and lab credentials must already exist.</li>
             <li>The playbooks need the IdM admin credential and the automation identity credential through the documented environment variables.</li>
-            <li>Use this page as a guided replay. Use <a href="poc-flow.html">Lab Flow</a> when you need the shorter runbook view.</li>
+            <li>Use this page as the guided replay and source runbook for the non-AAP proof path.</li>
           </ul>
         </section>
 
@@ -66,6 +73,27 @@ export IPA_KEYTAB='/path/to/svc-ansible-runner.keytab'</code></pre>
           <pre><code class="language-bash">cd ~/blastwall/poc-calabi
 
 ansible-playbook 00-preflight.yml</code></pre>
+        </section>
+
+        <section id="source-run-order">
+          <h2>PoC Playbook Chain</h2>
+          <p>This is the compact source-level run order for the <code>poc-calabi/</code> overlay. It exists to map the replay back to the playbooks; the proof itself remains the IdM, SELinux, and audit evidence described below.</p>
+          <pre><code class="language-bash">ansible-playbook 00-preflight.yml
+ansible-playbook 10-configure-idm.yml
+ansible-playbook 15-validate-idm-with-eigenstate.yml
+ansible-playbook 20-build-policy-rpm.yml
+ansible-playbook 30-deploy-and-test.yml
+ansible-playbook 35-test-self-protection.yml</code></pre>
+          <h3>Retry Points</h3>
+          <ul>
+            <li>Rerun <code>00-preflight.yml</code> when connectivity or inventory looks wrong.</li>
+            <li>Rerun <code>10-configure-idm.yml</code> when identities, groups, HBAC, sudo, or SELinux maps drift.</li>
+            <li>Rerun <code>15-validate-idm-with-eigenstate.yml</code> before deployment whenever IdM state changed.</li>
+            <li>Rerun <code>20-build-policy-rpm.yml</code> only when policy source or package metadata changed.</li>
+            <li>Rerun <code>30-deploy-and-test.yml</code> when the managed-host proof needs fresh evidence.</li>
+          </ul>
+          <p>Use cleanup only when the lab should return to a baseline state for another recording or replay. Do not run cleanup between normal evidence reads.</p>
+          <pre><code class="language-bash">ansible-playbook 99-cleanup.yml</code></pre>
         </section>
 
         <section id="procedure">
@@ -197,7 +225,7 @@ grep -E 'sudo_expansion_seen|semodule_attempt_rc|Permission denied|blastwall-(al
           <ol class="path-list">
             <li><a href="architecture.html">Architecture</a></li>
             <li><a href="demo.html">Ansible Demo</a></li>
-            <li><a href="poc-flow.html">Lab Flow</a></li>
+            <li><a href="#source-run-order">PoC Playbook Chain</a></li>
             <li><a href="glossary.html">Glossary</a></li>
             <li><a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi">PoC Source</a></li>
           </ol>

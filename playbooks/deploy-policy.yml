@@ -32,6 +32,27 @@
     blastwall_update_idm_marker: true
     blastwall_deploy_rollback_on_failure: true
     blastwall_deploy_force_cleanup_on_failure: false
+    blastwall_policy_marker_rpm_sha256: >-
+      {{ blastwall_policy_rpm_sha256 | default(lookup('env', 'BLASTWALL_POLICY_RPM_SHA256') | default('', true), true) }}
+    blastwall_existing_userclass_values: >-
+      {{
+        idm_userclass
+        if (idm_userclass is defined and idm_userclass is not string)
+        else ([idm_userclass] if (idm_userclass is defined and idm_userclass | length > 0) else [])
+      }}
+    blastwall_existing_description: "{{ idm_description | default('') }}"
+    blastwall_clear_legacy_description_marker: true
+    blastwall_clear_description_marker: >-
+      {{
+        blastwall_clear_legacy_description_marker | bool and
+        blastwall_existing_description is match('^(bw_|blastwall:)')
+      }}
+    blastwall_preserved_userclass_values: >-
+      {{
+        blastwall_existing_userclass_values
+        | reject('match', '^blastwall:')
+        | list
+      }}
     blastwall_policy_modules:
       - blastwall
       - blastwall-sshd-login
@@ -44,19 +65,13 @@
       - blastwall-xfrm-deny
       - blastwall-rxrpc-deny
     blastwall_policy_marker: >-
-      bw_rpm={{ blastwall_policy_rpm }};
-      bw_state=active;
-      bw_alg=deny;
-      bw_bpf=deny;
-      bw_self=deny;
-      bw_pkt=deny;
-      bw_userns=deny;
-      bw_iou=deny;
-      bw_xfrm=deny;
-      bw_rxrpc=deny
+      blastwall:state=active;rpm={{ blastwall_policy_rpm }};rpm_sha256={{ blastwall_policy_marker_rpm_sha256 }};alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny
     blastwall_policy_failed_marker: >-
-      bw_rpm={{ blastwall_policy_rpm }};
-      bw_state=failed
+      blastwall:state=failed;rpm={{ blastwall_policy_rpm }};rpm_sha256={{ blastwall_policy_marker_rpm_sha256 | default('unknown', true) }}
+    blastwall_policy_userclass_values: >-
+      {{ blastwall_preserved_userclass_values + [blastwall_policy_marker] }}
+    blastwall_policy_failed_userclass_values: >-
+      {{ blastwall_preserved_userclass_values + [blastwall_policy_failed_marker] }}
   tasks:
     - name: Require Kerberos inputs for target SSH
       ansible.builtin.assert:
@@ -67,10 +82,12 @@
           - not blastwall_update_idm_marker | bool or ipa_server | length > 0
           - not blastwall_update_idm_marker | bool or ipa_domain | length > 0
           - not blastwall_update_idm_marker | bool or ipa_password | length > 0
+          - not blastwall_update_idm_marker | bool or blastwall_policy_marker_rpm_sha256 is match('^[0-9a-f]{64}$')
         fail_msg: >-
           Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for
           GSSAPI target SSH. Marker updates also require IPA_SERVER, IPA_DOMAIN,
-          and IPA_PASSWORD for the FreeIPA module.
+          IPA_PASSWORD, and a 64-character BLASTWALL_POLICY_RPM_SHA256 value for
+          the FreeIPA module.
       run_once: true
       delegate_to: localhost
       become: false
@@ -310,7 +327,8 @@
             ipaadmin_principal: "{{ ipa_principal }}"
             ipaadmin_password: "{{ ipa_password }}"
             name: "{{ inventory_hostname }}"
-            description: "{{ blastwall_policy_marker }}"
+            description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
+            userclass: "{{ blastwall_policy_userclass_values }}"
             state: present
           no_log: true
           delegate_to: localhost
@@ -374,7 +392,8 @@
             ipaadmin_principal: "{{ ipa_principal }}"
             ipaadmin_password: "{{ ipa_password }}"
             name: "{{ inventory_hostname }}"
-            description: "{{ blastwall_policy_failed_marker }}"
+            description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
+            userclass: "{{ blastwall_policy_failed_userclass_values }}"
             state: present
           no_log: true
           delegate_to: localhost

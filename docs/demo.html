@@ -48,6 +48,13 @@
             <li>The target audit log shows denied <code>socket</code>, <code>bpf</code>, and namespace syscall evidence for <code>blastwall_t</code>; the <code>io_uring</code> denial is visible in the probe output.</li>
             <li>A temporary sudo expansion exposes <code>/usr/sbin/semodule</code>, and SELinux still prevents the automation identity from removing a deny module.</li>
           </ul>
+          <figure class="diagram-card diagram-card--focus" id="ansible-demo-flow">
+            <figcaption>
+              <strong>Ansible Demo Flow</strong>
+              <span>The non-AAP proof starts on the bastion, reads IdM state before mutation, deploys policy, runs probes, and finishes with audit and self-protection evidence.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/ansible-demo-flow.svg" alt="Ansible demo flow from bastion PoC tree through IdM read-side proof, policy deployment, denied probes, and audit self-protection evidence">
+          </figure>
         </section>
 
         <section id="what-this-does-not-prove">
@@ -182,7 +189,7 @@ grep -E \
 
         <section id="replay-link">
           <h2>Replay Link</h2>
-          <p>Use <a href="ansible-lab.html">Ansible Lab</a> for the task-first replay procedure. Use <a href="poc-flow.html">Lab Flow</a> for the compact full runbook.</p>
+          <p>Use <a href="ansible-lab.html">Ansible Lab</a> for the task-first replay procedure and compact playbook chain.</p>
         </section>
 
         <section id="does-not-claim">
@@ -218,7 +225,7 @@ grep -E \
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="poc-flow.html">Lab Flow</a> traces the playbook chain behind the recording. <a href="glossary.html">Glossary</a> defines the lab and kernel terms used here.</p>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="ansible-lab.html#source-run-order">Ansible Lab</a> traces the playbook chain behind the recording. <a href="glossary.html">Glossary</a> defines the lab and kernel terms used here.</p>
         </section>
       </aside>
     </main>

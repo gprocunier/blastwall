@@ -22,6 +22,7 @@ const pages = [
 ];
 
 const viewports = [
+  { name: "desktop-ultrawide", width: 1920, height: 1000 },
   { name: "desktop-wide", width: 1440, height: 1000 },
   { name: "desktop", width: 1280, height: 800 },
   { name: "tablet", width: 1024, height: 768 },
@@ -187,7 +188,7 @@ test.describe("GitHub Pages rendering", () => {
     expect(cast).toContain("nested_profile: passed");
   });
 
-  test("dense diagrams can be enlarged in place", async ({ page }, testInfo) => {
+  test("diagrams use the available card width and can be enlarged in place", async ({ page }, testInfo) => {
     const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
 
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -200,8 +201,10 @@ test.describe("GitHub Pages rendering", () => {
 
     const idmBox = await idmDiagram.boundingBox();
     const candidateBox = await candidateDiagram.boundingBox();
-    expect(idmBox.width).toBeLessThanOrEqual(550);
-    expect(candidateBox.width).toBeLessThanOrEqual(650);
+    const idmFigureBox = await page.locator("#idm-aap-flow").boundingBox();
+    const candidateFigureBox = await page.locator("#candidate-flow").boundingBox();
+    expect(idmBox.width / idmFigureBox.width).toBeGreaterThan(0.92);
+    expect(candidateBox.width / candidateFigureBox.width).toBeGreaterThan(0.92);
 
     await candidateDiagram.click();
     const lightbox = page.locator(".diagram-lightbox");
@@ -210,6 +213,54 @@ test.describe("GitHub Pages rendering", () => {
 
     await page.locator(".diagram-lightbox__image").click();
     await expect(lightbox).toBeHidden();
+  });
+
+  test("diagram cards do not silently shrink diagrams", async ({ page }, testInfo) => {
+    const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
+    const paths = [
+      "index.html",
+      "demo.html",
+      "aap-demo.html",
+      "architecture.html",
+      "ansible-lab.html",
+      "quick-demo.html",
+      "day2-operations.html",
+      "selinux-control-model.html",
+      "idm-control-model.html",
+      "openshift-spo.html",
+      "openshift-spo-demo.html",
+      "threat-model.html"
+    ];
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+
+    for (const path of paths) {
+      await page.goto(`${baseUrl}/${path}`, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(500);
+
+      const undersized = await page.evaluate(() => [...document.querySelectorAll("figure.diagram-card")].flatMap((figure) => {
+        const image = figure.querySelector(".diagram-artifact");
+
+        if (!image) {
+          return [];
+        }
+
+        const figureBox = figure.getBoundingClientRect();
+        const imageBox = image.getBoundingClientRect();
+        const ratio = imageBox.width / figureBox.width;
+
+        return ratio < 0.92
+          ? [{
+              id: figure.id,
+              ratio: Number(ratio.toFixed(2)),
+              imageWidth: Math.round(imageBox.width),
+              figureWidth: Math.round(figureBox.width)
+            }]
+          : [];
+      }));
+
+      expect(undersized, path).toEqual([]);
+    }
   });
 
   test("site nav is reserved for high-value destinations", async ({ page }, testInfo) => {
@@ -222,6 +273,21 @@ test.describe("GitHub Pages rendering", () => {
       );
       expect(labels, path).toEqual(expectedHighValueNav);
     }
+  });
+
+  test("wide browser windows use available layout space", async ({ page }, testInfo) => {
+    const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
+
+    await page.setViewportSize({ width: 1920, height: 1000 });
+    await page.goto(`${baseUrl}/openshift-spo.html`, { waitUntil: "domcontentloaded" });
+
+    const shellBox = await page.locator(".page-shell").boundingBox();
+    const contentBox = await page.locator(".content-column").boundingBox();
+    const leadBox = await page.locator(".markdown-body .lead").boundingBox();
+
+    expect(shellBox.width).toBeGreaterThanOrEqual(1600);
+    expect(contentBox.width).toBeGreaterThanOrEqual(1200);
+    expect(leadBox.width).toBeLessThanOrEqual(1050);
   });
 
   test("docs accordion shows the active document branch", async ({ page }, testInfo) => {
@@ -241,7 +307,7 @@ test.describe("GitHub Pages rendering", () => {
     const demoLinks = await page.locator(".docs-map__group", { hasText: "Demos And Labs" }).locator("a").evaluateAll((links) =>
       links.map((link) => link.textContent.trim())
     );
-    expect(demoLinks).toEqual(["AAP Demo", "AAP Lab", "Ansible Demo", "Ansible Lab", "Ansible Lab Flow", "OpenShift/SPO Demo"]);
+    expect(demoLinks).toEqual(["AAP Demo", "AAP Lab", "Ansible Demo", "Ansible Lab", "OpenShift/SPO Demo"]);
   });
 
   test("glossary hash targets clear the sticky header", async ({ page }, testInfo) => {

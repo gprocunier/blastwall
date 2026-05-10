@@ -126,6 +126,13 @@
         <section id="evidence-loop">
           <h2>Evidence Loop</h2>
           <p>The demos prove different parts of the same loop. The <a href="aap-demo.html">AAP Demo</a> is the operator-facing proof: Controller objects, credential smoke, inventory sync, preflight, workflow launch, node status, and job stdout. The <a href="demo.html">Ansible Demo</a> is the bootstrap proof: IdM object creation, policy rollout, direct probes, audit evidence, and self-protection.</p>
+          <figure class="diagram-card diagram-card--focus" id="evidence-loop-diagram">
+            <figcaption>
+              <strong>Evidence Loop</strong>
+              <span>Bootstrap proof writes verified state, AAP consumes that state as a gate, and the next workflow leaves operator-visible evidence for the next cycle.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/evidence-loop.svg" alt="Blastwall evidence loop from IdM state and policy rollout through managed-host verification, marker write, inventory sync, AAP preflight, workflow evidence, and the next run input">
+          </figure>
           <p>The host marker is useful only after verification writes it. The marker helps AAP avoid stale hosts, but it is not the enforcement boundary and it is not proof by itself.</p>
         </section>
 

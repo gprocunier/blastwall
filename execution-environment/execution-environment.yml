@@ -9,6 +9,9 @@ dependencies:
   galaxy: requirements.yml
   system: bindep.txt
   python: python-requirements.txt
+  exclude:
+    system:
+      - openshift-clients
 
 additional_build_steps:
   append_final:

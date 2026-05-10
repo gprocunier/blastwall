@@ -10,8 +10,8 @@
   --rh-gray-80: #4d4d4d;
   --rh-gray-90: #151515;
   --rh-link: #0066cc;
-  --rh-max-width: 1360px;
-  --rh-body-width: 960px;
+  --rh-max-width: 1680px;
+  --rh-body-width: 1180px;
   --rh-sidebar-width: 280px;
 }
 
@@ -148,7 +148,7 @@ a {
 
 .page-shell {
   display: grid;
-  grid-template-columns: minmax(240px, var(--rh-sidebar-width)) minmax(0, var(--rh-body-width));
+  grid-template-columns: minmax(240px, var(--rh-sidebar-width)) minmax(0, 1fr);
   gap: 3rem;
   padding-top: 2rem;
   padding-bottom: 4rem;
@@ -166,7 +166,7 @@ a {
 }
 
 .page-shell--wide {
-  grid-template-columns: minmax(240px, var(--rh-sidebar-width)) minmax(0, 980px);
+  grid-template-columns: minmax(240px, var(--rh-sidebar-width)) minmax(0, 1fr);
 }
 
 .side-column {
@@ -210,6 +210,25 @@ a {
 }
 
 .markdown-body p { margin: 0 0 1rem; }
+
+.markdown-body > p,
+.markdown-body > ul,
+.markdown-body > ol,
+.markdown-body section > p,
+.markdown-body section > ul,
+.markdown-body section > ol {
+  max-width: 78ch;
+}
+
+.markdown-body table,
+.markdown-body pre,
+.markdown-body .codebox,
+.markdown-body .diagram-card,
+.markdown-body .feature-grid,
+.markdown-body .stage-flow,
+.markdown-body .glossary-list {
+  max-width: none;
+}
 
 .glossary-list {
   display: grid;
@@ -863,38 +882,6 @@ a {
   padding: 0.85rem;
   background: #ffffff;
   cursor: zoom-in;
-}
-
-#idm-aap-flow .diagram-artifact {
-  width: min(100%, 34rem);
-}
-
-#candidate-flow .diagram-artifact {
-  width: min(100%, 40rem);
-}
-
-#day2-aap-policy-pipeline .diagram-artifact {
-  width: min(100%, 34rem);
-}
-
-#day2-aap-node-evidence .diagram-artifact {
-  width: min(100%, 38rem);
-}
-
-#day2-calabi-runner-boundary .diagram-artifact {
-  width: min(100%, 28rem);
-}
-
-#openshift-spo-control-flow .diagram-artifact {
-  width: min(100%, 20rem);
-}
-
-#openshift-spo-workload-classes .diagram-artifact {
-  width: min(100%, 44rem);
-}
-
-#openshift-spo-demo-evidence-flow .diagram-artifact {
-  width: min(100%, 22rem);
 }
 
 .diagram-card--focus .diagram-artifact {

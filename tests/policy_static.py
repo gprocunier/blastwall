@@ -51,26 +51,27 @@ for policy in deny_policies:
 print(f"PASS: validated {len(deny_policies)} deny policy scopes")
 
 dirtyfrag_scopes = {
-    "blastwall-xfrm-deny": "bw_xfrm=deny",
-    "blastwall-rxrpc-deny": "bw_rxrpc=deny",
+    "blastwall-xfrm-deny": "xfrm=deny",
+    "blastwall-rxrpc-deny": "rxrpc=deny",
 }
 
 active_policy_marker = (
-    "bw_rpm=blastwall-selinux-0.5.2-1; "
-    "bw_state=active; "
-    "bw_alg=deny; "
-    "bw_bpf=deny; "
-    "bw_self=deny; "
-    "bw_pkt=deny; "
-    "bw_userns=deny; "
-    "bw_iou=deny; "
-    "bw_xfrm=deny; "
-    "bw_rxrpc=deny"
+    "blastwall:state=active;"
+    "rpm=blastwall-selinux-0.5.2-1;"
+    "rpm_sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;"
+    "alg=deny;"
+    "bpf=deny;"
+    "self=deny;"
+    "pkt=deny;"
+    "userns=deny;"
+    "iou=deny;"
+    "xfrm=deny;"
+    "rxrpc=deny"
 )
 
 if len(active_policy_marker) > 240:
     fail(
-        "active IdM policy marker is too long for the host description field "
+        "active IdM policy marker is too long for the host userClass field "
         f"({len(active_policy_marker)} characters)"
     )
 
@@ -113,6 +114,21 @@ if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP" not in controller_vars:
 
 calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").read_text(encoding="utf-8")
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
+calabi_eigenstate = (ROOT / "poc-calabi" / "inventory-eigenstate.yml").read_text(encoding="utf-8")
+if "idm_description" in calabi_eigenstate:
+    fail("poc-calabi/inventory-eigenstate.yml still references idm_description in hostvars")
+generic_inventory = (ROOT / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
+for path_name, inventory_text in [
+    ("inventory/blastwall-idm.yml", generic_inventory),
+    ("poc-calabi/aap/inventory/blastwall-idm.yml", calabi_inventory),
+]:
+    if "idm_userclass" not in inventory_text:
+        fail(f"{path_name} does not include idm_userclass")
+    groups_text = inventory_text.split("\ngroups:", 1)[1]
+    if "idm_description" in groups_text:
+        fail(f"{path_name} still uses idm_description in policy grouping")
+if "idm_userclass" not in calabi_eigenstate:
+    fail("poc-calabi/inventory-eigenstate.yml does not include idm_userclass")
 if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: blastwall_policy_candidate" not in calabi_config:
     fail("Calabi AAP configuration does not use the candidate group for policy upgrades")
 if "BLASTWALL_IDM_ADMIN_PRINCIPAL" not in calabi_config or "BLASTWALL_IDM_ADMIN_PASSWORD" not in calabi_config:
@@ -169,8 +185,20 @@ for path in collection_backed_marker_paths:
 promotion = (PLAYBOOKS / "promote-policy-rpm.yml").read_text(encoding="utf-8")
 if "freeipa.ansible_freeipa.ipahost" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not use freeipa.ansible_freeipa.ipahost for marker writes")
+if "--desc" in promotion:
+    fail("playbooks/promote-policy-rpm.yml still writes host description markers")
+if "userclass:" not in promotion:
+    fail("playbooks/promote-policy-rpm.yml does not write host userClass markers")
 if "ipa host-mod" in promotion and "FreeIPA CLI fallback" not in promotion:
     fail("playbooks/promote-policy-rpm.yml uses ipa host-mod without a named fallback boundary")
+
+deploy_policy = (PLAYBOOKS / "deploy-policy.yml").read_text(encoding="utf-8")
+if "description: \"{{ blastwall_policy_marker }}\"" in deploy_policy:
+    fail("playbooks/deploy-policy.yml still writes policy markers to host description")
+if "userclass:" not in deploy_policy:
+    fail("playbooks/deploy-policy.yml does not write host userClass markers")
+if "blastwall_clear_legacy_description_marker" not in promotion or "blastwall_clear_legacy_description_marker" not in deploy_policy:
+    fail("policy marker playbooks do not clear legacy Blastwall description markers")
 
 print("PASS: IdM marker writes use FreeIPA collection modules")
 

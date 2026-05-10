@@ -1,5 +1,5 @@
 ---
 collections:
   - name: freeipa.ansible_freeipa
-  - name: https://github.com/gprocunier/eigenstate-ipa.git
-    type: git
+  - name: eigenstate.ipa
+    version: "1.17.0"

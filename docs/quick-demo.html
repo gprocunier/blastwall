@@ -37,6 +37,13 @@
         <section id="goal">
           <h2>Goal</h2>
           <p>Reproduce the AAP cast from a prepared Calabi lab. The exercise is successful when the workflow launch belongs to <code>blastwall-demo</code>, the workflow nodes complete successfully, preflight shows one selected current host and one stale fixture host, and the verification stdout shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> plus blocked <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes.</p>
+          <figure class="diagram-card diagram-card--focus" id="aap-lab-flow">
+            <figcaption>
+              <strong>AAP Lab Flow</strong>
+              <span>Prepare the Controller objects with Calabi playbooks, then use <code>awx</code> for the operator-visible launch and evidence readback.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/aap-lab-flow.svg" alt="AAP lab replay flow from lab preparation through AAP surface inspection, workflow launch, job stdout evidence, and reset only when needed">
+          </figure>
         </section>
 
         <section id="prerequisites">

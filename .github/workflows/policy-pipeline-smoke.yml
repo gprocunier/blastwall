@@ -110,6 +110,7 @@ jobs:
           awx jobs stdout "${build_id}" | tee /tmp/blastwall-policy-pipeline-build.log
           grep -F 'policy_pipeline_build' /tmp/blastwall-policy-pipeline-build.log
           grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-build.log
+          grep -E 'policy_rpm_sha256.*[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-build.log
 
           awx jobs stdout "${render_spo_id}" | tee /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'spo_policy_crs_render' /tmp/blastwall-policy-pipeline-render-spo.log
@@ -157,6 +158,7 @@ jobs:
           awx jobs stdout "${install_id}" | tee /tmp/blastwall-policy-pipeline-install.log
           grep -F 'policy_pipeline_install' /tmp/blastwall-policy-pipeline-install.log
           grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-install.log
+          grep -E 'policy_rpm_sha256.*[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-install.log
 
           awx jobs stdout "${verify_id}" | tee /tmp/blastwall-policy-pipeline-verify.log
           grep -F 'blastwall_u:blastwall_r:blastwall_t:s0' /tmp/blastwall-policy-pipeline-verify.log
@@ -166,7 +168,8 @@ jobs:
 
           awx jobs stdout "${promote_id}" | tee /tmp/blastwall-policy-pipeline-promote.log
           grep -F 'policy_pipeline_promotion' /tmp/blastwall-policy-pipeline-promote.log
-          grep -F 'bw_rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'blastwall:state=active;rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -E 'rpm_sha256=[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-promote.log
 
           awx jobs stdout "${preflight_id}" | tee /tmp/blastwall-policy-pipeline-preflight.log
           grep -E 'All assertions passed|selected_hosts|candidate_hosts' /tmp/blastwall-policy-pipeline-preflight.log
