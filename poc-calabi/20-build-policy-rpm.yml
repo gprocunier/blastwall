@@ -51,7 +51,7 @@
         dest: "{{ blastwall_source_dir }}/blastwall.te"
         mode: "0644"
         content: |
-          policy_module(blastwall, 0.4.0)
+          policy_module(blastwall, 0.5.0)
 
           ########################################
           #
@@ -113,6 +113,15 @@
           (deny blastwall_t self (user_namespace (create)))
           (neverallow blastwall_t self (user_namespace (create)))
 
+    - name: Write io_uring CIL deny module (optional block for kernel compat)
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall-io-uring-deny.cil"
+        mode: "0644"
+        content: |
+          (optional blastwall_io_uring_deny
+            (deny blastwall_t self (io_uring (cmd override_creds sqpoll)))
+            (neverallow blastwall_t self (io_uring (cmd override_creds sqpoll))))
+
     - name: Write policy self-protection CIL deny module
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../policy/blastwall-policy-selfprotect.cil"
@@ -170,7 +179,7 @@
         mode: "0644"
         content: |
           Name:           blastwall-selinux
-          Version:        0.4.0
+          Version:        0.5.0
           Release:        1
           Summary:        SELinux policy for the Blastwall automation PoC
           License:        MIT
@@ -203,6 +212,8 @@
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil
           install -D -m 0644 blastwall-userns-deny.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil
+          install -D -m 0644 blastwall-io-uring-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-io-uring-deny.cil
           install -D -m 0644 blastwall-policy-selfprotect.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
           install -D -m 0644 contexts/blastwall_u \
@@ -215,6 +226,7 @@
             %{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-io-uring-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
           install -D -m 0644 \
             %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u \
@@ -229,6 +241,7 @@
           %preun
           if [ "$1" -eq 0 ]; then
             semodule -r blastwall-policy-selfprotect || true
+            semodule -r blastwall-io-uring-deny || true
             semodule -r blastwall-userns-deny || true
             semodule -r blastwall-packet-socket-deny || true
             semodule -r blastwall-bpf-deny || true
@@ -244,12 +257,16 @@
           %{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-io-uring-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
           %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
           %changelog
           * Sun May 03 2026 Blastwall PoC <root@localhost> - 0.3.0-1
           - Add policy self-protection deny scope
+
+          * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.5.0-1
+          - Add io_uring deny scope with optional block for kernel compat (CVE-2026-43006)
 
           * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.4.0-1
           - Add packet_socket deny scope (CVE-2025-38617, CVE-2026-31504)

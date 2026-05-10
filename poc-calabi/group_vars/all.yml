@@ -34,7 +34,7 @@ blastwall_sudo_options:
 blastwall_state_dir: /var/tmp/blastwall-poc
 blastwall_auto_ccache: "{{ blastwall_state_dir }}/krb5cc_{{ blastwall_auto_user }}"
 
-blastwall_policy_version: 0.4.0
+blastwall_policy_version: 0.5.0
 blastwall_policy_release: "1"
 blastwall_policy_name: blastwall-selinux
 blastwall_policy_nevra: >-
@@ -62,6 +62,8 @@ blastwall_packet_socket_probe_path: >-
   {{ blastwall_probe_install_dir }}/trigger-packet-socket-deny.py
 blastwall_userns_probe_path: >-
   {{ blastwall_probe_install_dir }}/trigger-userns-deny.py
+blastwall_io_uring_probe_path: >-
+  {{ blastwall_probe_install_dir }}/trigger-io-uring-deny.py
 blastwall_deny_scopes:
   - name: alg_socket
     marker: blastwall_policy_alg_socket=denied
@@ -73,3 +75,5 @@ blastwall_deny_scopes:
     marker: blastwall_policy_packet_socket=denied
   - name: userns
     marker: blastwall_policy_userns=denied
+  - name: io_uring
+    marker: blastwall_policy_io_uring=denied

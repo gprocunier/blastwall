@@ -258,7 +258,7 @@ session lands in an unconfined or partially confined state.
 
 **Current mitigation.**  The managed-host verification playbook
 (`playbooks/verify-managed-host.yml`) checks the actual SELinux context and
-runs the AF_ALG, BPF, packet_socket, and userns probes after deployment.  But
+runs the AF_ALG, BPF, packet_socket, userns, and io_uring probes after deployment.  But
 that is a point-in-time check, not continuous verification.
 
 **Residual risk.**  Moderate.  The string-based marker has no cryptographic
@@ -326,9 +326,10 @@ preflight would have filtered those out.
 The attacker targets a kernel exploit surface that is not denied by the
 current Blastwall policy.  The current policy denies `alg_socket`
 (Copy Fail / AF_ALG), `bpf` (CVE-2026-31525, CVE-2026-31429,
-CVE-2025-38154), `packet_socket` (CVE-2025-38617, CVE-2026-31504), and
+CVE-2025-38154), `packet_socket` (CVE-2025-38617, CVE-2026-31504),
 `userns_create` (an exploit chain enabler; 44% of kernel exploits require user
-namespaces).  It also protects the Blastwall policy-management surface from
+namespaces), and `io_uring` (CVE-2026-43006; uses a CIL optional block for
+kernel compatibility).  It also protects the Blastwall policy-management surface from
 direct modification by `blastwall_t`.
 
 **Preconditions.**  A weaponized exploit exists for a surface not covered by
@@ -339,7 +340,7 @@ confined session.  The confinement provides no protection for uncovered
 surfaces.
 
 **Current mitigation.**  The demonstrated automation deny scope blocks
-`alg_socket`, `bpf`, `packet_socket`, and `userns_create`.  The
+`alg_socket`, `bpf`, `packet_socket`, `userns_create`, and `io_uring`.  The
 self-protection scope denies direct policy manipulation.
 
 **Residual risk.**  Moderate.  The current scope blocks the surfaces that
@@ -388,7 +389,7 @@ third-party modules, and document known interactions.
 | AP-3: Host marker spoofing | Partially mitigated | Verification playbook catches it post-deployment; no cryptographic binding |
 | AP-4: SSSD cache race | Mitigated | Small window, caught by verification step |
 | AP-5: Controller compromise | Partially mitigated | Host-local enforcement is independent; stale host selection is the residual risk |
-| AP-6: Uncovered surfaces | Partially mitigated | AF_ALG, BPF, packet_socket, userns covered; policy self-protection added; future scopes require coverage-selection review |
+| AP-6: Uncovered surfaces | Partially mitigated | AF_ALG, BPF, packet_socket, userns, io_uring covered; policy self-protection added; future scopes require coverage-selection review |
 | AP-7: Policy conflicts | Low risk | Minimal policy surface; neverallow guards against re-grants |
 
 ## 8. Future Work
@@ -396,7 +397,6 @@ third-party modules, and document known interactions.
 - **Coverage selection review.**  Define the exploit-signal, automation-impact,
   and verification criteria a new deny surface must satisfy before it becomes a
   Blastwall policy scope.
-
 - **Cryptographic policy attestation.**  Replace string-based IdM host
   markers with a signed statement of policy version and enforcement state.
   This binds the inventory claim to the actual host configuration.

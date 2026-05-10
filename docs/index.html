@@ -45,7 +45,7 @@
 
         <section id="demo">
           <h2>Demo</h2>
-          <p>The <a href="demo.html">demo</a> was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. In this project, Calabi is the validation lab, not a Blastwall dependency. The demo shows the proof path from <code>bastion-01</code>: IdM service identity creation, <code>eigenstate.ipa</code> read-side validation, direct GSSAPI SSH probes as <code>svc-ansible-runner</code>, target audit evidence for AF_ALG, BPF, packet_socket, and userns denials, and a final self-protection proof that blocks a sudo-expanded <code>semodule</code> breakout.</p>
+          <p>The <a href="demo.html">demo</a> was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. In this project, Calabi is the validation lab, not a Blastwall dependency. The demo shows the proof path from <code>bastion-01</code>: IdM service identity creation, <code>eigenstate.ipa</code> read-side validation, direct GSSAPI SSH probes as <code>svc-ansible-runner</code>, target audit evidence for AF_ALG, BPF, packet_socket, userns, and io_uring denials, and a final self-protection proof that blocks a sudo-expanded <code>semodule</code> breakout.</p>
         </section>
 
         <section id="problem">
@@ -265,7 +265,7 @@
         <section id="tradeoff">
           <h2>The Tradeoff</h2>
           <p>BPF LSM is the precision tool. It can inspect kernel hook arguments and preserve unrelated AF_ALG use. Blastwall is the identity, policy, and delivery model. It blocks a broader SELinux surface for a narrower subject: privileged automation mapped into <code>blastwall_u</code>.</p>
-          <p>That tradeoff is often acceptable for automation. Many jobs should not need AF_ALG, raw packet sockets, BPF, or user namespace creation. Blocking those surfaces for automation identities is part of the point.</p>
+          <p>That tradeoff is often acceptable for automation. Many jobs do not need AF_ALG, raw packet sockets, BPF, user namespace creation, or <code>io_uring</code>. Blocking those surfaces for automation identities is part of the point.</p>
           <figure class="diagram-card" id="limitation-flow">
             <figcaption>
               <strong>Important Limitation</strong>

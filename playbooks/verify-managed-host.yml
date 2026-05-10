@@ -12,6 +12,8 @@
       {{ playbook_dir }}/../tests/trigger-bpf-deny.py
     blastwall_packet_socket_trigger_path: >-
       {{ playbook_dir }}/../tests/trigger-packet-socket-deny.py
+    blastwall_io_uring_trigger_path: >-
+      {{ playbook_dir }}/../tests/trigger-io-uring-deny.py
     blastwall_userns_trigger_path: >-
       {{ playbook_dir }}/../tests/trigger-userns-deny.py
   tasks:
@@ -101,3 +103,20 @@
     - name: Show userns trigger result
       ansible.builtin.debug:
         var: blastwall_userns_trigger.stdout
+
+    - name: Copy io_uring trigger to target
+      ansible.builtin.copy:
+        src: "{{ blastwall_io_uring_trigger_path }}"
+        dest: /tmp/trigger-io-uring-deny.py
+        mode: "0755"
+
+    - name: Verify io_uring_setup is blocked (may SKIP on older kernels)
+      ansible.builtin.command: /tmp/trigger-io-uring-deny.py
+      register: blastwall_io_uring_trigger
+      changed_when: false
+      failed_when:
+        - blastwall_io_uring_trigger.rc == 1
+
+    - name: Show io_uring trigger result
+      ansible.builtin.debug:
+        var: blastwall_io_uring_trigger.stdout

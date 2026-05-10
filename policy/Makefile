@@ -1,6 +1,6 @@
 POLICY := blastwall
-DENY_POLICIES := blastwall-alg-socket-deny blastwall-bpf-deny blastwall-policy-selfprotect blastwall-packet-socket-deny blastwall-userns-deny
-VERSION := 0.4.0
+DENY_POLICIES := blastwall-alg-socket-deny blastwall-bpf-deny blastwall-policy-selfprotect blastwall-packet-socket-deny blastwall-userns-deny blastwall-io-uring-deny
+VERSION := 0.5.0
 SELINUX_DEVEL ?= /usr/share/selinux/devel
 
 DENY_CIL := $(addsuffix .cil,$(DENY_POLICIES))

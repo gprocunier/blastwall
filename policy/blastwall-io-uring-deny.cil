@@ -1,0 +1,13 @@
+; Deny io_uring operations for the blastwall automation domain.
+; CVE-2026-43006 (zero-length fixed buffer OOB read) is the current
+; open vulnerability; the subsystem has a long history of privilege
+; escalation bugs.  Automation identities have no reason to use
+; io_uring.
+;
+; Wrapped in an optional block so the rule is silently skipped on
+; kernels that do not define the io_uring class (RHEL 7/8 and older
+; kernels).  See policy/README.md for the optional-block convention.
+
+(optional blastwall_io_uring_deny
+  (deny blastwall_t self (io_uring (cmd override_creds sqpoll)))
+  (neverallow blastwall_t self (io_uring (cmd override_creds sqpoll))))

@@ -109,6 +109,12 @@
         dest: "{{ blastwall_userns_probe_path }}"
         mode: "0755"
 
+    - name: Install safe io_uring probe
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../tests/trigger-io-uring-deny.py"
+        dest: "{{ blastwall_io_uring_probe_path }}"
+        mode: "0755"
+
     - name: Clear SSSD caches after IdM policy changes
       ansible.builtin.command:
         argv:
@@ -305,6 +311,14 @@
           stdout={{ blastwall_userns_probe.stdout }},
           stderr={{ blastwall_userns_probe.stderr }}
 
+    - name: Run safe io_uring probe as mapped automation user (may SKIP on older kernels)
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + [blastwall_io_uring_probe_path] }}"
+      register: blastwall_io_uring_probe
+      changed_when: false
+      failed_when:
+        - blastwall_io_uring_probe.rc == 1
+
     - name: Show Blastwall proof
       ansible.builtin.debug:
         msg:
@@ -314,6 +328,7 @@
           bpf_probe: "{{ blastwall_bpf_probe.stdout }}"
           packet_socket_probe: "{{ blastwall_packet_socket_probe.stdout }}"
           userns_probe: "{{ blastwall_userns_probe.stdout }}"
+          io_uring_probe: "{{ blastwall_io_uring_probe.stdout }}"
 
 - name: Collect audit evidence from automation endpoint
   hosts: automation_endpoints

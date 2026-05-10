@@ -29,6 +29,11 @@
         path: /sys/fs/selinux/class/user_namespace/perms/create
       register: userns_perm
 
+    - name: Check io_uring class exists (optional, kernel 5.1+)
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/io_uring/perms/sqpoll
+      register: io_uring_perm
+
     - name: Check Blastwall SELinux user is registered
       ansible.builtin.command: semanage user -l
       register: semanage_users

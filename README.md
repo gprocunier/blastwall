@@ -63,7 +63,7 @@ mock topology.
 The demo shows the PoC from `bastion-01`: IdM creates and proves
 `svc-ansible-runner`, `eigenstate.ipa` validates the read-side gate, direct
 GSSAPI SSH probes land in `blastwall_u:blastwall_r:blastwall_t:s0`, the target
-audit log shows denied AF_ALG, BPF, packet_socket, and userns activity, and the
+audit log shows denied AF_ALG, BPF, packet_socket, userns, and io_uring activity, and the
 final self-protection step proves SELinux blocks a sudo-expanded `semodule`
 breakout.
 
@@ -131,15 +131,15 @@ That path is operationally ordinary:
   AAP aware of SELinux maps, HBAC access, sudo policy, and optional host
   coverage markers before a job starts.
 - Audit and change control can reason about
-  `blastwall-selinux-0.4.0-1` more easily than a dynamically attached probe.
+  `blastwall-selinux-0.5.0-1` more easily than a dynamically attached probe.
 
 The tradeoff is precision.  BPF LSM can inspect kernel hook arguments and block
 one exact shape, such as `authencesn` in `socket_bind`.  Blastwall blocks
 broader SELinux surfaces for a specific subject: privileged automation mapped
 into `blastwall_u`.
 
-That is often acceptable for automation.  Many AAP jobs should not need
-`AF_ALG`, BPF, raw packet sockets, or user namespace creation.  Blocking
+That is often acceptable for automation.  Many AAP jobs do not need
+`AF_ALG`, BPF, raw packet sockets, user namespace creation, or `io_uring`.  Blocking
 those surfaces for automation identities is part of the point.
 
 The short version:
@@ -192,7 +192,7 @@ rule has a version, a stated scope, and an inventory-visible rollout state.
 ### Self-Protection Scope
 
 Policy self-protection is now a base Blastwall scope.  It is not an
-exploit-specific mitigation like `alg_socket` or `bpf`.  It protects the wall
+exploit-specific mitigation like `alg_socket` or `bpf` or `io_uring`.  It protects the wall
 itself.
 
 The current self-protection CIL denies `blastwall_t` from executing SELinux
@@ -223,7 +223,7 @@ installed afterwards.
 - `idm/` - IdM object creation example for group, HBAC, sudo, and user map.
 - `inventory/` - [`eigenstate.ipa.idm`](https://gprocunier.github.io/eigenstate-ipa/) inventory source for AAP.
 - `playbooks/` - AAP/controller preflight, policy deployment, and host checks.
-- `tests/` - safe AF_ALG, BPF, packet_socket, and userns probes used to verify denial.
+- `tests/` - safe AF_ALG, BPF, packet_socket, userns, and io_uring probes used to verify denial.
 - `poc-calabi/` - Calabi lab exercise for replaying the proof path after
   watching the demo.
 
@@ -311,13 +311,14 @@ available from normal host records.
 The policy deployment play writes one marker per verified coverage claim:
 
 ```text
-blastwall_policy_rpm=blastwall-selinux-0.4.0-1
+blastwall_policy_rpm=blastwall-selinux-0.5.0-1
 blastwall_policy_state=active
 blastwall_policy_alg_socket=denied
 blastwall_policy_bpf=denied
 blastwall_policy_selfprotect=denied
 blastwall_policy_packet_socket=denied
 blastwall_policy_userns=denied
+blastwall_policy_io_uring=denied
 ```
 
 When coverage expands, add markers only for surfaces that are actually enforced
@@ -362,8 +363,8 @@ both names as long as the SELinux user and role remain `blastwall_u` and
 SELinux can block broad object class access for a confined automation domain.
 It cannot match kernel hook arguments such as `authencesn` inside
 `struct sockaddr_alg`.  The current policy denies the demonstrated automation
-surfaces: `alg_socket` for Copy Fail, `bpf`, `packet_socket`, and
-`userns_create`.  It also carries a self-protection scope that blocks
+surfaces: `alg_socket` for Copy Fail, `bpf`, `packet_socket`,
+`userns_create`, and `io_uring`.  It also carries a self-protection scope that blocks
 `blastwall_t` from running SELinux policy-management tools or writing the local
 SELinux policy store.  If the requirement is argument-level precision while
 preserving other uses of a blocked class, keep using an eBPF LSM mitigation like
@@ -375,6 +376,13 @@ This PoC uses a CIL `deny` module because current distribution policy may grant
 socket permissions through inherited user-domain attributes.  The deny rule
 subtracts `alg_socket` access from `blastwall_t`; the paired `neverallow` keeps
 future policy changes from silently restoring the permission.
+
+The `io_uring` deny scope uses a CIL `optional` block so the module installs
+cleanly on kernels that predate the `io_uring` object class.  When the class
+is absent, the deny rule is silently skipped; when the class is present, the
+deny and neverallow apply.  This is the convention for any future scope that
+references a kernel object class not guaranteed to exist on all supported
+RHEL versions.
 
 ## When To Choose Which
 

@@ -177,7 +177,7 @@
             <tbody>
               <tr><td><strong>Preconditions</strong></td><td>Attacker has <code>ipa host-mod</code> access.</td></tr>
               <tr><td><strong>Impact</strong></td><td>Jobs run on hosts that lack confinement policy.</td></tr>
-              <tr><td><strong>Mitigation</strong></td><td>Verification playbook checks actual SELinux context and runs AF_ALG, BPF, packet_socket, and userns probes after deployment. But that is a point-in-time check, not continuous verification.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Verification playbook checks actual SELinux context and runs AF_ALG, BPF, packet_socket, userns, and io_uring probes after deployment. But that is a point-in-time check, not continuous verification.</td></tr>
               <tr><td><strong>Residual risk</strong></td><td>Moderate. String-based marker has no cryptographic binding to actual policy state.</td></tr>
             </tbody>
           </table>
@@ -205,12 +205,12 @@
           </table>
 
           <h3>AP-6: Uncovered Exploit Surfaces</h3>
-          <p>The attacker targets a kernel exploit surface not denied by current policy.  The policy now denies <code>alg_socket</code> (Copy Fail), <code>bpf</code> (CVE-2026-31525, CVE-2026-31429, CVE-2025-38154), <code>packet_socket</code> (CVE-2025-38617, CVE-2026-31504), and <code>userns_create</code> (an exploit chain enabler; 44% of kernel exploits require user namespaces). It also protects the policy-management surface from direct modification by <code>blastwall_t</code>.</p>
+          <p>The attacker targets a kernel exploit surface not denied by current policy.  The policy now denies <code>alg_socket</code> (Copy Fail), <code>bpf</code> (CVE-2026-31525, CVE-2026-31429, CVE-2025-38154), <code>packet_socket</code> (CVE-2025-38617, CVE-2026-31504), <code>userns_create</code> (an exploit chain enabler; 44% of kernel exploits require user namespaces), and <code>io_uring</code> (CVE-2026-43006; uses a CIL optional block for kernel compatibility). It also protects the policy-management surface from direct modification by <code>blastwall_t</code>.</p>
           <table>
             <tbody>
               <tr><td><strong>Preconditions</strong></td><td>Weaponized exploit exists for an uncovered surface.</td></tr>
               <tr><td><strong>Impact</strong></td><td>Attacker exploits the vulnerability from within the confined session.</td></tr>
-              <tr><td><strong>Mitigation</strong></td><td>The demonstrated automation deny scope blocks <code>alg_socket</code>, <code>bpf</code>, <code>packet_socket</code>, and <code>userns_create</code>.  The self-protection scope denies direct policy manipulation.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>The demonstrated automation deny scope blocks <code>alg_socket</code>, <code>bpf</code>, <code>packet_socket</code>, <code>userns_create</code>, and <code>io_uring</code>.  The self-protection scope denies direct policy manipulation.</td></tr>
               <tr><td><strong>Residual risk</strong></td><td>Moderate. The current scope blocks the surfaces that have strong exploit value and low expected value for privileged automation. Other kernel surfaces remain candidates only when the exploit signal and automation tradeoff justify adding them to the policy lifecycle.</td></tr>
             </tbody>
           </table>
@@ -239,7 +239,7 @@
               <tr><td>AP-3: Host marker spoofing</td><td>Partially mitigated</td><td>Verification playbook catches post-deployment; no cryptographic binding</td></tr>
               <tr><td>AP-4: SSSD cache race</td><td>Mitigated</td><td>Small window, caught by verification step</td></tr>
               <tr><td>AP-5: Controller compromise</td><td>Partially mitigated</td><td>Host-local enforcement independent; stale host selection is residual risk</td></tr>
-              <tr><td>AP-6: Uncovered surfaces</td><td>Partially mitigated</td><td>AF_ALG, BPF, packet_socket, userns covered; policy self-protection added; future scopes require coverage-selection review</td></tr>
+              <tr><td>AP-6: Uncovered surfaces</td><td>Partially mitigated</td><td>AF_ALG, BPF, packet_socket, userns, io_uring covered; policy self-protection added; future scopes require coverage-selection review</td></tr>
               <tr><td>AP-7: Policy conflicts</td><td>Low risk</td><td>Minimal surface; neverallow guards against re-grants</td></tr>
             </tbody>
           </table>
