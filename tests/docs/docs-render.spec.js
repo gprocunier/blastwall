@@ -137,6 +137,10 @@ test.describe("GitHub Pages rendering", () => {
 
   test("asciinema players render", async ({ page }, testInfo) => {
     const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
+    const expectedSources = {
+      "demo.html": "blastwall-poc.cast",
+      "aap-demo.html": "blastwall-aap.cast"
+    };
 
     for (const path of ["demo.html", "aap-demo.html"]) {
       const failedLocalResponses = [];
@@ -147,11 +151,23 @@ test.describe("GitHub Pages rendering", () => {
       });
 
       await page.goto(`${baseUrl}/${path}`, { waitUntil: "domcontentloaded" });
+      await expect(page.locator("[data-asciinema-src]")).toHaveAttribute("data-asciinema-src", expectedSources[path]);
       const players = page.locator(".ap-player");
       await expect(players.first()).toBeVisible({ timeout: 10000 });
       await expect(players.first()).toHaveCount(1);
       expect(failedLocalResponses).toEqual([]);
     }
+  });
+
+  test("Ansible demo cast carries Dirty Frag evidence", () => {
+    const demoHtml = readText(path.join(docsRoot, "demo.html"));
+    const cast = readText(path.join(docsRoot, "blastwall-poc.cast"));
+
+    expect(demoHtml).toContain("Dirty Frag response marker");
+    expect(cast).toContain("Dirty Frag");
+    expect(cast).toContain("NETLINK_XFRM");
+    expect(cast).toContain("AF_RXRPC");
+    expect(cast).toContain("Blastwall 0.5.2");
   });
 
   test("dense diagrams can be enlarged in place", async ({ page }, testInfo) => {

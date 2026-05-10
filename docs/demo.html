@@ -68,8 +68,8 @@
             data-asciinema-idle-time-limit="5"
             data-asciinema-terminal-font-family="'MesloGL Nerd Font Mono', 'MesloLGL Nerd Font Mono', 'Red Hat Mono', Consolas, monospace"
             data-asciinema-terminal-font-size="7pt"
-            data-asciinema-cols="272"
-            data-asciinema-rows="54"
+            data-asciinema-cols="220"
+            data-asciinema-rows="42"
           ></div>
         </section>
 
@@ -85,6 +85,7 @@
             <li>The packet_socket probe reports <code>BLOCKED</code> for AF_PACKET socket creation.</li>
             <li>The userns probe reports <code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</li>
             <li>The io_uring probe reports <code>BLOCKED</code> for <code>io_uring_setup</code>, or <code>SKIP</code> on kernels without that object class.</li>
+            <li>The Dirty Frag probe reports <code>BLOCKED</code> for <code>NETLINK_XFRM</code> and <code>AF_RXRPC</code> socket creation.</li>
             <li>The self-protection play shows sudo can be expanded while SELinux still denies <code>semodule</code> execution from <code>blastwall_t</code>.</li>
             <li>A conventional audit-log check shows the SELinux denial evidence from the target host.</li>
           </ol>
@@ -116,7 +117,12 @@ target: mirror-registry.workshop.lan</code></pre>
           <pre><code class="language-bash">ansible-playbook 30-deploy-and-test.yml | tee /tmp/blastwall-proof.log</code></pre>
           <p>The target host installs the Blastwall RPM, refreshes local policy state, and runs the automated validation for AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC.</p>
 
-          <h3>5. Inspect and run the probes directly</h3>
+          <h3>5. Mark the Dirty Frag response date</h3>
+          <pre><code class="language-bash">date -u '+Dirty Frag response marker: %Y-%m-%d %H:%M:%S UTC'
+echo 'Blastwall 0.5.2: verify xfrm and RxRPC are denied for confined automation'</code></pre>
+          <p>This callout keeps the timing visible in the non-AAP proof: Dirty Frag was publicly documented on May 7, 2026, and this run verifies the xfrm and RxRPC deny scopes on May 8, 2026.</p>
+
+          <h3>6. Inspect and run the probes directly</h3>
           <pre><code class="language-bash">kinit svc-ansible-runner
 ssh -o GSSAPIAuthentication=yes \
   svc-ansible-runner@mirror-registry.workshop.lan \
@@ -152,7 +158,7 @@ BLOCKED: io_uring_setup denied with EPERM  [CVE-2026-43006]
 BLOCKED: Dirty Frag NETLINK_XFRM socket creation denied with errno 13
 BLOCKED: Dirty Frag AF_RXRPC socket creation denied with errno 13</code></pre>
 
-          <h3>6. Read the target audit log</h3>
+          <h3>7. Read the target audit log</h3>
           <pre><code class="language-bash">ansible automation_endpoints -i inventory.yml -b -m shell -a '
   grep -a '\''subj=blastwall'\'' /var/log/audit/audit.log |
   tr '\''\035'\'' '\''\n'\'' |
@@ -161,10 +167,10 @@ BLOCKED: Dirty Frag AF_RXRPC socket creation denied with errno 13</code></pre>
   tail -n 16'</code></pre>
           <p>The audit check is intentionally conventional, but it is executed through Ansible against the target endpoint. It is there to show SELinux enforcement from the target host, not just stored Ansible variables.</p>
 
-          <h3>7. Prove the policy protects itself</h3>
+          <h3>8. Prove the policy protects itself</h3>
           <pre><code class="language-bash">ansible-playbook 35-test-self-protection.yml | tee /tmp/blastwall-selfprotect.log
 grep -E \
-  'sudo_expansion_seen|semodule_attempt_rc|semodule_attempt_stderr|Permission denied|blastwall-(alg|bpf|packet|userns|io-uring|policy)' \
+  'sudo_expansion_seen|semodule_attempt_rc|semodule_attempt_stderr|Permission denied|blastwall-(alg|bpf|packet|userns|io-uring|xfrm|rxrpc|policy)' \
   /tmp/blastwall-selfprotect.log</code></pre>
           <p>The self-protection play temporarily adds <code>/usr/sbin/semodule</code> to the Blastwall sudo command group, verifies the automation identity can see that sudo expansion, then attempts to remove a deny module. Sudo is not the final boundary: SELinux denies <code>semodule</code> from <code>blastwall_t</code>, and the deny modules remain installed.</p>
         </section>
@@ -195,7 +201,7 @@ grep -E \
         <section class="context-block context-block--meta">
           <h2>Demo Boundary</h2>
           <p class="context-kicker">Calabi lab proof</p>
-          <p class="context-copy">Use this page when the question is whether the IdM read-side gate, policy rollout, SELinux mapping, AF_ALG/BPF/packet_socket/userns/io_uring denials, self-protection, and audit evidence can be seen in one operator run.</p>
+          <p class="context-copy">Use this page when the question is whether the IdM read-side gate, policy rollout, SELinux mapping, AF_ALG/BPF/packet_socket/userns/io_uring/xfrm/RxRPC denials, self-protection, and audit evidence can be seen in one operator run.</p>
         </section>
         <section class="toc-block">
           <h2>On This Page</h2>
