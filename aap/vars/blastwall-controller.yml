@@ -44,7 +44,10 @@ blastwall_aap_ipa_realm: >-
 blastwall_aap_ipa_principal: >-
   {{ lookup('env', 'IPA_PRINCIPAL') | default('svc-ansible-runner', true) }}
 blastwall_aap_ipa_password: >-
-  {{ lookup('env', 'IPA_ADMIN_PASSWORD') | default('', true) }}
+  {{ lookup('env', 'IPA_PASSWORD') |
+  default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+blastwall_aap_ipa_keytab_file: >-
+  {{ lookup('env', 'IPA_KEYTAB') | default('', true) }}
 blastwall_aap_ipa_cert_file: >-
   {{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}
 blastwall_aap_krb5_config_file: >-
@@ -72,6 +75,11 @@ blastwall_aap_registry_password: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_PASSWORD') | default('', true) }}
 
 blastwall_aap_job_templates:
+  - name: Blastwall credential smoke
+    playbook: playbooks/credential-smoke.yml
+    credentials:
+      - "{{ blastwall_aap_idm_credential }}"
+    limit: ""
   - name: Blastwall preflight
     playbook: playbooks/preflight.yml
     credentials:

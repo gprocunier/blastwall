@@ -200,6 +200,41 @@ a {
 
 .markdown-body p { margin: 0 0 1rem; }
 
+.glossary-list {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.8fr) minmax(0, 2fr);
+  margin: 1rem 0 2rem;
+  border: 1px solid var(--rh-gray-20);
+}
+
+.glossary-list dt,
+.glossary-list dd {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--rh-gray-20);
+}
+
+.glossary-list dt {
+  color: var(--rh-gray-90);
+  background: var(--rh-gray-10);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.glossary-list dd {
+  min-width: 0;
+  border-left: 1px solid var(--rh-gray-20);
+}
+
+.glossary-list dt:target {
+  outline: 3px solid var(--rh-red);
+  outline-offset: -3px;
+}
+
+.glossary-list dt:target + dd {
+  background: #fff8f8;
+}
+
 .markdown-body code:not([class*="language-"]) {
   padding: 0.12rem 0.25rem;
   background: var(--rh-gray-10);
@@ -225,6 +260,7 @@ a {
 
 .markdown-body p code,
 .markdown-body li code,
+.glossary-list code,
 .source-block code {
   white-space: normal;
   overflow-wrap: anywhere;
@@ -792,6 +828,18 @@ body.has-diagram-lightbox {
 }
 
 @media (max-width: 680px) {
+  .glossary-list {
+    grid-template-columns: 1fr;
+  }
+
+  .glossary-list dt {
+    border-bottom: 0;
+  }
+
+  .glossary-list dd {
+    border-left: 0;
+  }
+
   .diagram-lightbox {
     padding: 1rem;
   }

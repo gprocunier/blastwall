@@ -68,7 +68,7 @@
           {{ lookup('eigenstate.ipa.hbacrule',
                     '%s' | format(blastwall_auto_user),
                     operation='test',
-                    targethost=blastwall_endpoint_host,
+                    targethost=blastwall_endpoint_host | string,
                     service='sshd',
                     server=blastwall_idm_host,
                     ipaadmin_principal=blastwall_ipaadmin_principal,

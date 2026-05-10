@@ -8,7 +8,10 @@
     ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
     ipa_login_principal: >-
       {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
-    ipa_password: "{{ lookup('env', 'IPA_ADMIN_PASSWORD') }}"
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
     krb5_ccache: FILE:/tmp/blastwall_krb5cc
     blastwall_policy_rpm: blastwall-selinux-0.5.0-1
@@ -19,6 +22,16 @@
     blastwall_selinux_role: blastwall_r
     blastwall_selinux_range: s0
     blastwall_update_idm_marker: true
+    blastwall_deploy_rollback_on_failure: true
+    blastwall_deploy_force_cleanup_on_failure: false
+    blastwall_policy_modules:
+      - blastwall
+      - blastwall-alg-socket-deny
+      - blastwall-bpf-deny
+      - blastwall-policy-selfprotect
+      - blastwall-packet-socket-deny
+      - blastwall-userns-deny
+      - blastwall-io-uring-deny
     blastwall_policy_marker: >-
       blastwall_policy_rpm={{ blastwall_policy_rpm }};
       blastwall_policy_state=active;
@@ -28,15 +41,18 @@
       blastwall_policy_packet_socket=denied;
       blastwall_policy_userns=denied;
       blastwall_policy_io_uring=denied
+    blastwall_policy_failed_marker: >-
+      blastwall_policy_rpm={{ blastwall_policy_rpm }};
+      blastwall_policy_state=failed
   tasks:
     - name: Require Kerberos inputs for target SSH
       ansible.builtin.assert:
         that:
           - ipa_principal | length > 0
           - ipa_realm | length > 0 or '@' in ipa_principal
-          - ipa_password | length > 0
+          - ipa_keytab | length > 0 or ipa_password | length > 0
         fail_msg: >-
-          Set IPA_PRINCIPAL, IPA_REALM, and IPA_ADMIN_PASSWORD for GSSAPI
+          Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for GSSAPI
           target SSH.
       run_once: true
       delegate_to: localhost
@@ -45,12 +61,17 @@
     - name: Authenticate automation identity for GSSAPI target SSH
       ansible.builtin.shell: |
         set -euo pipefail
-        printf '%s\n' "${IPA_ADMIN_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+        if [ -n "${IPA_KEYTAB}" ]; then
+          kinit -k -t "${IPA_KEYTAB}" "${IPA_LOGIN_PRINCIPAL}"
+        else
+          printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+        fi
       args:
         executable: /bin/bash
       environment:
         IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
-        IPA_ADMIN_PASSWORD: "{{ ipa_password }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        IPA_KEYTAB: "{{ ipa_keytab }}"
         KRB5_CONFIG: "{{ krb5_config }}"
         KRB5CCNAME: "{{ krb5_ccache }}"
       changed_when: false
@@ -59,84 +80,220 @@
       delegate_to: localhost
       become: false
 
-    - name: Install SELinux policy build dependencies
-      ansible.builtin.dnf:
-        name:
-          - make
-          - checkpolicy
-          - selinux-policy-devel
-          - policycoreutils-python-utils
-        state: present
+    - name: Install and validate Blastwall policy
+      block:
+        - name: Install SELinux policy build dependencies
+          ansible.builtin.dnf:
+            name:
+              - make
+              - checkpolicy
+              - selinux-policy-devel
+              - policycoreutils-python-utils
+            state: present
 
-    - name: Check SELinux policy development Makefile
-      ansible.builtin.stat:
-        path: /usr/share/selinux/devel/Makefile
-      register: blastwall_selinux_devel_makefile
+        - name: Check SELinux policy development Makefile
+          ansible.builtin.stat:
+            path: /usr/share/selinux/devel/Makefile
+          register: blastwall_selinux_devel_makefile
 
-    - name: Assert host can build and install local SELinux policy
-      ansible.builtin.assert:
-        that:
-          - blastwall_selinux_devel_makefile.stat.exists
-        fail_msg: >-
-          Missing selinux-policy-devel
-          (/usr/share/selinux/devel/Makefile).
+        - name: Capture pre-existing SELinux policy modules
+          ansible.builtin.shell: |
+            set -euo pipefail
+            semodule -l | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: blastwall_preexisting_modules
+          changed_when: false
 
-    - name: Create Blastwall project directory
-      ansible.builtin.file:
-        path: "{{ blastwall_project_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
+        - name: Check pre-existing Blastwall login context
+          ansible.builtin.stat:
+            path: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+          register: blastwall_preexisting_login_context
 
-    - name: Copy Blastwall policy source to target
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../policy/"
-        dest: "{{ blastwall_policy_dir }}/"
-        owner: root
-        group: root
-        mode: preserve
+        - name: Backup pre-existing Blastwall login context
+          ansible.builtin.slurp:
+            src: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+          register: blastwall_preexisting_login_context_content
+          when: blastwall_preexisting_login_context.stat.exists | default(false)
 
-    - name: Install Blastwall policy modules
-      ansible.builtin.command:
-        cmd: make -C "{{ blastwall_policy_dir }}" install
-      changed_when: true
+        - name: Assert host can build and install local SELinux policy
+          ansible.builtin.assert:
+            that:
+              - blastwall_selinux_devel_makefile.stat.exists
+            fail_msg: >-
+              Missing selinux-policy-devel
+              (/usr/share/selinux/devel/Makefile).
 
-    - name: Install Blastwall SELinux login context
-      ansible.builtin.copy:
-        src: "{{ blastwall_policy_dir }}/contexts/{{ blastwall_selinux_user }}"
-        dest: >-
-          /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
-        owner: root
-        group: root
-        mode: "0644"
-        remote_src: true
+        - name: Create Blastwall project directory
+          ansible.builtin.file:
+            path: "{{ blastwall_project_dir }}"
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
 
-    - name: Register Blastwall SELinux user
-      ansible.builtin.shell: |
-        set -euo pipefail
-        if semanage user -l | awk '{print $1}' | grep -qx "${SELINUX_USER}"; then
-          semanage user -m -R "${SELINUX_ROLE}" -r "${SELINUX_RANGE}" "${SELINUX_USER}"
-        else
-          semanage user -a -R "${SELINUX_ROLE}" -r "${SELINUX_RANGE}" "${SELINUX_USER}"
-        fi
-      args:
-        executable: /bin/bash
-      environment:
-        SELINUX_USER: "{{ blastwall_selinux_user }}"
-        SELINUX_ROLE: "{{ blastwall_selinux_role }}"
-        SELINUX_RANGE: "{{ blastwall_selinux_range }}"
-      changed_when: true
+        - name: Copy Blastwall policy source to target
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/../policy/"
+            dest: "{{ blastwall_policy_dir }}/"
+            owner: root
+            group: root
+            mode: preserve
 
-    - name: Restore SELinux user context directory labels
-      ansible.builtin.command:
-        cmd: >-
-          restorecon -R
-          /etc/selinux/{{ blastwall_selinux_type }}/contexts/users
-      changed_when: false
+        - name: Install Blastwall policy modules
+          ansible.builtin.command:
+            cmd: make -C "{{ blastwall_policy_dir }}" install
+          changed_when: true
 
-    - name: Publish Blastwall host marker to IdM
-      ansible.builtin.command:
-        cmd: ipa host-mod "{{ inventory_hostname }}" --desc "{{ blastwall_policy_marker }}"
-      changed_when: true
-      when: blastwall_update_idm_marker | bool
+        - name: Install Blastwall SELinux login context
+          ansible.builtin.copy:
+            src: "{{ blastwall_policy_dir }}/contexts/{{ blastwall_selinux_user }}"
+            dest: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+            owner: root
+            group: root
+            mode: "0644"
+            remote_src: true
+
+        - name: Register Blastwall SELinux user
+          ansible.builtin.shell: |
+            set -euo pipefail
+            if semanage user -l | awk '{print $1}' | grep -qx "${SELINUX_USER}"; then
+              semanage user -m -R "${SELINUX_ROLE}" -r "${SELINUX_RANGE}" "${SELINUX_USER}"
+            else
+              semanage user -a -R "${SELINUX_ROLE}" -r "${SELINUX_RANGE}" "${SELINUX_USER}"
+            fi
+          args:
+            executable: /bin/bash
+          environment:
+            SELINUX_USER: "{{ blastwall_selinux_user }}"
+            SELINUX_ROLE: "{{ blastwall_selinux_role }}"
+            SELINUX_RANGE: "{{ blastwall_selinux_range }}"
+          changed_when: true
+
+        - name: Restore SELinux user context directory labels
+          ansible.builtin.command:
+            cmd: >-
+              restorecon -R
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users
+          changed_when: false
+
+        - name: Validate installed SELinux policy modules
+          ansible.builtin.shell: |
+            set -euo pipefail
+            semodule -l | awk '{print $1}' > /tmp/blastwall-semodule-list.txt
+            for module in ${BLASTWALL_POLICY_MODULES}; do
+              grep -qx "${module}" /tmp/blastwall-semodule-list.txt
+            done
+          args:
+            executable: /bin/bash
+          environment:
+            BLASTWALL_POLICY_MODULES: "{{ blastwall_policy_modules | join(' ') }}"
+          changed_when: false
+
+        - name: Validate registered Blastwall SELinux user
+          ansible.builtin.shell: |
+            set -euo pipefail
+            semanage user -l | awk '{print $1}' | grep -qx "${SELINUX_USER}"
+          args:
+            executable: /bin/bash
+          environment:
+            SELINUX_USER: "{{ blastwall_selinux_user }}"
+          changed_when: false
+
+        - name: Check Blastwall login context file
+          ansible.builtin.stat:
+            path: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+          register: blastwall_login_context_file
+
+        - name: Assert Blastwall policy install is complete
+          ansible.builtin.assert:
+            that:
+              - blastwall_login_context_file.stat.exists
+            fail_msg: >-
+              Blastwall policy install did not validate cleanly.
+              context_exists={{ blastwall_login_context_file.stat.exists | default(false) }}.
+
+        - name: Publish Blastwall host marker to IdM
+          ansible.builtin.command:
+            cmd: ipa host-mod "{{ inventory_hostname }}" --desc "{{ blastwall_policy_marker }}"
+          changed_when: true
+          when: blastwall_update_idm_marker | bool
+
+      rescue:
+        - name: Roll back newly staged Blastwall policy modules
+          ansible.builtin.shell: |
+            set -euo pipefail
+            module="${BLASTWALL_POLICY_MODULE}"
+            if [ "${BLASTWALL_FORCE_CLEANUP}" = "true" ]; then
+              semodule -r "${module}" 2>/dev/null || true
+              exit 0
+            fi
+            if ! grep -qx "${module}" <<< "${BLASTWALL_PREEXISTING_MODULES}"; then
+              semodule -r "${module}" 2>/dev/null || true
+            fi
+          args:
+            executable: /bin/bash
+          environment:
+            BLASTWALL_POLICY_MODULE: "{{ item }}"
+            BLASTWALL_PREEXISTING_MODULES: "{{ blastwall_preexisting_modules.stdout | default('') }}"
+            BLASTWALL_FORCE_CLEANUP: "{{ blastwall_deploy_force_cleanup_on_failure | bool | string | lower }}"
+          loop: "{{ blastwall_policy_modules | reverse | list }}"
+          changed_when: true
+          failed_when: false
+          when: blastwall_deploy_rollback_on_failure | bool
+
+        - name: Restore pre-existing Blastwall login context
+          ansible.builtin.copy:
+            content: "{{ blastwall_preexisting_login_context_content.content | b64decode }}"
+            dest: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+            owner: root
+            group: root
+            mode: "0644"
+          when:
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_preexisting_login_context is defined
+            - blastwall_preexisting_login_context.stat.exists | default(false)
+            - blastwall_preexisting_login_context_content is defined
+            - not blastwall_deploy_force_cleanup_on_failure | bool
+
+        - name: Remove newly staged Blastwall login context
+          ansible.builtin.file:
+            path: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+            state: absent
+          when:
+            - blastwall_deploy_rollback_on_failure | bool
+            - >-
+              blastwall_preexisting_login_context is not defined or
+              not blastwall_preexisting_login_context.stat.exists | default(false) or
+              blastwall_deploy_force_cleanup_on_failure | bool
+
+        - name: Restore SELinux user context directory labels after rollback
+          ansible.builtin.command:
+            cmd: >-
+              restorecon -R
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users
+          changed_when: false
+          failed_when: false
+          when: blastwall_deploy_rollback_on_failure | bool
+
+        - name: Publish failed Blastwall host marker to IdM
+          ansible.builtin.command:
+            cmd: ipa host-mod "{{ inventory_hostname }}" --desc "{{ blastwall_policy_failed_marker }}"
+          changed_when: true
+          failed_when: false
+          when: blastwall_update_idm_marker | bool
+
+        - name: Stop after failed Blastwall deployment
+          ansible.builtin.fail:
+            msg: >-
+              Blastwall policy deployment failed on {{ inventory_hostname }}.
+              The host marker was set to failed when marker updates were enabled.
+              Rollback was attempted when blastwall_deploy_rollback_on_failure=true.
+              Set blastwall_deploy_force_cleanup_on_failure=true only for destructive
+              lab cleanup of pre-existing Blastwall policy state.

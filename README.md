@@ -62,6 +62,10 @@ preflight, node status, job stdout, and managed-host verification.  That is the
 operator-facing path I would show first.
 
 Use the
+[`Glossary`](https://gprocunier.github.io/blastwall/glossary.html) when the
+docs move quickly through AAP, IdM, SELinux, BPF LSM, or Calabi terminology.
+
+Use the
 [`Ansible Demo`](https://gprocunier.github.io/blastwall/demo.html) when the
 goal is to inspect the bootstrap proof and host-local mechanics.  It shows the
 PoC from `bastion-01`: IdM creates and proves `svc-ansible-runner`,
@@ -114,6 +118,13 @@ The model has four parts:
 4. AAP is the actuator and evidence surface.  It syncs the project and
    inventory, runs preflight, chooses current hosts, launches verification, and
    leaves operator-readable workflow and job output.
+
+For readers who do not already live inside FreeIPA/IdM object models, the
+published docs include a warmer explanation of this relationship in
+[`IdM Control Model`](https://gprocunier.github.io/blastwall/idm-control-model.html).
+The short analogy is dispatch and job-site control: AAP dispatches the work,
+IdM keeps the records, `eigenstate.ipa` reads those records into inventory
+facts, and SELinux enforces the boundary after the session lands.
 
 The point is not to replace kernel patches.  The point is to make privileged
 automation land inside a narrow domain where known exploit surfaces can be
@@ -283,11 +294,15 @@ The intended Controller objects are:
 - Workflow template: `Blastwall policy rollout`
 
 The IdM runtime credential injects `IPA_SERVER`, `IPA_DOMAIN`, `IPA_REALM`,
-`IPA_PRINCIPAL`, `IPA_ADMIN_PASSWORD`, `IPA_CERT`, `KRB5_CONFIG`, and
-`BLASTWALL_IDENTITY`. The certificate and Kerberos configuration are injected
-as runtime files; secret values are not stored in this repository. The
-preflight play writes a minimal FreeIPA client config inside the execution
-environment before using `ipalib`-backed lookups.
+`IPA_PRINCIPAL`, `IPA_CERT`, `KRB5_CONFIG`, and `BLASTWALL_IDENTITY`. For
+production-style runs, prefer a least-privilege IdM service principal with
+`IPA_KEYTAB`. The password fallback uses `IPA_PASSWORD`; `IPA_ADMIN_PASSWORD`
+is still injected as a compatibility alias for the current `eigenstate.ipa`
+inventory plugin and accepted by the Calabi lab scripts. The
+certificate, Kerberos configuration, and optional keytab are injected as runtime
+files; secret values are not stored in this repository. The preflight play
+writes a minimal FreeIPA client config inside the execution environment before
+using `ipalib`-backed lookups.
 
 Build the EE with:
 
@@ -308,6 +323,11 @@ mirror-registry.workshop.lan:8443/blastwall/blastwall-ee:latest
 poc-calabi/aap/inventory/blastwall-idm.yml
 ```
 
+The EE base image is pinned by digest in `execution-environment/` so rebuilds
+start from the same Red Hat image. System RPM versions are still resolved by
+the subscribed RHEL repositories at build time; capture the final image digest
+from your registry if you need a fully locked production artifact.
+
 The Calabi overlay under `poc-calabi/aap/` runs from `bastion-01`, prepares an
 IdM demo launcher named `blastwall-demo`, and performs:
 
@@ -317,6 +337,7 @@ ansible-playbook poc-calabi/aap/05-configure-ee-registry.yml
 ansible-playbook poc-calabi/aap/10-build-and-push-ee.yml
 ansible-playbook poc-calabi/aap/15-prepare-demo-user.yml
 ansible-playbook poc-calabi/aap/20-configure-controller.yml
+ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml
 ansible-playbook poc-calabi/aap/30-launch-workflow.yml
 ansible-playbook poc-calabi/aap/40-collect-evidence.yml
 ```
@@ -329,6 +350,13 @@ The recorded operator path uses the conventional `awx` CLI for visible AAP
 interaction. The setup playbooks can reconcile Controller state, but the demo
 surface should show AAP directly: health, configured objects, workflow launch,
 node status, and job stdout.
+
+The hosted CI path still covers static policy checks, docs rendering, and
+Ansible syntax. Live enforcement validation belongs to the lab because it needs
+Controller, IdM, the EE registry, and the managed host. The manual
+`lab-smoke` GitHub Actions workflow is scoped for a self-hosted
+`blastwall-lab` runner and launches the AAP workflow, then checks credential
+smoke, current/stale host selection, and managed-host denial output.
 
 The AAP workflow is deliberately a current-host verification path. Policy RPM
 installation, SELinux policy mutation, and IdM marker publication happen in the
@@ -346,12 +374,14 @@ flowchart LR
   idmcred["Blastwall IdM Runtime"]
   machine["svc-ansible-runner"]
   workflow["Blastwall policy rollout"]
+  credential["Credential smoke"]
   org --> project
   org --> ee
   org --> inventory
   project --> source --> inventory
   ee --> source
   idmcred --> source
+  idmcred --> credential
   idmcred --> workflow
   machine --> workflow
 ```
@@ -360,19 +390,16 @@ flowchart LR
 flowchart TD
   launch["IdM-backed AAP user launches workflow"]
   project["Project sync"]
+  credential["Credential smoke"]
   inventory["IdM inventory sync"]
   preflight["Preflight"]
   fail["Fail closed"]
   verify["Verify managed host"]
   evidence["Collect evidence"]
-  launch --> project --> inventory --> preflight
+  launch --> project --> credential --> inventory --> preflight
   preflight -- unsuitable --> fail
   preflight -- suitable --> verify --> evidence
 ```
-
-## IdM Relationship Model
-
-![IdM group, hostgroup, HBAC, SELinux map, and sudo relationship model](docs/assets/diagrams/idm-relationship.svg)
 
 ## Requirements
 
@@ -391,7 +418,12 @@ AAP execution environments that run the preflight need:
 - `python3-ipalib`
 - `python3-ipaclient`
 - `krb5-workstation`
-- an IdM principal password and CA certificate
+- an IdM principal keytab or password, plus a CA certificate
+
+The workflow includes a credential-smoke node before inventory sync. It proves
+the injected `Blastwall IdM Runtime` credential can authenticate and read the
+expected IdM state before AAP depends on that credential for inventory and
+preflight.
 
 Install Ansible collection dependencies with:
 
@@ -431,6 +463,7 @@ inventory/blastwall-idm.yml
 Before any mutation job, run:
 
 ```text
+playbooks/credential-smoke.yml
 playbooks/preflight.yml
 ```
 
@@ -477,6 +510,11 @@ Inventory groups then split eligible hosts into:
 These markers are supplementary.  They help AAP choose the best candidates
 when several hosts are HBAC-eligible.  They do not replace live SELinux, HBAC,
 sudo, and runtime verification.
+
+The Calabi AAP demo seeds `stale-blastwall-01.workshop.lan` as an IdM-only
+stale host. That lets the AAP workflow show both `selected_hosts` and
+`stale_hosts` while verification remains limited to the real current host,
+`mirror-registry.workshop.lan`.
 
 ![Host suitability marker flow from local proof to AAP target decision](docs/assets/diagrams/marker-flow.svg)
 

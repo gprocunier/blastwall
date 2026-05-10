@@ -20,5 +20,5 @@ all:
           ansible_host: 172.16.0.10
     automation_endpoints:
       hosts:
-        automation-endpoint.workshop.lan:
+        mirror-registry.workshop.lan:
           ansible_host: 172.16.0.20

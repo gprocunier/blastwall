@@ -1,7 +1,4 @@
 ---
 collections:
-  - name: https://github.com/ansible/ansible.platform.git
-    type: git
-    version: devel
   - name: awx.awx
-    version: ">=24.6.1,<25.0.0"
+    version: "24.6.1"

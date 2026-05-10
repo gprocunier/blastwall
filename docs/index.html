@@ -42,7 +42,7 @@
 
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
-        <p class="lead"><code>blastwall</code> is a proof of concept for privileged automation security on RHEL: central identity decides which automation may run, AAP acts on that state, and SELinux confines the session when it reaches the managed host.</p>
+        <p class="lead"><code>blastwall</code> is a proof of concept for privileged automation security on RHEL: central identity decides which automation may run, <a href="glossary.html#aap">AAP</a> acts on that state, and <a href="glossary.html#selinux">SELinux</a> confines the session when it reaches the managed host.</p>
         <p>Recent events make the argument in <a href="https://gprocunier.github.io/privileged-automation-security/">Privileged Automation Security</a> feel less theoretical. Blastwall is a concrete sketch of that concern: privileged automation should arrive constrained, observable, and policy-gated before it can touch the rest of the fleet.</p>
 
         <section id="start">
@@ -65,7 +65,7 @@
         <section id="problem">
           <h2>The Problem</h2>
           <p>The failure mode is simple: automation gets the same broad local shape as an operator, but it executes faster, across more hosts, and with less human friction. If that automation lands as an unconfined identity, every mistake and every exploit path starts from a position that is difficult to defend.</p>
-          <p>Copy Fail is the concrete example here. Anthony Green's <a href="https://github.com/atgreen/block-copyfail">block-copyfail</a> shows the precise BPF LSM answer: inspect the AF_ALG bind argument and deny the vulnerable <code>authencesn</code> shape. Blastwall asks a different operational question: if the risky path should be unavailable to privileged automation, can I make that part of the same SELinux, IdM, AAP, and content-delivery model RHEL operators already understand?</p>
+          <p>Copy Fail is the concrete example here. Anthony Green's <a href="https://github.com/atgreen/block-copyfail">block-copyfail</a> shows the precise <a href="glossary.html#bpf-lsm">BPF LSM</a> answer: inspect the <a href="glossary.html#af-alg">AF_ALG</a> bind argument and deny the vulnerable <a href="glossary.html#authencesn"><code>authencesn</code></a> shape. Blastwall asks a different operational question: if the risky path should be unavailable to privileged automation, can I make that part of the same SELinux, <a href="glossary.html#idm">IdM</a>, AAP, and content-delivery model RHEL operators already understand?</p>
           <figure class="diagram-card" id="copy-fail-map">
             <figcaption>
               <strong>Copy Fail: Precision Tool vs Automation Boundary</strong>
@@ -85,19 +85,23 @@
 
         <section id="argument">
           <h2>The Argument</h2>
-          <p>FreeIPA should not author SELinux policy. IdM should map named automation identities into SELinux users and roles that already exist on the endpoint. AAP should not discover halfway through a job that the host was never in the right confinement state.</p>
+          <p><a href="glossary.html#freeipa">FreeIPA</a> should not author SELinux policy. IdM should map named automation identities into <a href="glossary.html#selinux-user">SELinux users</a> and roles that already exist on the endpoint. AAP should not discover halfway through a job that the host was never in the right confinement state.</p>
           <div class="feature-grid" aria-label="Blastwall model components">
             <section class="feature-item">
-              <h3>Local Policy</h3>
+              <h3>SELinux Boundary</h3>
               <p>Managed RHEL hosts carry a versioned policy that defines <code>blastwall_u</code>, <code>blastwall_r</code>, and the confined automation domain.</p>
             </section>
             <section class="feature-item">
-              <h3>IdM Mapping</h3>
-              <p>IdM maps selected automation identities into that SELinux user through HBAC-linked policy and scoped sudo.</p>
+              <h3>IdM Authority</h3>
+              <p>IdM maps selected automation identities into that SELinux user through <a href="glossary.html#hbac">HBAC</a>-linked policy, host groups, <a href="glossary.html#sudo">sudo</a> rules, and <a href="glossary.html#coverage-marker">coverage markers</a>.</p>
             </section>
             <section class="feature-item">
-              <h3>AAP Gate</h3>
-              <p>AAP reads IdM state with <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> before running and fails closed on unsuitable hosts.</p>
+              <h3>State Translator</h3>
+              <p><a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> turns IdM records into inventory facts AAP can act on.</p>
+            </section>
+            <section class="feature-item">
+              <h3>AAP Actuator</h3>
+              <p>AAP syncs the inventory, runs preflight, selects suitable hosts, launches verification, and leaves operator-readable evidence.</p>
             </section>
           </div>
           <figure class="diagram-card" id="idm-aap-flow">
@@ -114,18 +118,12 @@
             </figcaption>
             <img class="diagram-artifact" src="assets/diagrams/architecture-flow.svg" alt="Blastwall architecture flow from AAP job to SELinux denial">
           </figure>
-          <figure class="diagram-card" id="idm-relationship">
-            <figcaption>
-              <strong>IdM Relationship Model</strong>
-              <span>The IdM objects are deliberately ordinary: group, hostgroup, HBAC, SELinux map, and sudo rule.</span>
-            </figcaption>
-            <img class="diagram-artifact" src="assets/diagrams/idm-relationship.svg" alt="IdM group, hostgroup, HBAC, SELinux map, and sudo relationship model">
-          </figure>
+          <p>The detailed IdM object shape has its own warm-up in <a href="idm-control-model.html">IdM Control Model</a>. The short version is that AAP dispatches the work, IdM keeps the identity and host records, <code>eigenstate.ipa</code> translates those records into inventory state, and SELinux enforces the mapped session on the host.</p>
         </section>
 
         <section id="why-build">
           <h2>Why Build This</h2>
-          <p>The logistics matter. In a RHEL automation estate, a versioned SELinux policy RPM is often easier to stage, promote, audit, and roll back than a new set of dynamically attached probes. That does not make SELinux more precise than BPF LSM. It makes the mitigation fit the machinery already wrapped around RHEL operations.</p>
+          <p>The logistics matter. In a RHEL automation estate, a versioned SELinux policy <a href="glossary.html#rpm">RPM</a> is often easier to stage, promote, audit, and roll back than a new set of dynamically attached probes. That does not make SELinux more precise than BPF LSM. It makes the mitigation fit the machinery already wrapped around RHEL operations.</p>
           <p>The goal is not to replace kernel patches. The goal is to make privileged automation start constrained while the real fix moves through the fleet. If the exploit can be mitigated by denying a broad surface for automation identities, that denial should have an artifact name, a rollout state, and an inventory-visible coverage claim.</p>
           <figure class="diagram-card diagram-card--focus" id="rollout-flow">
             <figcaption>

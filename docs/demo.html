@@ -34,12 +34,12 @@
 
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">This Blastwall proof was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. Calabi gives this run a real IdM server, bastion host, mirror registry, Kerberos flow, and managed endpoint; Blastwall itself does not require Calabi.</p>
+        <p class="lead">This Blastwall proof was recorded in <a href="glossary.html#calabi">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. Calabi gives this run a real <a href="glossary.html#idm">IdM</a> server, bastion host, mirror registry, <a href="glossary.html#kerberos">Kerberos</a> flow, and managed endpoint; Blastwall itself does not require Calabi.</p>
 
         <section id="purpose">
           <h2>Purpose</h2>
-          <p>This demo shows the whole control path without requiring AAP. AAP is not needed to prove the local behavior: the same IdM state AAP would consume is visible before the mutation step, and the final denial is enforced by the target host SELinux policy.</p>
-          <p>The run starts from <code>bastion-01</code>, uses <code>eigenstate.ipa</code> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs AF_ALG, BPF, packet_socket, userns, and io_uring probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
+          <p>This demo shows the whole control path without requiring <a href="glossary.html#aap">AAP</a>. AAP is not needed to prove the local behavior: the same IdM state AAP would consume is visible before the mutation step, and the final denial is enforced by the target host <a href="glossary.html#selinux">SELinux</a> policy.</p>
+          <p>The run starts from <code>bastion-01</code>, uses <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
           <p>The observable flow is:</p>
           <ul>
             <li><code>bastion-01</code> runs the Calabi PoC playbooks locally.</li>
@@ -186,7 +186,7 @@ grep -E \
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="ansible-lab.html">Ansible Lab</a> turns the same playbook chain into a replay exercise. <a href="poc-flow.html">Lab Flow</a> is the compact run-order reference.</p>
+          <p><a href="ansible-lab.html">Ansible Lab</a> turns the same playbook chain into a replay exercise. <a href="glossary.html">Glossary</a> defines the lab and kernel terms used here.</p>
         </section>
       </aside>
     </main>

@@ -20,9 +20,9 @@ The AAP landing zone should have its own:
 - reset procedure
 
 Do not use the same target state as the clean Ansible-only path for the recorded
-AAP workflow. The AAP path should be able to show project sync, inventory sync,
-preflight, verification, and evidence collection as a repeatable Controller
-exercise.
+AAP workflow. The AAP path should be able to show project sync, runtime
+credential smoke, inventory sync, preflight, verification, and evidence
+collection as a repeatable Controller exercise.
 
 ## Controller Objects
 
@@ -47,15 +47,18 @@ The IdM runtime credential injects:
 - `IPA_DOMAIN`
 - `IPA_REALM`
 - `IPA_PRINCIPAL`
-- `IPA_ADMIN_PASSWORD`
+- `IPA_KEYTAB` for keytab-backed runs, or `IPA_PASSWORD` for the lab/demo fallback
+- `IPA_ADMIN_PASSWORD` as a compatibility alias for the current IdM inventory plugin
 - `IPA_CERT`
 - `KRB5_CONFIG`
 - `BLASTWALL_IDENTITY`
 
 Secrets are populated from the local lab environment at configuration time.
-They are not committed to the repository. The preflight play writes a minimal
-FreeIPA client config inside the execution environment before using
-`ipalib`-backed lookups.
+They are not committed to the repository. For production-style runs, use a
+least-privilege IdM service principal and a keytab-backed AAP credential. The
+Calabi recording can still use the password fallback because it is a lab
+demonstration. The preflight play writes a minimal FreeIPA client config inside
+the execution environment before using `ipalib`-backed lookups.
 
 ## Execution Environment
 
@@ -76,6 +79,10 @@ mirror-registry.workshop.lan:8443/blastwall/blastwall-ee:0.5.0
 mirror-registry.workshop.lan:8443/blastwall/blastwall-ee:latest
 ```
 
+The EE base image is pinned by digest in `execution-environment/`. The
+additional `latest` tag above is a Calabi convenience tag for the lab mirror,
+not the source image selector.
+
 The mirror registry uses an IdM-issued certificate. The Calabi overlay verifies
 registry readiness, push access, and AAP namespace pull access before Controller
 configuration points AAP at the image.
@@ -91,6 +98,7 @@ ansible-playbook poc-calabi/aap/05-configure-ee-registry.yml
 ansible-playbook poc-calabi/aap/10-build-and-push-ee.yml
 ansible-playbook poc-calabi/aap/15-prepare-demo-user.yml
 ansible-playbook poc-calabi/aap/20-configure-controller.yml
+ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml
 ansible-playbook poc-calabi/aap/30-launch-workflow.yml
 ansible-playbook poc-calabi/aap/40-collect-evidence.yml
 ```
@@ -117,19 +125,22 @@ policy and package state.
 flowchart TD
   launch["IdM-backed AAP user launches workflow"]
   project["Project sync"]
+  credential["Credential smoke"]
   inventory["IdM inventory sync"]
   preflight["Preflight"]
   fail["Fail closed"]
   verify["Verify managed host"]
   evidence["Collect evidence outside workflow"]
-  launch --> project --> inventory --> preflight
+  launch --> project --> credential --> inventory --> preflight
   preflight -- unsuitable --> fail
   preflight -- suitable --> verify --> evidence
 ```
 
-Preflight is a Controller-side suitability gate. It runs in the Blastwall EE,
-uses the synced IdM inventory groups as input, and fails closed when no host is
-eligible for verification.
+Credential smoke is a Controller-side check that the injected `Blastwall IdM
+Runtime` credential can authenticate and read the expected IdM state before the
+inventory sync and preflight depend on it. Preflight then uses the synced IdM
+inventory groups as input and fails closed when no host is eligible for
+verification.
 
 Policy installation and marker publication are bootstrap work. The recorded AAP
 workflow starts after that handoff: preflight proves IdM, HBAC, sudo, and policy
@@ -140,6 +151,9 @@ and proves the confined runtime behavior on current hosts.
 
 The IdM inventory source groups hosts with current policy markers into
 `blastwall_policy_current` and unsuitable hosts into `blastwall_policy_stale`.
+The Calabi AAP fixture adds `stale-blastwall-01.workshop.lan` as an IdM-only
+stale host so the demo visibly shows selection without requiring a second
+managed VM. Verification still targets only `blastwall_policy_current`.
 
 The marker set currently expected by preflight is:
 

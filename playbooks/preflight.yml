@@ -15,7 +15,9 @@
     ipa_basedn: >-
       dc={{ ipa_domain | replace('.', ',dc=') }}
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') | default('admin', true) }}"
-    ipa_password: "{{ lookup('env', 'IPA_ADMIN_PASSWORD') }}"
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
     ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
     blastwall_identity: "{{ lookup('env', 'BLASTWALL_IDENTITY') }}"
@@ -42,7 +44,7 @@
           - blastwall_identity | length > 0
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, BLASTWALL_IDENTITY, and
-          either IPA_KEYTAB or IPA_ADMIN_PASSWORD for preflight.
+          either IPA_KEYTAB or IPA_PASSWORD for preflight.
 
     - name: Write FreeIPA client config for controller-side lookups
       ansible.builtin.copy:
@@ -133,9 +135,9 @@
     - name: Fail closed when no eligible Blastwall hosts exist
       ansible.builtin.assert:
         that:
-          - blastwall_candidate_hosts | length > 0
+          - blastwall_target_hosts | length > 0
         fail_msg: >-
-          No hosts are eligible for Blastwall managed-host verification.
+          No current hosts are eligible for Blastwall managed-host verification.
           Current hosts: {{ blastwall_target_hosts | join(', ') }}.
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_stale_policy | bool

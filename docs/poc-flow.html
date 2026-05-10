@@ -35,7 +35,7 @@
       <article class="content-column markdown-body">
         <p class="lead">This is the source-level playbook flow behind the recorded Calabi proof. It shows exactly where the lab runs, which playbooks build the state, and what evidence should appear when the SELinux confinement is working.</p>
 
-        <p>The flow configures IdM, validates the read-side gate with <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a>, builds a policy RPM, deploys it, and proves AF_ALG, BPF, packet_socket, userns, io_uring, and self-protection denials from a mapped automation identity on the Calabi lab target <code>mirror-registry.workshop.lan</code>, then reads the target audit log for SELinux evidence.</p>
+        <p>The flow configures <a href="glossary.html#idm">IdM</a>, validates the read-side gate with <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a>, builds a policy <a href="glossary.html#rpm">RPM</a>, deploys it, and proves <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, <a href="glossary.html#io-uring">io_uring</a>, and self-protection denials from a mapped automation identity on the <a href="glossary.html#calabi">Calabi</a> lab target <code>mirror-registry.workshop.lan</code>, then reads the target <a href="glossary.html#audit-log">audit log</a> for <a href="glossary.html#selinux">SELinux</a> evidence.</p>
 
         <section>
           <h2>Execution Boundary</h2>
@@ -44,8 +44,10 @@
 
         <section>
           <h2>Inputs</h2>
-          <p>Provide IdM admin credentials through the environment. The automation user password is optional and only needed when the lab path requires it.</p>
-          <pre><code>export IPA_ADMIN_PASSWORD='...'
+          <p>Provide IdM credentials through the environment. Use <code>IPA_KEYTAB</code> for keytab-backed runs. The password fallback is retained for the Calabi lab path.</p>
+          <pre><code>export IPA_KEYTAB=/path/to/svc-ansible-runner.keytab
+# or, for the Calabi password fallback:
+export IPA_PASSWORD='...'
 export BLASTWALL_AUTO_PASSWORD='...'</code></pre>
         </section>
 
@@ -62,7 +64,7 @@ ansible-playbook 35-test-self-protection.yml</code></pre>
         <section>
           <h2>Expected Result</h2>
           <ul>
-            <li><code>svc-ansible-runner</code> can SSH to <code>automation-endpoint</code>.</li>
+            <li><code>svc-ansible-runner</code> can SSH to <code>mirror-registry.workshop.lan</code>.</li>
             <li><code>id -Z</code> returns <code>blastwall_u:blastwall_r:blastwall_t:s0</code> or the public alias.</li>
             <li><code>sudo -n /usr/bin/id -u</code> returns <code>0</code>.</li>
             <li>The AF_ALG/authencesn probe prints <code>BLOCKED</code>.</li>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IdM Control Model | blastwall</title>
+    <meta name="description" content="A warmer explanation of how Blastwall uses IdM, eigenstate.ipa, AAP, and SELinux to control privileged automation before it reaches managed RHEL hosts.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">How central identity, inventory state, AAP execution, and SELinux enforcement line up before privileged automation reaches a managed host.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="./"><kbd>Overview</kbd></a>
+          <a href="idm-control-model.html"><kbd>IdM Model</kbd></a>
+          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
+          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
+          <a href="glossary.html"><kbd>Glossary</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">Blastwall treats privileged automation like dispatched work. <a href="glossary.html#aap">AAP</a> sends the work order, <a href="glossary.html#idm">IdM</a> keeps the records that say who may go where, <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> reads those records into inventory facts, and <a href="glossary.html#selinux">SELinux</a> is the boundary at the job site.</p>
+        <p>The important move is to make privileged automation prove it is in the right shape before it reaches the host. The automation identity has to be recognized centrally, allowed to arrive, mapped into the right SELinux user, granted scoped sudo, selected by AAP, and then confined when it becomes root.</p>
+
+        <section id="why-idm-matters">
+          <h2>Why IdM Matters</h2>
+          <p>IdM can look like a login database if you only see usernames and hostnames. Blastwall uses it as a records system for privileged automation: who the automation identity is, which hosts are in scope, what login path is allowed, which SELinux badge the session receives, what sudo may delegate, and which verified coverage marker AAP can read before launch.</p>
+          <p>That record chain matters because SELinux enforcement happens on the managed host, but the decision to send automation there happens earlier. I want AAP to see enough central state to avoid launching a sensitive workflow at a host that is missing the expected identity, access, mapping, or coverage.</p>
+        </section>
+
+        <section id="dispatch-analogy">
+          <h2>Dispatch Analogy</h2>
+          <p>I use one analogy throughout: dispatched work to a controlled job site. The job terms make the control chain easier to follow; each row ends with the actual Blastwall dependency.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Analogy</th><th>IdM/AAP Object</th><th>Blastwall Consequence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Analogy">Dispatcher</td><td data-label="IdM/AAP Object">AAP workflow</td><td data-label="Blastwall Consequence">Launches only after the inventory and preflight say the target is suitable.</td></tr>
+              <tr><td data-label="Analogy">Work order</td><td data-label="IdM/AAP Object">AAP job template</td><td data-label="Blastwall Consequence">Carries the operator-visible task, credentials, inventory source, and recorded output.</td></tr>
+              <tr><td data-label="Analogy">Records office</td><td data-label="IdM/AAP Object">IdM</td><td data-label="Blastwall Consequence">Holds the identity, access, sudo, SELinux map, host group, and marker records.</td></tr>
+              <tr><td data-label="Analogy">Query desk</td><td data-label="IdM/AAP Object"><code>eigenstate.ipa</code></td><td data-label="Blastwall Consequence">Turns IdM records into inventory facts AAP can act on.</td></tr>
+              <tr><td data-label="Analogy">Dispatch checklist</td><td data-label="IdM/AAP Object"><a href="glossary.html#preflight">Preflight</a></td><td data-label="Blastwall Consequence">Fails closed before runtime proof when the target is missing required state.</td></tr>
+              <tr><td data-label="Analogy">Job site</td><td data-label="IdM/AAP Object">Managed host</td><td data-label="Blastwall Consequence">Receives the mapped login session and performs local enforcement.</td></tr>
+              <tr><td data-label="Analogy">Site boundary</td><td data-label="IdM/AAP Object">SELinux policy</td><td data-label="Blastwall Consequence">Denies exploit surfaces for the confined automation subject.</td></tr>
+              <tr><td data-label="Analogy">Inspection tag</td><td data-label="IdM/AAP Object"><a href="glossary.html#host-marker">Host marker</a></td><td data-label="Blastwall Consequence">Lets AAP prefer hosts with verified policy coverage, without replacing live enforcement.</td></tr>
+            </tbody>
+          </table>
+          <p>That keeps the parts in their natural lanes. AAP does not become an IdM parser. IdM does not author SELinux policy. SELinux does not know about Controller workflow intent. Each system contributes the control it is already good at.</p>
+        </section>
+
+        <section id="identity-records">
+          <h2>The IdM Records</h2>
+          <p>The IdM model is deliberately ordinary. Blastwall does not need an exotic identity shape; it needs a consistent relationship between the automation identity, the managed host, and the SELinux user map.</p>
+          <figure class="diagram-card" id="idm-relationship">
+            <figcaption>
+              <strong>IdM Relationship Model</strong>
+              <span>The records connect the automation group, managed-host group, HBAC rule, SELinux user map, and sudo rule.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/idm-relationship.svg" alt="IdM group, hostgroup, HBAC, SELinux map, and sudo relationship model">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Record</th><th>Plain Meaning</th><th>What It Decides</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Record">Automation group</td><td data-label="Plain Meaning">A named set of automation identities.</td><td data-label="What It Decides">Which identities belong to the Blastwall automation population.</td></tr>
+              <tr><td data-label="Record">Managed-host group</td><td data-label="Plain Meaning">A named set of eligible hosts.</td><td data-label="What It Decides">Which hosts are candidates for that automation population.</td></tr>
+              <tr><td data-label="Record"><a href="glossary.html#hbac">HBAC</a> rule</td><td data-label="Plain Meaning">The central "may enter" rule.</td><td data-label="What It Decides">Whether the identity is allowed to log in to the host through the expected service, such as SSH.</td></tr>
+              <tr><td data-label="Record"><a href="glossary.html#selinux-user">SELinux user</a> map</td><td data-label="Plain Meaning">The badge handed to the login session.</td><td data-label="What It Decides">Which SELinux user the login receives. In this PoC, that is <code>blastwall_u:s0</code>.</td></tr>
+              <tr><td data-label="Record"><a href="glossary.html#sudo">Sudo</a> rule</td><td data-label="Plain Meaning">The delegated privilege record.</td><td data-label="What It Decides">Which root actions are delegated after login, while the SELinux role and type remain constrained.</td></tr>
+              <tr><td data-label="Record"><a href="glossary.html#host-marker">Host marker</a></td><td data-label="Plain Meaning">An inspection tag written after verification.</td><td data-label="What It Decides">Which verified policy version and deny scopes AAP can prefer before running a job.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="walkthrough">
+          <h2>Concrete Walkthrough</h2>
+          <p>In the lab, think of <code>svc-ansible-runner</code> as the automation crew and <code>mirror-registry.workshop.lan</code> as the job site. A valid Blastwall run needs the following chain to line up:</p>
+          <ol>
+            <li>The automation identity is a member of the Blastwall automation group.</li>
+            <li>The managed host is a member of the Blastwall managed-host group.</li>
+            <li>The HBAC rule says that identity may enter that host through SSH.</li>
+            <li>The SELinux user map says the login receives <code>blastwall_u:s0</code>.</li>
+            <li>The sudo rule allows the delegated root work the workflow needs.</li>
+            <li>The verified host marker says the expected Blastwall policy coverage is present.</li>
+            <li>AAP preflight selects the host only when the records agree.</li>
+          </ol>
+          <p>After login, the session can still become UID 0 through sudo, but it remains in <code>blastwall_u:blastwall_r:blastwall_t:s0</code>. That is the point of the model: central records shape the arrival, and host-local SELinux policy limits what the privileged automation subject can do after it arrives.</p>
+        </section>
+
+        <section id="aap-selection">
+          <h2>AAP Selection</h2>
+          <p>The workflow should know whether a host is suitable before it starts the runtime proof. That suitability is not a single patched/unpatched bit. It is the combination of identity membership, host membership, HBAC, SELinux mapping, sudo policy, and optional coverage markers.</p>
+          <pre><code class="language-text">AAP asks which hosts are current
+  -> eigenstate.ipa reads IdM state
+  -> IdM returns identity, access, sudo, SELinux map, and marker state
+  -> AAP selects suitable hosts
+  -> SELinux enforces the mapped session</code></pre>
+          <p>The host marker is only a claim AAP can read after verification writes it. It is useful for target selection, but it does not replace live HBAC, sudo, SELinux mapping, or runtime denial checks.</p>
+        </section>
+
+        <section id="runtime-boundary">
+          <h2>Runtime Boundary</h2>
+          <p>After AAP selects the host, the local system still makes the decisive enforcement decision. <a href="glossary.html#sssd">SSSD</a> and <a href="glossary.html#pam-selinux"><code>pam_selinux</code></a> apply the IdM SELinux user map at login. Sudo can reach UID 0, but the session remains inside <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</p>
+          <p>AAP, IdM, and <code>eigenstate.ipa</code> do not perform the kernel denial. They make the arrival conditions explicit. The host-local SELinux boundary denies the exploit surfaces for that confined automation subject.</p>
+        </section>
+
+        <section id="failure-modes">
+          <h2>What Can Go Wrong</h2>
+          <p>Each failure points to a specific missing or weak record:</p>
+          <ul>
+            <li><strong>Missing automation group membership:</strong> the identity is not part of the Blastwall automation population.</li>
+            <li><strong>Missing hostgroup membership:</strong> the host is not an eligible target for that automation population.</li>
+            <li><strong>Missing HBAC:</strong> the identity is not allowed to enter the host through the expected login service.</li>
+            <li><strong>Missing SELinux user map:</strong> the login does not receive the <code>blastwall_u:s0</code> shape.</li>
+            <li><strong>Over-broad sudo:</strong> privilege delegation is wider than the workflow needs, even if SELinux still confines the session.</li>
+            <li><strong>Stale host marker:</strong> AAP may see old coverage state, so verification has to refresh or reject it before launch.</li>
+          </ul>
+        </section>
+
+        <section id="where-to-see-it">
+          <h2>Where To See It</h2>
+          <p><a href="aap-demo.html">AAP Demo</a> shows the Controller side: inventory sync, preflight, launch, node status, and job stdout. <a href="demo.html">Ansible Demo</a> shows the bootstrap side: IdM object creation, policy rollout, direct probe output, audit evidence, and self-protection.</p>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Model</h2>
+          <p class="context-kicker">Dispatch and job-site boundary</p>
+          <p class="context-copy">AAP dispatches the work, IdM keeps the records, <code>eigenstate.ipa</code> translates state, and SELinux enforces the session on the host.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#why-idm-matters">Why IdM Matters</a></li>
+            <li><a href="#dispatch-analogy">Dispatch Analogy</a></li>
+            <li><a href="#identity-records">IdM Records</a></li>
+            <li><a href="#walkthrough">Walkthrough</a></li>
+            <li><a href="#aap-selection">AAP Selection</a></li>
+            <li><a href="#runtime-boundary">Runtime Boundary</a></li>
+            <li><a href="#failure-modes">Failure Modes</a></li>
+            <li><a href="#where-to-see-it">Where To See It</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Short Version</h2>
+          <p>IdM says who may arrive and in what mapped shape. AAP acts on that state. SELinux enforces the result.</p>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="glossary.html">Glossary</a> defines the identity and SELinux terms used on this page.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

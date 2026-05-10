@@ -35,11 +35,11 @@
 
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">This exercise follows the non-AAP cast. It runs from <code>bastion-01</code>, uses Ansible for the lab work, and proves the same host-local boundary without involving Controller. Use it when the goal is to understand the bootstrap proof before the AAP verification path.</p>
+        <p class="lead">This exercise follows the non-AAP cast. It runs from <code>bastion-01</code>, uses Ansible for the lab work, and proves the same host-local boundary without involving <a href="glossary.html#automation-controller">Controller</a>. Use it when the goal is to understand the bootstrap proof before the <a href="glossary.html#aap">AAP</a> verification path.</p>
 
         <section>
           <h2>Exercise Goal</h2>
-          <p>The exercise is successful when IdM contains the expected automation identity and policy objects, <code>eigenstate.ipa</code> can read the suitability state, the managed host enters <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo reaches UID 0 without leaving <code>blastwall_t</code>, and the denial probes produce visible evidence.</p>
+          <p>The exercise is successful when <a href="glossary.html#idm">IdM</a> contains the expected automation identity and policy objects, <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> can read the suitability state, the managed host enters <a href="glossary.html#selinux-context"><code>blastwall_u:blastwall_r:blastwall_t:s0</code></a>, <a href="glossary.html#sudo">sudo</a> reaches UID 0 without leaving <code>blastwall_t</code>, and the denial probes produce visible evidence.</p>
         </section>
 
         <section>

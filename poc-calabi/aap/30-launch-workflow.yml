@@ -39,9 +39,7 @@
         controller_password: "{{ calabi_aap_demo_launch_password }}"
         validate_certs: false
       register: calabi_blastwall_workflow_launch
-      no_log: >-
-        {{ not (lookup('env', 'BLASTWALL_AAP_DEBUG') |
-        default('false', true) | bool) }}
+      no_log: true
 
     - name: Report launched workflow
       ansible.builtin.debug:

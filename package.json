@@ -2,7 +2,8 @@
   "name": "blastwall-docs",
   "private": true,
   "scripts": {
-    "test:docs": "playwright test tests/docs/docs-render.spec.js"
+    "test:docs": "playwright test tests/docs/docs-render.spec.js",
+    "test:policy": "python3 tests/policy_static.py && python3 tests/inventory_grouping.py"
   },
   "devDependencies": {
     "@playwright/test": "1.58.0"

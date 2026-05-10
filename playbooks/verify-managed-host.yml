@@ -7,7 +7,10 @@
     ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
     ipa_login_principal: >-
       {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
-    ipa_password: "{{ lookup('env', 'IPA_ADMIN_PASSWORD') }}"
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
     krb5_ccache: FILE:/tmp/blastwall_krb5cc
     blastwall_expected_contexts:
@@ -29,9 +32,9 @@
         that:
           - ipa_principal | length > 0
           - ipa_realm | length > 0 or '@' in ipa_principal
-          - ipa_password | length > 0
+          - ipa_keytab | length > 0 or ipa_password | length > 0
         fail_msg: >-
-          Set IPA_PRINCIPAL, IPA_REALM, and IPA_ADMIN_PASSWORD for GSSAPI
+          Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for GSSAPI
           target SSH.
       run_once: true
       delegate_to: localhost
@@ -39,12 +42,17 @@
     - name: Authenticate automation identity for GSSAPI target SSH
       ansible.builtin.shell: |
         set -euo pipefail
-        printf '%s\n' "${IPA_ADMIN_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+        if [ -n "${IPA_KEYTAB}" ]; then
+          kinit -k -t "${IPA_KEYTAB}" "${IPA_LOGIN_PRINCIPAL}"
+        else
+          printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+        fi
       args:
         executable: /bin/bash
       environment:
         IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
-        IPA_ADMIN_PASSWORD: "{{ ipa_password }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        IPA_KEYTAB: "{{ ipa_keytab }}"
         KRB5_CONFIG: "{{ krb5_config }}"
         KRB5CCNAME: "{{ krb5_ccache }}"
       changed_when: false

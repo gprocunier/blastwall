@@ -19,7 +19,7 @@
         <div class="site-brand">
           <div>
             <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
-            <p class="site-brand__tagline">The AAP version of the Blastwall proof: select a current host, run preflight, and verify the confined SELinux runtime without turning the confined path into the policy mutation path.</p>
+            <p class="site-brand__tagline">The AAP version of the Blastwall proof: validate runtime credentials, select a current host, run preflight, and verify the confined SELinux runtime without turning the confined path into the policy mutation path.</p>
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
@@ -34,13 +34,14 @@
 
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">This AAP path was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a> after the bootstrap proof was already working. AAP reads the state it needs, chooses a current host, and verifies the confined runtime without making <code>blastwall_t</code> responsible for changing SELinux policy.</p>
+        <p class="lead">This <a href="glossary.html#aap">AAP</a> path was recorded in <a href="glossary.html#calabi">Calabi</a> after the bootstrap proof was already working. AAP reads the state it needs, chooses a <a href="glossary.html#current-host">current host</a>, and verifies the confined runtime without making <a href="glossary.html#blastwall-t"><code>blastwall_t</code></a> responsible for changing SELinux policy.</p>
 
         <section id="purpose">
           <h2>Purpose</h2>
-          <p>The bootstrap proof creates the IdM shape, deploys the policy, runs the probes directly, and reads the target audit log. The steady-state Controller question is whether AAP can consume that state, fail closed before execution, and prove the selected host is still confined.</p>
-          <p>The recorded path uses <code>awx</code> for the operator-facing surface: Controller health, object inventory, workflow graph, launch, node status, and job stdout.</p>
-          <p>The operational split matters. Policy RPM rollout and marker publication happen before this workflow. AAP reads those markers as selection hints, then the verification job proves the SELinux context and denial behavior on the managed host.</p>
+          <p>The bootstrap proof creates the <a href="glossary.html#idm">IdM</a> shape, deploys the policy, runs the probes directly, and reads the target audit log. The steady-state <a href="glossary.html#automation-controller">Controller</a> question is whether AAP can consume that state, fail closed before execution, and prove the selected host is still confined.</p>
+          <p>The recorded path uses <a href="glossary.html#awx"><code>awx</code></a> for the operator-facing surface: Controller health, object inventory, workflow graph, launch, node status, and job stdout.</p>
+          <p>The refreshed workflow includes a credential smoke node before inventory sync. That makes the AAP runtime credential a visible control, not an assumption hidden behind a later preflight failure.</p>
+          <p>The operational split matters. Policy <a href="glossary.html#rpm">RPM</a> rollout and marker publication happen before this workflow. AAP reads those markers as selection hints, then the verification job proves the <a href="glossary.html#selinux-context">SELinux context</a> and denial behavior on the managed host.</p>
         </section>
 
         <section id="demo-player">
@@ -112,6 +113,7 @@ id name
 
           <h3>Workflow graph and launch</h3>
           <pre><code class="language-text">project_sync        Blastwall
+credential_smoke   Blastwall credential smoke
 inventory_sync      Blastwall IdM Inventory Source
 preflight           Blastwall preflight
 verify_managed_host Blastwall verify managed host
@@ -125,10 +127,18 @@ verify_managed_host Blastwall verify managed host
 
           <h3>Workflow outcome</h3>
           <pre><code class="language-text">project_sync        333 project_update successful
-inventory_sync      334 inventory_update successful
-preflight           337 job            successful
-verify_managed_host 341 job            successful</code></pre>
-          <p>The Controller-side result is clean: project sync, IdM inventory sync, preflight, and managed-host verification all finished successfully.</p>
+credential_smoke   334 job            successful
+inventory_sync      335 inventory_update successful
+preflight           338 job            successful
+verify_managed_host 342 job            successful</code></pre>
+          <p>The Controller-side result is clean: project sync, credential smoke, IdM inventory sync, preflight, and managed-host verification all finished successfully.</p>
+
+          <h3>Credential smoke</h3>
+          <pre><code class="language-text">credential_smoke: passed
+principal: svc-ansible-runner
+identity: svc-ansible-runner
+hbac_rule: blastwall-ssh</code></pre>
+          <p>The runtime credential authenticates and reads the expected IdM state before AAP depends on it for inventory and preflight.</p>
 
           <h3>Preflight gate</h3>
           <pre><code class="language-text">All assertions passed
@@ -138,8 +148,10 @@ blastwall-root-local-sudo
 candidate_hosts
 selected_hosts
 selinux_user: blastwall_u:s0
-stale_hosts: []</code></pre>
-          <p>Preflight is the fail-closed gate. It reads IdM and inventory state before the verify job reaches the managed host.</p>
+mirror-registry.workshop.lan
+stale_hosts
+stale-blastwall-01.workshop.lan</code></pre>
+          <p>Preflight is the fail-closed gate. It reads IdM and inventory state before the verify job reaches the managed host, and it keeps the stale fixture out of the verify target set.</p>
 
           <h3>Managed-host proof</h3>
           <pre><code class="language-text">blastwall_u:blastwall_r:blastwall_t:s0
@@ -159,9 +171,11 @@ BLOCKED: io_uring_setup denied with EPERM</code></pre>
           <ol>
             <li><code>awx</code> reaches Controller and authenticates as the IdM-backed demo launcher.</li>
             <li>The AAP objects are concrete: project, execution environment, IdM inventory source, runtime credential, machine credential, and workflow template.</li>
-            <li>The workflow shape is visible before launch: project sync, inventory sync, preflight, and managed-host verification.</li>
+            <li>The workflow shape is visible before launch: project sync, credential smoke, inventory sync, preflight, and managed-host verification.</li>
             <li>The run is attributable to <code>blastwall-demo</code>, and Controller reports each node job and status.</li>
+            <li>Credential smoke proves the injected IdM runtime credential before inventory and preflight depend on it.</li>
             <li>Preflight reads the SELinux user map, HBAC rule, sudo rule, and candidate host state before verification runs.</li>
+            <li>The current/stale output shows <code>mirror-registry.workshop.lan</code> selected and <code>stale-blastwall-01.workshop.lan</code> rejected as stale.</li>
             <li>The verification job shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving <code>blastwall_t</code>, and denied BPF, packet_socket, userns, and io_uring probes.</li>
             <li>The AF_ALG result is a denial at socket creation time for this confined automation domain. That is the broad SELinux tradeoff in this proof.</li>
           </ol>
@@ -174,6 +188,7 @@ BLOCKED: io_uring_setup denied with EPERM</code></pre>
           <p>That split makes the demo stronger. Controller shows the project, inventory, workflow, launch user, node status, and job stdout. SELinux still owns enforcement on the managed host.</p>
           <pre><code class="language-text">AAP verifies:
   project sync
+  runtime credential smoke
   IdM-backed inventory sync
   preflight suitability
   managed-host runtime proof
@@ -208,20 +223,28 @@ awx workflow_jobs monitor "${workflow_id}"
 
 awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
   jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'</code></pre>
-          <p>The workflow completes the four-node path and exposes the job ids used for evidence.</p>
+          <p>The workflow completes the credential smoke, inventory, preflight, and verification path and exposes the job ids used for evidence.</p>
           <pre><code class="language-text">Launching Blastwall policy rollout...
  ↳ 333 - Blastwall successful
- ↳ 334 - Blastwall IdM Inventory - Blastwall IdM Inventory Source successful
- ↳ 337 - Blastwall preflight successful
- ↳ 341 - Blastwall verify managed host successful</code></pre>
+ ↳ 334 - Blastwall credential smoke successful
+ ↳ 335 - Blastwall IdM Inventory - Blastwall IdM Inventory Source successful
+ ↳ 338 - Blastwall preflight successful
+ ↳ 342 - Blastwall verify managed host successful</code></pre>
 
-          <h3>5. Read preflight and verification evidence</h3>
-          <pre><code class="language-bash">awx jobs stdout "${preflight_id}" |
-  grep -E 'blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|"candidate_hosts"|"selected_hosts"|"stale_hosts"|"selinux_user"|All assertions passed'
+          <h3>5. Read credential, preflight, and verification evidence</h3>
+          <pre><code class="language-bash">credential_id="$(jq -r '.results[] | select(.identifier == "credential_smoke") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+preflight_id="$(jq -r '.results[] | select(.identifier == "preflight") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+verify_id="$(jq -r '.results[] | select(.identifier == "verify_managed_host") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+
+awx jobs stdout "${credential_id}" |
+  grep -E 'credential_smoke|passed|blastwall-ssh'
+
+awx jobs stdout "${preflight_id}" |
+  grep -E 'blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|"candidate_hosts"|"selected_hosts"|"stale_hosts"|"selinux_user"|mirror-registry.workshop.lan|stale-blastwall-01.workshop.lan|All assertions passed'
 
 awx jobs stdout "${verify_id}" |
   grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|BLOCKED:'</code></pre>
-          <p>The first query shows the Controller-side gate. The second query shows the host-local result: confined login context, sudo confinement, and denied exploit surfaces.</p>
+          <p>The first query proves the runtime credential. The second query shows the Controller-side gate and host selection. The third query shows the host-local result: confined login context, sudo confinement, and denied exploit surfaces.</p>
         </section>
 
         <section id="does-not-claim">
@@ -230,6 +253,7 @@ awx jobs stdout "${verify_id}" |
             <li>The Ansible-only path remains the bootstrap proof; the AAP workflow verifies current hosts after that state exists.</li>
             <li>AAP is the gate and the evidence surface. SELinux on the managed host is the enforcement boundary.</li>
             <li>IdM host markers are selection hints. The verification job still has to prove the runtime behavior.</li>
+            <li>The stale host in the AAP demo is an IdM inventory fixture used to prove selection. It is not SSH-targeted by the verification job.</li>
             <li>This is an operational mitigation model, not a replacement for kernel fixes or argument-precise BPF LSM work.</li>
           </ul>
         </section>
@@ -238,8 +262,8 @@ awx jobs stdout "${verify_id}" |
       <aside class="side-column" aria-label="Page context">
         <section class="context-block context-block--meta">
           <h2>AAP Boundary</h2>
-          <p class="context-kicker">Current-host verification</p>
-          <p class="context-copy">Controller consumes IdM state, fails closed before execution, and verifies the confined SELinux runtime on a selected host.</p>
+          <p class="context-kicker">Credential and current-host verification</p>
+          <p class="context-copy">Controller proves the runtime credential, consumes IdM state, fails closed before execution, and verifies the confined SELinux runtime on a selected host.</p>
         </section>
         <section class="toc-block">
           <h2>On This Page</h2>
@@ -254,11 +278,11 @@ awx jobs stdout "${verify_id}" |
         </section>
         <section class="source-block">
           <h2>Recorded Result</h2>
-          <p>Workflow <code>332</code> completed with successful project sync, IdM inventory sync, preflight, and managed-host verification nodes.</p>
+          <p>The AAP evidence path should show successful project sync, credential smoke, IdM inventory sync, preflight, and managed-host verification nodes.</p>
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="quick-demo.html">AAP Lab</a> is the replay path for the Controller workflow and verification output.</p>
+          <p><a href="quick-demo.html">AAP Lab</a> is the replay path for the Controller workflow and verification output. <a href="glossary.html">Glossary</a> defines the AAP and SELinux terms used here.</p>
         </section>
       </aside>
     </main>

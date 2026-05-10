@@ -28,10 +28,10 @@
         </div>
         <nav class="site-header__actions" aria-label="Project links">
           <a href="./"><kbd>Overview</kbd></a>
-          <a href="demo.html"><kbd>Ansible Demo</kbd></a>
-          <a href="aap-demo.html"><kbd>AAP Demo</kbd></a>
+          <a href="idm-control-model.html"><kbd>IdM Model</kbd></a>
           <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
           <a href="threat-model.html"><kbd>Threat Model</kbd></a>
+          <a href="glossary.html"><kbd>Glossary</kbd></a>
           <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
         </nav>
       </div>
@@ -44,7 +44,7 @@
         <section id="scope">
           <h2>1. Purpose and Scope</h2>
           <h3>Protected Subject</h3>
-          <p>Blastwall confines privileged automation identities on managed RHEL hosts. It maps them into a restricted SELinux user (<code>blastwall_u</code>) that denies access to known exploit surfaces. The confinement lifecycle (policy authoring, RPM packaging, deployment, verification, IdM marker, AAP preflight) is built to ship exploit surface denials faster than kernel patches move through the fleet.</p>
+          <p>Blastwall confines privileged automation identities on managed RHEL hosts. It maps them into a restricted <a href="glossary.html#selinux-user">SELinux user</a> (<code>blastwall_u</code>) that denies access to known exploit surfaces. The confinement lifecycle (policy authoring, <a href="glossary.html#rpm">RPM</a> packaging, deployment, verification, IdM marker, AAP preflight) is built to ship exploit surface denials faster than kernel patches move through the fleet.</p>
           <p>That is the scope: when automation lands on a managed host, the session should start inside a boundary that blocks known-dangerous surfaces.</p>
 
           <h3>Out Of Scope</h3>
@@ -57,7 +57,7 @@
           </ul>
 
           <h3>Relationship to Other Mitigations</h3>
-          <p>Blastwall does not replace kernel patches or BPF LSM mitigations like <code>block-copyfail</code>.  Kernel patches fix the vulnerability.  BPF LSM blocks the exact exploit argument.  Blastwall reduces the blast radius for automation identities while those other mitigations are still moving through the fleet.</p>
+          <p>Blastwall does not replace kernel patches or <a href="glossary.html#bpf-lsm">BPF LSM</a> mitigations like <a href="glossary.html#block-copyfail"><code>block-copyfail</code></a>.  Kernel patches fix the vulnerability.  BPF LSM blocks the exact exploit argument.  Blastwall reduces the blast radius for automation identities while those other mitigations are still moving through the fleet.</p>
           <p>They are three layers, not three alternatives.</p>
         </section>
 
@@ -69,7 +69,7 @@
           <p>When an operator gets compromised, the blast radius is bounded by what that one person was doing at the time.  One session, one host, one set of open connections.  It is bad, but it is containable.</p>
           <p>Automation breaks all three of those bounds at once:</p>
           <ol>
-            <li><strong>Reach.</strong> A single automation identity typically has HBAC access to tens, hundreds, or thousands of hosts.  Compromising that identity does not give the attacker one target.  It gives them a target list.</li>
+            <li><strong>Reach.</strong> A single automation identity typically has <a href="glossary.html#hbac">HBAC</a> access to tens, hundreds, or thousands of hosts.  Compromising that identity does not give the attacker one target.  It gives them a target list.</li>
             <li><strong>Speed.</strong> Automation moves at machine speed with no human decision-making in the loop.  An attacker who can inject into that execution path inherits the same speed.</li>
             <li><strong>Privilege assumption.</strong> Automation identities are often configured with broad sudo access because the alternative is per-task privilege scoping, which most teams never finish.  The practical result is that automation lands as root with few constraints.</li>
           </ol>
@@ -122,7 +122,7 @@
           <ol>
             <li><strong>AAP controller.</strong> Trusted. Runs preflight validation before dispatching jobs. If compromised, the attacker can bypass preflight, but SELinux enforcement on managed hosts is independent and remains intact.</li>
             <li><strong>IdM/FreeIPA.</strong> Trusted. Authoritative source for identity mapping, HBAC rules, SELinux user maps, and sudo policy. Blastwall reads this state; it does not independently verify it.</li>
-            <li><strong>Network transport.</strong> SSH with Kerberos authentication. The trust boundary is at the managed host's <code>pam_selinux</code> resolution, not at the network layer.</li>
+            <li><strong>Network transport.</strong> SSH with <a href="glossary.html#kerberos">Kerberos</a> authentication. The trust boundary is at the managed host's <code>pam_selinux</code> resolution, not at the network layer.</li>
             <li><strong>Managed host kernel.</strong> Trusted. SELinux enforcement is a kernel function. If the kernel is compromised, the attacker can disable or bypass SELinux policy. That is the fundamental assumption that bounds all SELinux-based confinement.</li>
             <li><strong>Automation session.</strong> Untrusted. This is the confined subject. The session runs as <code>blastwall_u:blastwall_r:blastwall_t</code> with deny rules stripping access to specified exploit surfaces.</li>
           </ol>
@@ -282,6 +282,10 @@
         <section class="source-block">
           <h2>Source</h2>
           <p>The source of record is <a href="https://github.com/gprocunier/blastwall/blob/main/THREAT-MODEL.md"><code>THREAT-MODEL.md</code></a> in the repository root.</p>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="glossary.html">Glossary</a> defines the AAP, IdM, SELinux, and kernel terms used in this threat model.</p>
         </section>
       </aside>
     </main>

@@ -29,27 +29,39 @@
           - blastwall_aap_ipa_domain | length > 0
           - blastwall_aap_ipa_realm | length > 0
           - blastwall_aap_ipa_principal | length > 0
-          - blastwall_aap_ipa_password | length > 0
+          - blastwall_aap_ipa_password | length > 0 or blastwall_aap_ipa_keytab_file | length > 0
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_CERT, KRB5_CONFIG,
-          IPA_PRINCIPAL, and IPA_ADMIN_PASSWORD before applying AAP
+          IPA_PRINCIPAL, and either IPA_KEYTAB or IPA_PASSWORD before applying AAP
           configuration.
 
-    - name: Read IdM runtime files for AAP credential creation
+    - name: Read IdM CA certificate for AAP credential creation
       ansible.builtin.slurp:
-        src: "{{ item }}"
-      loop:
-        - "{{ blastwall_aap_ipa_cert_file }}"
-        - "{{ blastwall_aap_krb5_config_file }}"
-      register: blastwall_aap_runtime_files
+        src: "{{ blastwall_aap_ipa_cert_file }}"
+      register: blastwall_aap_ipa_cert
+      no_log: true
+
+    - name: Read Kerberos config for AAP credential creation
+      ansible.builtin.slurp:
+        src: "{{ blastwall_aap_krb5_config_file }}"
+      register: blastwall_aap_krb5_config
+      no_log: true
+
+    - name: Read optional IdM keytab for AAP credential creation
+      ansible.builtin.slurp:
+        src: "{{ blastwall_aap_ipa_keytab_file }}"
+      register: blastwall_aap_ipa_keytab
+      when: blastwall_aap_ipa_keytab_file | length > 0
       no_log: true
 
     - name: Store IdM runtime credential material
       ansible.builtin.set_fact:
         blastwall_aap_ipa_cert_content: >-
-          {{ blastwall_aap_runtime_files.results[0].content | b64decode }}
+          {{ blastwall_aap_ipa_cert.content | b64decode }}
         blastwall_aap_krb5_config_content: >-
-          {{ blastwall_aap_runtime_files.results[1].content | b64decode }}
+          {{ blastwall_aap_krb5_config.content | b64decode }}
+        blastwall_aap_ipa_keytab_content: >-
+          {{ blastwall_aap_ipa_keytab.content | default('') | b64decode }}
       no_log: true
 
     - name: Ensure Blastwall organization exists
@@ -99,11 +111,9 @@
           }}
         state: present
 
-    - name: Ensure Blastwall IdM credential type exists
-      awx.awx.credential_type:
-        name: "{{ blastwall_aap_idm_credential_type }}"
-        kind: cloud
-        inputs:
+    - name: Define Blastwall IdM credential type contract
+      ansible.builtin.set_fact:
+        blastwall_aap_idm_credential_type_inputs:
           fields:
             - id: ipa_server
               label: IPA server
@@ -118,8 +128,13 @@
               label: IPA principal
               type: string
             - id: ipa_password
-              label: IPA password
+              label: IPA password (demo fallback)
               type: string
+              secret: true
+            - id: ipa_keytab
+              label: IPA keytab file content
+              type: string
+              multiline: true
               secret: true
             - id: ipa_ca
               label: IPA CA certificate
@@ -139,25 +154,101 @@
             - ipa_domain
             - ipa_realm
             - ipa_principal
-            - ipa_password
             - ipa_ca
             - krb5_config
             - blastwall_identity
-        injectors:
+        blastwall_aap_idm_credential_type_injectors:
           file:
-            template.ipa_ca: "{{ '{{ ipa_ca }}' }}"
-            template.krb5_config: "{{ '{{ krb5_config }}' }}"
+            template.ipa_ca: !unsafe "{{ ipa_ca }}"
+            template.krb5_config: !unsafe "{{ krb5_config }}"
+            template.ipa_keytab: !unsafe "{{ ipa_keytab }}"
           env:
-            IPA_SERVER: "{{ '{{ ipa_server }}' }}"
-            IPA_DOMAIN: "{{ '{{ ipa_domain }}' }}"
-            IPA_REALM: "{{ '{{ ipa_realm }}' }}"
-            IPA_PRINCIPAL: "{{ '{{ ipa_principal }}' }}"
-            IPA_ADMIN_PASSWORD: "{{ '{{ ipa_password }}' }}"
-            IPA_CERT: "{{ '{{ tower.filename.ipa_ca }}' }}"
-            KRB5_CONFIG: "{{ '{{ tower.filename.krb5_config }}' }}"
+            IPA_SERVER: !unsafe "{{ ipa_server }}"
+            IPA_DOMAIN: !unsafe "{{ ipa_domain }}"
+            IPA_REALM: !unsafe "{{ ipa_realm }}"
+            IPA_PRINCIPAL: !unsafe "{{ ipa_principal }}"
+            IPA_PASSWORD: !unsafe "{{ ipa_password }}"
+            IPA_ADMIN_PASSWORD: !unsafe "{{ ipa_password }}"
+            IPA_CERT: !unsafe "{{ tower.filename.ipa_ca }}"
+            KRB5_CONFIG: !unsafe "{{ tower.filename.krb5_config }}"
+            IPA_KEYTAB: !unsafe "{{ tower.filename.ipa_keytab if ipa_keytab else \"\" }}"
             KRB5CCNAME: FILE:/tmp/blastwall_krb5cc
-            BLASTWALL_IDENTITY: "{{ '{{ blastwall_identity }}' }}"
-        state: present
+            BLASTWALL_IDENTITY: !unsafe "{{ blastwall_identity }}"
+
+    - name: Look up Blastwall IdM credential type
+      ansible.builtin.uri:
+        url: "{{ blastwall_aap_controller_host }}/api/v2/credential_types/?name={{ blastwall_aap_idm_credential_type | urlencode }}&kind=cloud"
+        method: GET
+        url_username: "{{ blastwall_aap_controller_username }}"
+        url_password: "{{ blastwall_aap_controller_password }}"
+        force_basic_auth: true
+        validate_certs: "{{ blastwall_aap_validate_certs | bool }}"
+        status_code: 200
+      register: blastwall_aap_idm_credential_type_lookup
+
+    - name: Assert Blastwall IdM credential type lookup is unambiguous
+      ansible.builtin.assert:
+        that:
+          - blastwall_aap_idm_credential_type_lookup.json.count | int <= 1
+        fail_msg: >-
+          Expected at most one AAP credential type named
+          {{ blastwall_aap_idm_credential_type }}, found
+          {{ blastwall_aap_idm_credential_type_lookup.json.count }}.
+
+    - name: Create Blastwall IdM credential type
+      ansible.builtin.uri:
+        url: "{{ blastwall_aap_controller_host }}/api/v2/credential_types/"
+        method: POST
+        url_username: "{{ blastwall_aap_controller_username }}"
+        url_password: "{{ blastwall_aap_controller_password }}"
+        force_basic_auth: true
+        validate_certs: "{{ blastwall_aap_validate_certs | bool }}"
+        body_format: json
+        body:
+          name: "{{ blastwall_aap_idm_credential_type }}"
+          kind: cloud
+          inputs: "{{ blastwall_aap_idm_credential_type_inputs }}"
+          injectors: "{{ blastwall_aap_idm_credential_type_injectors }}"
+        status_code: 201
+      register: blastwall_aap_idm_credential_type_create
+      when: blastwall_aap_idm_credential_type_lookup.json.count | int == 0
+
+    - name: Remove managed Blastwall IdM credential before credential type schema update
+      awx.awx.credential:
+        name: "{{ blastwall_aap_idm_credential }}"
+        organization: "{{ blastwall_aap_organization }}"
+        credential_type: "{{ blastwall_aap_idm_credential_type }}"
+        state: absent
+      no_log: true
+      when:
+        - blastwall_aap_idm_credential_type_lookup.json.count | int == 1
+        - >-
+          blastwall_aap_idm_credential_type_lookup.json.results[0].inputs !=
+          blastwall_aap_idm_credential_type_inputs
+
+    - name: Update Blastwall IdM credential type when drifted
+      ansible.builtin.uri:
+        url: >-
+          {{ blastwall_aap_controller_host }}{{
+          blastwall_aap_idm_credential_type_lookup.json.results[0].url }}
+        method: PATCH
+        url_username: "{{ blastwall_aap_controller_username }}"
+        url_password: "{{ blastwall_aap_controller_password }}"
+        force_basic_auth: true
+        validate_certs: "{{ blastwall_aap_validate_certs | bool }}"
+        body_format: json
+        body:
+          inputs: "{{ blastwall_aap_idm_credential_type_inputs }}"
+          injectors: "{{ blastwall_aap_idm_credential_type_injectors }}"
+        status_code: 200
+      register: blastwall_aap_idm_credential_type_update
+      when:
+        - blastwall_aap_idm_credential_type_lookup.json.count | int == 1
+        - >-
+          blastwall_aap_idm_credential_type_lookup.json.results[0].inputs !=
+          blastwall_aap_idm_credential_type_inputs or
+          blastwall_aap_idm_credential_type_lookup.json.results[0].injectors !=
+          blastwall_aap_idm_credential_type_injectors
 
     - name: Ensure Blastwall IdM credential exists
       awx.awx.credential:
@@ -170,6 +261,7 @@
           ipa_realm: "{{ blastwall_aap_ipa_realm }}"
           ipa_principal: "{{ blastwall_aap_ipa_principal }}"
           ipa_password: "{{ blastwall_aap_ipa_password }}"
+          ipa_keytab: "{{ blastwall_aap_ipa_keytab_content }}"
           ipa_ca: "{{ blastwall_aap_ipa_cert_content }}"
           krb5_config: "{{ blastwall_aap_krb5_config_content }}"
           blastwall_identity: "{{ blastwall_aap_identity }}"
@@ -282,6 +374,8 @@
         unified_job_template: "{{ item.template }}"
         state: present
       loop:
+        - identifier: credential_smoke
+          template: Blastwall credential smoke
         - identifier: preflight
           template: Blastwall preflight
         - identifier: verify_managed_host
@@ -308,6 +402,10 @@
       loop:
         - identifier: project_sync
           template: "{{ blastwall_aap_project }}"
+          success_nodes:
+            - credential_smoke
+        - identifier: credential_smoke
+          template: Blastwall credential smoke
           success_nodes:
             - inventory_sync
         - identifier: inventory_sync

@@ -8,6 +8,8 @@ const pages = [
   "aap-demo.html",
   "ansible-lab.html",
   "comparable-approaches.html",
+  "glossary.html",
+  "idm-control-model.html",
   "poc-flow.html",
   "quick-demo.html",
   "threat-model.html"
@@ -32,8 +34,10 @@ const expectedNav = {
   "ansible-lab.html": ["Overview", "Ansible Demo", "Ansible Lab", "Lab Flow", "Comparison", "Source"],
   "quick-demo.html": ["Overview", "AAP Demo", "AAP Lab", "Comparison", "Source"],
   "poc-flow.html": ["Overview", "Ansible Demo", "Ansible Lab", "PoC Source"],
-  "comparable-approaches.html": ["Overview", "Ansible Demo", "AAP Demo", "Comparison", "Threat Model", "Source"],
-  "threat-model.html": ["Overview", "Ansible Demo", "AAP Demo", "Comparison", "Threat Model", "Source"]
+  "glossary.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"],
+  "idm-control-model.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"],
+  "comparable-approaches.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"],
+  "threat-model.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"]
 };
 
 const markdownHeadingAnchor = (heading) => heading

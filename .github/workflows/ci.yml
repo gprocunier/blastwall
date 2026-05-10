@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  docs-and-static-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run docs rendering tests
+        run: npm run test:docs -- --reporter=line
+
+      - name: Run policy static tests
+        run: npm run test:policy
+
+      - name: Install Ansible
+        run: python3 -m pip install --user ansible-core
+
+      - name: Syntax check generic playbooks
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          ansible-playbook --syntax-check playbooks/credential-smoke.yml
+          ansible-playbook --syntax-check playbooks/preflight.yml
+          ansible-playbook --syntax-check playbooks/deploy-policy.yml
+          ansible-playbook --syntax-check playbooks/verify-managed-host.yml
+
+      - name: Install AAP collection requirements
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          ansible-galaxy collection install -r aap/requirements.yml -p /tmp/blastwall-aap-collections
+
+      - name: Syntax check AAP playbooks
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          export ANSIBLE_COLLECTIONS_PATH=/tmp/blastwall-aap-collections
+          ansible-playbook --syntax-check aap/configure-controller.yml
+          ansible-playbook --syntax-check poc-calabi/aap/20-configure-controller.yml
+          ansible-playbook --syntax-check poc-calabi/aap/25-seed-selection-fixture.yml
+          ansible-playbook --syntax-check poc-calabi/aap/30-launch-workflow.yml

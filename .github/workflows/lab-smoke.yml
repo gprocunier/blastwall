@@ -1,0 +1,84 @@
+name: lab-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow_template:
+        description: AAP workflow template id or name
+        required: false
+        default: "13"
+
+jobs:
+  aap-enforcement-smoke:
+    runs-on:
+      - self-hosted
+      - blastwall-lab
+    env:
+      TOWER_HOST: ${{ secrets.BLASTWALL_AAP_CONTROLLER_URL }}
+      TOWER_USERNAME: ${{ secrets.BLASTWALL_AAP_USERNAME }}
+      TOWER_PASSWORD: ${{ secrets.BLASTWALL_AAP_PASSWORD }}
+      TOWER_VERIFY_SSL: "false"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Require lab tools and AAP credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v awx
+          command -v jq
+          test -n "${TOWER_HOST}"
+          test -n "${TOWER_USERNAME}"
+          test -n "${TOWER_PASSWORD}"
+
+      - name: Launch Blastwall AAP workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          awx workflow_job_templates launch "${{ inputs.workflow_template }}" -f json |
+            tee /tmp/blastwall-aap-launch.json |
+            jq '{workflow_job, status, launched_by: .launched_by.name}'
+
+          workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-aap-launch.json)"
+          awx workflow_jobs monitor "${workflow_id}"
+
+          awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
+            tee /tmp/blastwall-aap-nodes.json |
+            jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'
+
+      - name: Assert workflow nodes succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            [.results[] | {identifier, status: .summary_fields.job.status}] as $nodes |
+            ["project_sync", "credential_smoke", "inventory_sync", "preflight", "verify_managed_host"] as $expected |
+            all($expected[]; . as $id | any($nodes[]; .identifier == $id and .status == "successful"))
+          ' /tmp/blastwall-aap-nodes.json
+
+      - name: Assert preflight current and stale selection
+        shell: bash
+        run: |
+          set -euo pipefail
+          preflight_id="$(jq -r '.results[] | select(.identifier == "preflight") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+          awx jobs stdout "${preflight_id}" | tee /tmp/blastwall-aap-preflight.log
+          grep -E 'All assertions passed|blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo' /tmp/blastwall-aap-preflight.log
+          grep -E '"selected_hosts"|candidate_hosts' /tmp/blastwall-aap-preflight.log
+          grep -E '"stale_hosts"|stale-blastwall-01\.workshop\.lan' /tmp/blastwall-aap-preflight.log
+          grep -F 'mirror-registry.workshop.lan' /tmp/blastwall-aap-preflight.log
+
+      - name: Assert credential smoke and managed-host enforcement
+        shell: bash
+        run: |
+          set -euo pipefail
+          credential_id="$(jq -r '.results[] | select(.identifier == "credential_smoke") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+          verify_id="$(jq -r '.results[] | select(.identifier == "verify_managed_host") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+
+          awx jobs stdout "${credential_id}" | tee /tmp/blastwall-aap-credential-smoke.log
+          grep -F 'credential_smoke' /tmp/blastwall-aap-credential-smoke.log
+          grep -F 'passed' /tmp/blastwall-aap-credential-smoke.log
+
+          awx jobs stdout "${verify_id}" | tee /tmp/blastwall-aap-verify.log
+          grep -F 'blastwall_u:blastwall_r:blastwall_t:s0' /tmp/blastwall-aap-verify.log
+          grep -E 'SKIP: could not create AF_ALG socket|BLOCKED:' /tmp/blastwall-aap-verify.log

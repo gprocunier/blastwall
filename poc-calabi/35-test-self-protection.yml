@@ -87,7 +87,18 @@
           delay: 10
           until:
             - blastwall_sudo_listing.rc == 0
-            - blastwall_selfprotect_sudo_command in blastwall_sudo_listing.stdout
+            - >-
+              blastwall_selfprotect_sudo_command in blastwall_sudo_listing.stdout
+              or 'NOPASSWD: ALL' in blastwall_sudo_listing.stdout
+
+        - name: Record sudo expansion mode
+          ansible.builtin.set_fact:
+            blastwall_sudo_expansion_mode: >-
+              {{
+                'explicit_command'
+                if blastwall_selfprotect_sudo_command in blastwall_sudo_listing.stdout
+                else 'command_category_all'
+              }}
 
         - name: Attempt to remove a Blastwall deny module through the expanded sudo path
           ansible.builtin.command:
@@ -150,9 +161,10 @@
         - name: Show self-protection proof
           ansible.builtin.debug:
             msg:
+              sudo_expansion_mode: "{{ blastwall_sudo_expansion_mode }}"
               sudo_expansion_seen: >-
-                {{ blastwall_selfprotect_sudo_command in
-                   blastwall_sudo_listing.stdout }}
+                {{ blastwall_sudo_expansion_mode in
+                   ['explicit_command', 'command_category_all'] }}
               semodule_attempt_rc: "{{ blastwall_selfprotect_attempt.rc }}"
               semodule_attempt_stderr: "{{ blastwall_selfprotect_attempt.stderr }}"
               audit_evidence: "{{ blastwall_selfprotect_audit.stdout_lines }}"

@@ -50,6 +50,7 @@ Optional overrides:
 ```bash
 export BLASTWALL_AUTO_PASSWORD='...'
 export BLASTWALL_LAB_SSH_KEY='/path/to/lab/private-key'
+export BLASTWALL_ENDPOINT_HOST='mirror-registry.workshop.lan'
 ```
 
 The `svc-ansible-runner` proof path uses Kerberos/GSSAPI. If
@@ -60,6 +61,11 @@ lab service-account password and stores the service TGT in a local ccache under
 `BLASTWALL_LAB_SSH_KEY` is only needed when your lab inventory requires an SSH
 private key for bootstrap access. The GSSAPI proof path still uses Kerberos for
 the automation identity.
+
+The current Calabi demo uses `mirror-registry.workshop.lan` as the managed
+Blastwall endpoint. Older notes and recordings may call the same role
+`automation-endpoint`; use `BLASTWALL_ENDPOINT_HOST` only when replaying a lab
+with a different endpoint name.
 
 Install the required collections on bastion:
 
@@ -92,7 +98,7 @@ ansible-playbook 99-cleanup.yml
 
 The final playbook should show:
 
-- `svc-ansible-runner` can SSH to the automation endpoint with GSSAPI;
+- `svc-ansible-runner` can SSH to the managed endpoint with GSSAPI;
 - `id -Z` returns `blastwall_u:blastwall_r:blastwall_t:s0` or the
   `blastwall_root_local_t` alias;
 - `sudo -n /usr/bin/id -u` returns `0`;

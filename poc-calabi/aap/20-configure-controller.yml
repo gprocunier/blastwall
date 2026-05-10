@@ -49,7 +49,7 @@
         CONTROLLER_VERIFY_SSL: "false"
         IPA_SERVER: idm-01.workshop.lan
         IPA_PRINCIPAL: svc-ansible-runner
-        IPA_ADMIN_PASSWORD: >-
+        IPA_PASSWORD: >-
           {{ lookup('env', 'BLASTWALL_AUTO_PASSWORD') |
           default(calabi_aap_runtime_password.stdout, true) }}
         IPA_CERT: /etc/ipa/ca.crt
@@ -68,7 +68,5 @@
         BLASTWALL_AAP_LAUNCH_USER_EMAIL: "{{ calabi_blastwall_demo_email }}"
         BLASTWALL_REGISTRY_USERNAME: "{{ lookup('env', 'BLASTWALL_REGISTRY_USERNAME') | default(calabi_registry_user, true) }}"
         BLASTWALL_REGISTRY_PASSWORD: "{{ lookup('env', 'BLASTWALL_REGISTRY_PASSWORD') }}"
-      no_log: >-
-        {{ not (lookup('env', 'BLASTWALL_AAP_DEBUG') |
-        default('false', true) | bool) }}
+      no_log: true
       changed_when: true

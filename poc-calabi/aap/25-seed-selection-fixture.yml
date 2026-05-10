@@ -1,0 +1,73 @@
+---
+- name: Seed Blastwall AAP current/stale selection fixture
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all.yml
+    - vars/calabi-aap.yml
+  vars:
+    calabi_blastwall_stale_host: >-
+      {{ lookup('env', 'BLASTWALL_STALE_HOST') |
+      default('stale-blastwall-01.workshop.lan', true) }}
+    calabi_blastwall_stale_marker: >-
+      blastwall_policy_rpm=blastwall-selinux-0.4.0-1;
+      blastwall_policy_state=active;
+      blastwall_policy_alg_socket=denied;
+      blastwall_policy_bpf=denied;
+      blastwall_policy_selfprotect=denied
+  tasks:
+    - name: Require IdM admin password
+      ansible.builtin.assert:
+        that:
+          - blastwall_ipaadmin_password | length > 0
+        fail_msg: "Set IPA_ADMIN_PASSWORD before seeding the AAP selection fixture."
+
+    - name: Authenticate to IdM CLI for selection fixture
+      ansible.builtin.shell: |
+        set -euo pipefail
+        printf '%s\n' "$IPA_ADMIN_PASSWORD" | kinit "$IPA_ADMIN_PRINCIPAL"
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+        IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
+      changed_when: false
+      no_log: true
+
+    - name: Ensure stale Blastwall fixture host exists in IdM
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if ipa host-show "${BLASTWALL_STALE_HOST}" >/dev/null 2>&1; then
+          ipa host-mod "${BLASTWALL_STALE_HOST}" --desc "${BLASTWALL_STALE_MARKER}"
+        else
+          ipa host-add "${BLASTWALL_STALE_HOST}" --force --desc "${BLASTWALL_STALE_MARKER}"
+        fi
+      args:
+        executable: /bin/bash
+      environment:
+        BLASTWALL_STALE_HOST: "{{ calabi_blastwall_stale_host }}"
+        BLASTWALL_STALE_MARKER: "{{ calabi_blastwall_stale_marker }}"
+      changed_when: true
+
+    - name: Add stale fixture host to Blastwall managed-host group
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - hostgroup-add-member
+          - "{{ blastwall_hostgroup }}"
+          - "--hosts={{ calabi_blastwall_stale_host }}"
+      register: calabi_blastwall_stale_member
+      changed_when: "'Number of members added 1' in calabi_blastwall_stale_member.stdout"
+      failed_when:
+        - calabi_blastwall_stale_member.rc != 0
+        - "'This entry is already a member' not in calabi_blastwall_stale_member.stderr"
+        - "'This entry is already a member' not in calabi_blastwall_stale_member.stdout"
+
+    - name: Report current/stale selection fixture
+      ansible.builtin.debug:
+        msg:
+          current_host: "{{ blastwall_endpoint_host }}"
+          stale_host: "{{ calabi_blastwall_stale_host }}"
+          hostgroup: "{{ blastwall_hostgroup }}"
+          stale_marker: "{{ calabi_blastwall_stale_marker }}"

@@ -3,7 +3,9 @@ blastwall_lab_domain: workshop.lan
 blastwall_ipa_realm: WORKSHOP.LAN
 
 blastwall_idm_host: idm-01.workshop.lan
-blastwall_endpoint_host: automation-endpoint.workshop.lan
+blastwall_endpoint_host: >-
+  {{ lookup('env', 'BLASTWALL_ENDPOINT_HOST') |
+  default('mirror-registry.workshop.lan', true) }}
 
 blastwall_ipaadmin_principal: admin
 blastwall_ipaadmin_password: >-

@@ -34,11 +34,11 @@
 
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">The lab exercise should look like the demo: use AAP for the visible operator path, then fall back to the Calabi playbooks only when preparing or resetting the lab. The result should be obvious in Controller: a synced project, a synced IdM inventory, a passing preflight, and a verify job that proves the confined SELinux runtime on the managed host.</p>
+        <p class="lead">The lab exercise should look like the demo: use <a href="glossary.html#aap">AAP</a> for the visible operator path, then fall back to the <a href="glossary.html#calabi">Calabi</a> playbooks only when preparing or resetting the lab. The result should be obvious in <a href="glossary.html#automation-controller">Controller</a>: a synced project, a credential smoke node, a synced <a href="glossary.html#idm">IdM</a> inventory, a passing <a href="glossary.html#preflight">preflight</a>, and a verify job that proves the confined <a href="glossary.html#selinux">SELinux</a> runtime on the managed host.</p>
 
         <section>
           <h2>Exercise Goal</h2>
-          <p>Reproduce the AAP cast from a prepared Calabi lab. The exercise is successful when the workflow launch belongs to <code>blastwall-demo</code>, the workflow nodes complete successfully, and the verification stdout shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> plus blocked BPF, packet_socket, userns, and io_uring probes.</p>
+          <p>Reproduce the AAP cast from a prepared Calabi lab. The exercise is successful when the workflow launch belongs to <code>blastwall-demo</code>, the workflow nodes complete successfully, preflight shows one selected current host and one stale fixture host, and the verification stdout shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> plus blocked <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes.</p>
         </section>
 
         <section>
@@ -48,7 +48,8 @@
 ansible-playbook poc-calabi/aap/05-configure-ee-registry.yml
 ansible-playbook poc-calabi/aap/10-build-and-push-ee.yml
 ansible-playbook poc-calabi/aap/15-prepare-demo-user.yml
-ansible-playbook poc-calabi/aap/20-configure-controller.yml</code></pre>
+ansible-playbook poc-calabi/aap/20-configure-controller.yml
+ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml</code></pre>
         </section>
 
         <section>
@@ -59,6 +60,7 @@ awx me -f human
 awx projects list --name Blastwall -f human
 awx inventories list --name 'Blastwall IdM Inventory' -f human
 awx inventory_sources list --name 'Blastwall IdM Inventory Source' -f human
+awx credentials list --name 'Blastwall IdM Runtime' -f human
 awx workflow_job_template_nodes list --workflow_job_template 13 -f json |
   jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
         </section>
@@ -77,10 +79,14 @@ awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
   jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'
 
 preflight_id="$(jq -r '.results[] | select(.identifier == "preflight") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+credential_id="$(jq -r '.results[] | select(.identifier == "credential_smoke") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
 verify_id="$(jq -r '.results[] | select(.identifier == "verify_managed_host") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
 
+awx jobs stdout "${credential_id}" |
+  grep -E 'credential_smoke|passed|blastwall-ssh'
+
 awx jobs stdout "${preflight_id}" |
-  grep -E 'All assertions passed|blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|candidate_hosts|selected_hosts|stale_hosts'
+  grep -E 'All assertions passed|blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|candidate_hosts|selected_hosts|stale_hosts|mirror-registry.workshop.lan|stale-blastwall-01.workshop.lan'
 
 awx jobs stdout "${verify_id}" |
   grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|BLOCKED:'</code></pre>
@@ -90,8 +96,9 @@ awx jobs stdout "${verify_id}" |
           <h2>Expected Output</h2>
           <ul>
             <li>Controller reports the <code>blastwall-demo</code> launcher.</li>
-            <li>Project sync, IdM inventory sync, preflight, and verify nodes finish successfully.</li>
-            <li>Preflight shows the SELinux map, HBAC rule, sudo rule, selected hosts, and no stale hosts.</li>
+            <li>Project sync, credential smoke, IdM inventory sync, preflight, and verify nodes finish successfully.</li>
+            <li>Credential smoke proves the injected IdM runtime credential can authenticate and read Blastwall IdM state.</li>
+            <li>Preflight shows the SELinux map, HBAC rule, sudo rule, <code>mirror-registry.workshop.lan</code> as selected, and <code>stale-blastwall-01.workshop.lan</code> as stale.</li>
             <li>Verification shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> before and after sudo reaches UID 0.</li>
             <li>BPF, packet_socket, userns, and io_uring probes print <code>BLOCKED</code>.</li>
             <li>AF_ALG may print <code>SKIP</code> when socket creation is denied before the authencesn bind path is reachable.</li>
