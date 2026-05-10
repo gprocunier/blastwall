@@ -30,7 +30,10 @@ blastwall_aap_inventory_source_path: >-
 
 blastwall_aap_idm_credential_type: Blastwall IdM Runtime
 blastwall_aap_idm_credential: Blastwall IdM Runtime
+blastwall_aap_policy_idm_credential: Blastwall Policy Maintainer IdM
+blastwall_aap_idm_admin_credential: Blastwall IdM Admin
 blastwall_aap_machine_credential: svc-ansible-runner
+blastwall_aap_policy_machine_credential: sysop policy maintainer ssh
 blastwall_aap_registry_credential: Blastwall EE Registry
 
 blastwall_aap_ipa_server: >-
@@ -57,6 +60,16 @@ blastwall_aap_identity: >-
 blastwall_aap_machine_password: >-
   {{ lookup('env', 'BLASTWALL_MACHINE_PASSWORD') |
   default(blastwall_aap_ipa_password, true) }}
+blastwall_aap_policy_identity: >-
+  {{ lookup('env', 'BLASTWALL_POLICY_IDENTITY') | default('sysop', true) }}
+blastwall_aap_policy_password: >-
+  {{ lookup('env', 'BLASTWALL_POLICY_PASSWORD') |
+  default(blastwall_aap_ipa_password, true) }}
+blastwall_aap_idm_admin_principal: >-
+  {{ lookup('env', 'BLASTWALL_IDM_ADMIN_PRINCIPAL') | default('admin', true) }}
+blastwall_aap_idm_admin_password: >-
+  {{ lookup('env', 'BLASTWALL_IDM_ADMIN_PASSWORD') |
+  default(blastwall_aap_ipa_password, true) }}
 
 blastwall_aap_launch_user: >-
   {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_USER') | default('', true) }}
@@ -78,17 +91,19 @@ blastwall_aap_job_templates:
   - name: Blastwall build policy RPM
     playbook: playbooks/build-policy-rpm.yml
     credentials:
+      - "{{ blastwall_aap_idm_credential }}"
       - "{{ blastwall_aap_machine_credential }}"
     limit: blastwall_policy_current
   - name: Blastwall install candidate policy RPM
     playbook: playbooks/install-policy-rpm.yml
     credentials:
-      - "{{ blastwall_aap_machine_credential }}"
+      - "{{ blastwall_aap_policy_idm_credential }}"
+      - "{{ blastwall_aap_policy_machine_credential }}"
     limit: blastwall_policy_current
   - name: Blastwall promote policy marker
     playbook: playbooks/promote-policy-rpm.yml
     credentials:
-      - "{{ blastwall_aap_idm_credential }}"
+      - "{{ blastwall_aap_idm_admin_credential }}"
     limit: blastwall_policy_current
   - name: Blastwall credential smoke
     playbook: playbooks/credential-smoke.yml

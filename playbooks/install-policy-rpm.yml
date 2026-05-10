@@ -12,15 +12,65 @@
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
     blastwall_pipeline_root: /var/tmp/blastwall-policy-pipeline
     blastwall_policy_artifact_path: "{{ blastwall_pipeline_root }}/artifacts/{{ blastwall_policy_nevra }}.noarch.rpm"
-    blastwall_policy_modules:
-      - blastwall
+    blastwall_policy_package_dir: /usr/share/selinux/packages/blastwall
+    blastwall_selinux_type: targeted
+    blastwall_selinux_user: blastwall_u
+    blastwall_selinux_role: blastwall_r
+    blastwall_selinux_range: s0
+    blastwall_policy_cil_modules:
       - blastwall-alg-socket-deny
       - blastwall-bpf-deny
       - blastwall-policy-selfprotect
       - blastwall-packet-socket-deny
       - blastwall-userns-deny
       - blastwall-io-uring-deny
+    blastwall_policy_modules: "{{ ['blastwall'] + blastwall_policy_cil_modules }}"
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
+    ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
+    krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
+    krb5_ccache: FILE:/tmp/blastwall_krb5cc
   tasks:
+    - name: Require Kerberos inputs for target SSH
+      ansible.builtin.assert:
+        that:
+          - ipa_principal | length > 0
+          - ipa_realm | length > 0 or '@' in ipa_principal
+          - ipa_keytab | length > 0 or ipa_password | length > 0
+        fail_msg: >-
+          Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for GSSAPI
+          target SSH.
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Authenticate automation identity for GSSAPI target SSH
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if [ -n "${IPA_KEYTAB}" ]; then
+          kinit -k -t "${IPA_KEYTAB}" "${IPA_LOGIN_PRINCIPAL}"
+        else
+          printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+        fi
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        IPA_KEYTAB: "{{ ipa_keytab }}"
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      changed_when: false
+      no_log: true
+      run_once: true
+      delegate_to: localhost
+      become: false
+
     - name: Assert candidate policy RPM exists
       ansible.builtin.stat:
         path: "{{ blastwall_policy_artifact_path }}"
@@ -32,11 +82,98 @@
           - blastwall_policy_artifact.stat.exists
         fail_msg: "Missing candidate RPM {{ blastwall_policy_artifact_path }}."
 
-    - name: Install candidate Blastwall policy RPM
+    - name: Ensure policy RPM runtime dependencies are present
       ansible.builtin.dnf:
-        name: "{{ blastwall_policy_artifact_path }}"
+        name:
+          - policycoreutils
+          - policycoreutils-python-utils
+          - selinux-policy-targeted
         state: present
-        disable_gpg_check: true
+
+    - name: Install or refresh candidate Blastwall policy RPM payload
+      ansible.builtin.command:
+        argv:
+          - rpm
+          - -Uvh
+          - --replacepkgs
+          - --replacefiles
+          - "{{ blastwall_policy_artifact_path }}"
+      changed_when: true
+
+    - name: Activate candidate SELinux policy modules from RPM payload
+      ansible.builtin.command: >-
+        semodule -i {{ blastwall_policy_package_dir }}/blastwall.pp
+        {% for module in blastwall_policy_cil_modules %}
+        {{ blastwall_policy_package_dir }}/{{ module }}.cil
+        {% endfor %}
+      changed_when: true
+
+    - name: Install Blastwall SELinux login context from RPM payload
+      ansible.builtin.copy:
+        src: "{{ blastwall_policy_package_dir }}/contexts/{{ blastwall_selinux_user }}"
+        dest: >-
+          /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+
+    - name: List SELinux users before candidate registration
+      ansible.builtin.command:
+        argv:
+          - semanage
+          - user
+          - -l
+      register: blastwall_selinux_users_before
+      changed_when: false
+
+    - name: Update existing Blastwall SELinux user
+      ansible.builtin.command:
+        argv:
+          - semanage
+          - user
+          - -m
+          - -R
+          - "{{ blastwall_selinux_role }}"
+          - -r
+          - "{{ blastwall_selinux_range }}"
+          - "{{ blastwall_selinux_user }}"
+      changed_when: true
+      when: >-
+        blastwall_selinux_user in (
+          blastwall_selinux_users_before.stdout_lines
+          | map('split')
+          | map('first')
+          | list
+        )
+
+    - name: Add Blastwall SELinux user
+      ansible.builtin.command:
+        argv:
+          - semanage
+          - user
+          - -a
+          - -R
+          - "{{ blastwall_selinux_role }}"
+          - -r
+          - "{{ blastwall_selinux_range }}"
+          - "{{ blastwall_selinux_user }}"
+      changed_when: true
+      when: >-
+        blastwall_selinux_user not in (
+          blastwall_selinux_users_before.stdout_lines
+          | map('split')
+          | map('first')
+          | list
+        )
+
+    - name: Restore SELinux login context labels
+      ansible.builtin.command:
+        argv:
+          - restorecon
+          - -R
+          - /etc/selinux/targeted/contexts/users
+      changed_when: false
 
     - name: List installed SELinux policy modules
       ansible.builtin.command:
