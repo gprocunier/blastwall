@@ -4,7 +4,8 @@ This page describes the Controller-based Blastwall demo path. It is separate
 from the Calabi Ansible-only proof path so the AAP workflow can be repeated,
 reset, and recorded without disturbing the baseline lab exercise.
 
-The published recording and breakdown live at `docs/aap-demo.html`.
+The published recording and breakdown live at
+`https://gprocunier.github.io/blastwall/aap-demo.html`.
 
 ## Demo Boundary
 
@@ -39,7 +40,7 @@ The intended objects are:
 - Inventory source: `inventory/blastwall-idm.yml`
 - Credential type: `Blastwall IdM Runtime`
 - Machine credential: `svc-ansible-runner`
-- Workflow template: `Blastwall policy rollout`
+- Workflow template: `Blastwall runtime verification`
 
 The IdM runtime credential injects:
 

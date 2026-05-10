@@ -1,0 +1,105 @@
+---
+- name: Promote verified Blastwall policy marker
+  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_current') }}"
+  become: false
+  gather_facts: false
+  vars:
+    ipa_server: "{{ lookup('env', 'IPA_SERVER') }}"
+    ipa_domain: >-
+      {{ lookup('env', 'IPA_DOMAIN') |
+      default((ipa_server.split('.')[1:] | join('.')), true) }}
+    ipa_realm: >-
+      {{ lookup('env', 'IPA_REALM') |
+      default((ipa_domain | upper), true) }}
+    ipa_basedn: >-
+      dc={{ ipa_domain | replace('.', ',dc=') }}
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    blastwall_policy_name: blastwall-selinux
+    blastwall_policy_version: >-
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.1', true), true) }}
+    blastwall_policy_release: >-
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+    blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
+    blastwall_update_idm_marker: true
+    blastwall_policy_marker: >-
+      blastwall_policy_rpm={{ blastwall_policy_nevra }};
+      blastwall_policy_state=active;
+      blastwall_policy_alg_socket=denied;
+      blastwall_policy_bpf=denied;
+      blastwall_policy_selfprotect=denied;
+      blastwall_policy_packet_socket=denied;
+      blastwall_policy_userns=denied;
+      blastwall_policy_io_uring=denied
+    blastwall_policy_failed_marker: >-
+      blastwall_policy_rpm={{ blastwall_policy_nevra }};
+      blastwall_policy_state=failed
+  tasks:
+    - name: Require IdM marker write inputs
+      ansible.builtin.assert:
+        that:
+          - ipa_server | length > 0
+          - ipa_domain | length > 0
+          - ipa_realm | length > 0
+          - ipa_principal | length > 0
+          - ipa_password | length > 0
+        fail_msg: >-
+          Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_PRINCIPAL, and IPA_PASSWORD
+          for the FreeIPA host marker update.
+      run_once: true
+      delegate_to: localhost
+
+    - name: Write FreeIPA client config for marker update
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ ipa_server }}
+          domain = {{ ipa_domain }}
+          realm = {{ ipa_realm }}
+          basedn = {{ ipa_basedn }}
+          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
+      run_once: true
+      delegate_to: localhost
+
+    - name: Publish verified Blastwall host marker to IdM
+      block:
+        - name: Publish promoted Blastwall host marker to IdM
+          freeipa.ansible_freeipa.ipahost:
+            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_password: "{{ ipa_password }}"
+            name: "{{ inventory_hostname }}"
+            description: "{{ blastwall_policy_marker }}"
+            state: present
+          no_log: true
+          delegate_to: localhost
+          when: blastwall_update_idm_marker | bool
+
+        - name: Report policy promotion evidence
+          ansible.builtin.debug:
+            msg:
+              policy_pipeline_promotion: passed
+              policy_nevra: "{{ blastwall_policy_nevra }}"
+              marker: "{{ blastwall_policy_marker }}"
+
+      rescue:
+        - name: Publish failed Blastwall host marker to IdM
+          freeipa.ansible_freeipa.ipahost:
+            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_password: "{{ ipa_password }}"
+            name: "{{ inventory_hostname }}"
+            description: "{{ blastwall_policy_failed_marker }}"
+            state: present
+          no_log: true
+          delegate_to: localhost
+          failed_when: false
+          when: blastwall_update_idm_marker | bool
+
+        - name: Stop after failed policy promotion
+          ansible.builtin.fail:
+            msg: >-
+              Blastwall policy marker promotion failed on {{ inventory_hostname }}.
+              The host marker was set to failed when marker updates were enabled.

@@ -34,12 +34,21 @@ jobs:
       - name: Install Ansible
         run: python3 -m pip install --user ansible-core
 
+      - name: Install generic Ansible collection requirements
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          ansible-galaxy collection install -r requirements.yml -p /tmp/blastwall-collections
+
       - name: Syntax check generic playbooks
         run: |
           export PATH="$HOME/.local/bin:$PATH"
+          export ANSIBLE_COLLECTIONS_PATH=/tmp/blastwall-collections
+          ansible-playbook --syntax-check playbooks/build-policy-rpm.yml
           ansible-playbook --syntax-check playbooks/credential-smoke.yml
+          ansible-playbook --syntax-check playbooks/install-policy-rpm.yml
           ansible-playbook --syntax-check playbooks/preflight.yml
           ansible-playbook --syntax-check playbooks/deploy-policy.yml
+          ansible-playbook --syntax-check playbooks/promote-policy-rpm.yml
           ansible-playbook --syntax-check playbooks/verify-managed-host.yml
 
       - name: Install AAP collection requirements
@@ -50,7 +59,7 @@ jobs:
       - name: Syntax check AAP playbooks
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          export ANSIBLE_COLLECTIONS_PATH=/tmp/blastwall-aap-collections
+          export ANSIBLE_COLLECTIONS_PATH=/tmp/blastwall-aap-collections:/tmp/blastwall-collections
           ansible-playbook --syntax-check aap/configure-controller.yml
           ansible-playbook --syntax-check poc-calabi/aap/20-configure-controller.yml
           ansible-playbook --syntax-check poc-calabi/aap/25-seed-selection-fixture.yml

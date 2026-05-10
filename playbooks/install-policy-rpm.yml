@@ -1,0 +1,68 @@
+---
+- name: Install candidate Blastwall policy RPM
+  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_current') }}"
+  become: true
+  gather_facts: false
+  vars:
+    blastwall_policy_name: blastwall-selinux
+    blastwall_policy_version: >-
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.1', true), true) }}
+    blastwall_policy_release: >-
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+    blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
+    blastwall_pipeline_root: /var/tmp/blastwall-policy-pipeline
+    blastwall_policy_artifact_path: "{{ blastwall_pipeline_root }}/artifacts/{{ blastwall_policy_nevra }}.noarch.rpm"
+    blastwall_policy_modules:
+      - blastwall
+      - blastwall-alg-socket-deny
+      - blastwall-bpf-deny
+      - blastwall-policy-selfprotect
+      - blastwall-packet-socket-deny
+      - blastwall-userns-deny
+      - blastwall-io-uring-deny
+  tasks:
+    - name: Assert candidate policy RPM exists
+      ansible.builtin.stat:
+        path: "{{ blastwall_policy_artifact_path }}"
+      register: blastwall_policy_artifact
+
+    - name: Require candidate policy RPM
+      ansible.builtin.assert:
+        that:
+          - blastwall_policy_artifact.stat.exists
+        fail_msg: "Missing candidate RPM {{ blastwall_policy_artifact_path }}."
+
+    - name: Install candidate Blastwall policy RPM
+      ansible.builtin.dnf:
+        name: "{{ blastwall_policy_artifact_path }}"
+        state: present
+        disable_gpg_check: true
+
+    - name: List installed SELinux policy modules
+      ansible.builtin.command:
+        argv:
+          - semodule
+          - -l
+      register: blastwall_semodule_list
+      changed_when: false
+
+    - name: Validate installed SELinux policy modules
+      ansible.builtin.assert:
+        that:
+          - item in (blastwall_semodule_list.stdout_lines | map('split') | map('first') | list)
+        fail_msg: "SELinux module {{ item }} is not installed."
+      loop: "{{ blastwall_policy_modules }}"
+
+    - name: Validate candidate RPM is installed
+      ansible.builtin.command:
+        argv:
+          - rpm
+          - -q
+          - "{{ blastwall_policy_nevra }}"
+      changed_when: false
+
+    - name: Report policy installation evidence
+      ansible.builtin.debug:
+        msg:
+          policy_pipeline_install: passed
+          policy_nevra: "{{ blastwall_policy_nevra }}"

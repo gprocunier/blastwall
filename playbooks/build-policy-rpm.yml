@@ -1,0 +1,225 @@
+---
+- name: Build Blastwall SELinux policy RPM from Git source
+  hosts: "{{ blastwall_policy_pipeline_build_hosts | default('blastwall_policy_current') }}"
+  become: true
+  gather_facts: false
+  vars:
+    blastwall_policy_name: blastwall-selinux
+    blastwall_policy_version: >-
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.1', true), true) }}
+    blastwall_policy_release: >-
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+    blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
+    blastwall_pipeline_root: /var/tmp/blastwall-policy-pipeline
+    blastwall_rpmbuild_root: "{{ blastwall_pipeline_root }}/rpmbuild"
+    blastwall_source_parent: "{{ blastwall_pipeline_root }}/source"
+    blastwall_source_dir: "{{ blastwall_source_parent }}/{{ blastwall_policy_name }}-{{ blastwall_policy_version }}"
+    blastwall_artifact_dir: "{{ blastwall_pipeline_root }}/artifacts"
+    blastwall_policy_artifact_path: "{{ blastwall_artifact_dir }}/{{ blastwall_policy_nevra }}.noarch.rpm"
+  tasks:
+    - name: Install policy RPM build dependencies
+      ansible.builtin.dnf:
+        name:
+          - rpm-build
+          - make
+          - checkpolicy
+          - selinux-policy-devel
+          - policycoreutils
+          - policycoreutils-python-utils
+        state: present
+
+    - name: Recreate pipeline build root
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ blastwall_rpmbuild_root }}"
+        - "{{ blastwall_source_parent }}"
+
+    - name: Create RPM build directories
+      ansible.builtin.file:
+        path: "{{ blastwall_rpmbuild_root }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - BUILD
+        - RPMS
+        - SOURCES
+        - SPECS
+        - SRPMS
+
+    - name: Copy policy source from checked-out project
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../policy/"
+        dest: "{{ blastwall_source_dir }}/"
+        owner: root
+        group: root
+        mode: preserve
+
+    - name: Set candidate module version in copied policy source
+      ansible.builtin.replace:
+        path: "{{ blastwall_source_dir }}/blastwall.te"
+        regexp: 'policy_module\(blastwall,\s*[^)]+\)'
+        replace: "policy_module(blastwall, {{ blastwall_policy_version }})"
+
+    - name: Set candidate Makefile version in copied policy source
+      ansible.builtin.replace:
+        path: "{{ blastwall_source_dir }}/Makefile"
+        regexp: '^VERSION := .+$'
+        replace: "VERSION := {{ blastwall_policy_version }}"
+
+    - name: Read copied policy Makefile
+      ansible.builtin.slurp:
+        src: "{{ blastwall_source_dir }}/Makefile"
+      register: blastwall_policy_makefile
+
+    - name: Capture deny policy line from Makefile
+      ansible.builtin.set_fact:
+        blastwall_deny_policy_line: >-
+          {{
+            (blastwall_policy_makefile.content | b64decode).splitlines()
+            | select('match', '^DENY_POLICIES\\s*:=')
+            | first
+            | default('')
+          }}
+
+    - name: Parse deny policy list from Makefile
+      ansible.builtin.set_fact:
+        blastwall_deny_policy_modules: >-
+          {{
+            blastwall_deny_policy_line
+            | regex_replace('^DENY_POLICIES\\s*:=\\s*', '')
+            | split
+          }}
+
+    - name: Assert deny policy list is present
+      ansible.builtin.assert:
+        that:
+          - blastwall_deny_policy_modules | length > 0
+        fail_msg: "policy/Makefile did not expose DENY_POLICIES."
+
+    - name: Run policy source checks
+      community.general.make:
+        chdir: "{{ blastwall_source_dir }}"
+        target: check
+
+    - name: Compile policy module before packaging
+      community.general.make:
+        chdir: "{{ blastwall_source_dir }}"
+
+    - name: Create source archive
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -C
+          - "{{ blastwall_source_parent }}"
+          - -czf
+          - "{{ blastwall_rpmbuild_root }}/SOURCES/{{ blastwall_policy_name }}-{{ blastwall_policy_version }}.tar.gz"
+          - "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}"
+      changed_when: true
+
+    - name: Write policy RPM spec
+      ansible.builtin.copy:
+        dest: "{{ blastwall_rpmbuild_root }}/SPECS/{{ blastwall_policy_name }}.spec"
+        mode: "0644"
+        content: |
+          Name:           {{ blastwall_policy_name }}
+          Version:        {{ blastwall_policy_version }}
+          Release:        {{ blastwall_policy_release }}
+          Summary:        SELinux policy for Blastwall privileged automation
+          License:        MIT
+          BuildArch:      noarch
+          Source0:        %{name}-%{version}.tar.gz
+          BuildRequires:  make
+          BuildRequires:  checkpolicy
+          BuildRequires:  selinux-policy-devel
+          Requires:       policycoreutils
+          Requires:       policycoreutils-python-utils
+          Requires:       selinux-policy-targeted
+
+          %description
+          SELinux policy module, deny scopes, and login context for Blastwall.
+
+          %prep
+          %setup -q
+
+          %build
+          make
+
+          %install
+          install -D -m 0644 blastwall.pp \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall.pp
+          {% for module in blastwall_deny_policy_modules %}
+          install -D -m 0644 {{ module }}.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/{{ module }}.cil
+          {% endfor %}
+          install -D -m 0644 contexts/blastwall_u \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
+
+          %post
+          semodule -i \
+            %{_datadir}/selinux/packages/blastwall/blastwall.pp \
+          {% for module in blastwall_deny_policy_modules %}
+            %{_datadir}/selinux/packages/blastwall/{{ module }}.cil{% if not loop.last %} \{% endif %}
+          {% endfor %}
+          install -D -m 0644 \
+            %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u \
+            /etc/selinux/targeted/contexts/users/blastwall_u
+          if semanage user -l | awk '{print $1}' | grep -qx blastwall_u; then
+            semanage user -m -R blastwall_r -r s0 blastwall_u
+          else
+            semanage user -a -R blastwall_r -r s0 blastwall_u
+          fi
+          restorecon -R /etc/selinux/targeted/contexts/users || true
+
+          %preun
+          if [ "$1" -eq 0 ]; then
+          {% for module in blastwall_deny_policy_modules | reverse %}
+            semodule -r {{ module }} || true
+          {% endfor %}
+            semodule -r blastwall || true
+            semanage user -d blastwall_u || true
+            rm -f /etc/selinux/targeted/contexts/users/blastwall_u
+          fi
+
+          %files
+          %{_datadir}/selinux/packages/blastwall/blastwall.pp
+          {% for module in blastwall_deny_policy_modules %}
+          %{_datadir}/selinux/packages/blastwall/{{ module }}.cil
+          {% endfor %}
+          %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
+
+          %changelog
+          * Thu May 07 2026 Blastwall Policy Pipeline <blastwall@example.com> - {{ blastwall_policy_version }}-{{ blastwall_policy_release }}
+          - Rebuild from versioned Git policy source through the Day 2 pipeline
+
+    - name: Build candidate policy RPM
+      ansible.builtin.command:
+        argv:
+          - rpmbuild
+          - --define
+          - "_topdir {{ blastwall_rpmbuild_root }}"
+          - -ba
+          - "{{ blastwall_rpmbuild_root }}/SPECS/{{ blastwall_policy_name }}.spec"
+      changed_when: true
+
+    - name: Create artifact directory
+      ansible.builtin.file:
+        path: "{{ blastwall_artifact_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy built RPM to stable pipeline artifact path
+      ansible.builtin.copy:
+        remote_src: true
+        src: "{{ blastwall_rpmbuild_root }}/RPMS/noarch/{{ blastwall_policy_nevra }}.noarch.rpm"
+        dest: "{{ blastwall_policy_artifact_path }}"
+        mode: "0644"
+
+    - name: Report policy build evidence
+      ansible.builtin.debug:
+        msg:
+          policy_pipeline_build: passed
+          policy_rpm: "{{ blastwall_policy_artifact_path }}"
+          policy_nevra: "{{ blastwall_policy_nevra }}"
+          deny_scopes: "{{ blastwall_deny_policy_modules }}"

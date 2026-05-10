@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reference | blastwall</title>
+    <meta name="description" content="Blastwall reference for AAP objects, IdM records, SELinux contexts, probes, policy artifacts, lab names, and expected outputs.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">Exact names, objects, probes, artifacts, and expected outputs used by the Blastwall proof.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">This is the neutral lookup page for Blastwall names and expected evidence. Use it when a demo or lab page mentions an object and you need the exact role, path, or output.</p>
+
+        <section id="aap-objects">
+          <h2>AAP Objects</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Object</th><th>Type</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Object">Blastwall</td><td data-label="Type">Project</td><td data-label="Purpose">Syncs the Blastwall repository into Controller.</td></tr>
+              <tr><td data-label="Object">Blastwall EE</td><td data-label="Type">Execution environment</td><td data-label="Purpose">Carries Ansible, Kerberos, and IdM dependencies for AAP jobs.</td></tr>
+              <tr><td data-label="Object">Blastwall IdM Inventory Source</td><td data-label="Type">Inventory source</td><td data-label="Purpose">Uses <code>eigenstate.ipa</code> to expose IdM state as inventory facts.</td></tr>
+              <tr><td data-label="Object">Blastwall IdM Runtime</td><td data-label="Type">Credential</td><td data-label="Purpose">Injects the IdM principal and password or keytab used by runtime inventory and preflight.</td></tr>
+              <tr><td data-label="Object">Blastwall runtime verification</td><td data-label="Type">Workflow template</td><td data-label="Purpose">Runs project sync, credential smoke, inventory sync, preflight, and managed-host verification.</td></tr>
+              <tr><td data-label="Object">Blastwall policy pipeline</td><td data-label="Type">Workflow template</td><td data-label="Purpose">Builds a candidate policy RPM from Git source, installs it on the lab endpoint, verifies it, promotes the marker, resyncs inventory, and reruns preflight.</td></tr>
+              <tr><td data-label="Object">Blastwall build policy RPM</td><td data-label="Type">Job template</td><td data-label="Purpose">Builds the candidate <code>blastwall-selinux</code> RPM from checked-out <code>policy/</code> source.</td></tr>
+              <tr><td data-label="Object">Blastwall install candidate policy RPM</td><td data-label="Type">Job template</td><td data-label="Purpose">Installs the candidate RPM and confirms the policy modules and package NEVRA are present.</td></tr>
+              <tr><td data-label="Object">Blastwall promote policy marker</td><td data-label="Type">Job template</td><td data-label="Purpose">Updates the IdM host marker through <code>freeipa.ansible_freeipa.ipahost</code> after verification succeeds.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="idm-records">
+          <h2>IdM Records</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Record</th><th>Current Lab Name</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Record">Automation identity</td><td data-label="Current Lab Name"><code>svc-ansible-runner</code></td><td data-label="Purpose">Kerberos-backed automation principal used by the Ansible proof.</td></tr>
+              <tr><td data-label="Record">AAP launcher</td><td data-label="Current Lab Name"><code>blastwall-demo</code></td><td data-label="Purpose">Controller-facing demo account that launches the recorded workflow.</td></tr>
+              <tr><td data-label="Record">Automation group</td><td data-label="Current Lab Name"><code>blastwall</code></td><td data-label="Purpose">Groups the automation identities that receive the Blastwall path.</td></tr>
+              <tr><td data-label="Record">SELinux user map</td><td data-label="Current Lab Name"><code>blastwall-root-local-map</code></td><td data-label="Purpose">Maps the automation identity to <code>blastwall_u:s0</code>.</td></tr>
+              <tr><td data-label="Record">HBAC rule</td><td data-label="Current Lab Name"><code>blastwall-ssh</code></td><td data-label="Purpose">Allows the automation identity to enter eligible hosts through SSH.</td></tr>
+              <tr><td data-label="Record">Sudo rule</td><td data-label="Current Lab Name"><code>blastwall-root-local-sudo</code></td><td data-label="Purpose">Delegates root work while SELinux keeps the domain confined.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="selinux-contexts">
+          <h2>SELinux Contexts</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Context Or Part</th><th>Meaning</th><th>Expected Evidence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Context Or Part"><code>blastwall_u</code></td><td data-label="Meaning">SELinux user component.</td><td data-label="Expected Evidence">The login receives a Blastwall-specific SELinux user, not an unconfined user.</td></tr>
+              <tr><td data-label="Context Or Part"><code>blastwall_r</code></td><td data-label="Meaning">SELinux role component.</td><td data-label="Expected Evidence">The runtime process stays in the Blastwall role.</td></tr>
+              <tr><td data-label="Context Or Part"><code>blastwall_t</code></td><td data-label="Meaning">SELinux process type/domain.</td><td data-label="Expected Evidence">The process remains in this domain before and after sudo.</td></tr>
+              <tr><td data-label="Context Or Part"><code>blastwall_u:blastwall_r:blastwall_t:s0</code></td><td data-label="Meaning">Full confined automation process context.</td><td data-label="Expected Evidence">Printed by AAP and Ansible verification jobs.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="probes">
+          <h2>Probe Scripts</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Probe</th><th>Surface</th><th>Expected Output</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Probe"><code>trigger-copyfail-afalg.py</code></td><td data-label="Surface">AF_ALG/authencesn path.</td><td data-label="Expected Output"><code>BLOCKED</code> or socket creation denied with permission error.</td></tr>
+              <tr><td data-label="Probe"><code>trigger-bpf-deny.py</code></td><td data-label="Surface">BPF map creation and program load.</td><td data-label="Expected Output"><code>BLOCKED</code> for <code>BPF_MAP_CREATE</code> and <code>BPF_PROG_LOAD</code>.</td></tr>
+              <tr><td data-label="Probe"><code>trigger-packet-socket-deny.py</code></td><td data-label="Surface">AF_PACKET socket creation.</td><td data-label="Expected Output"><code>BLOCKED</code> for packet socket creation.</td></tr>
+              <tr><td data-label="Probe"><code>trigger-userns-deny.py</code></td><td data-label="Surface">User namespace creation.</td><td data-label="Expected Output"><code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</td></tr>
+              <tr><td data-label="Probe"><code>trigger-io-uring-deny.py</code></td><td data-label="Surface">io_uring setup.</td><td data-label="Expected Output"><code>BLOCKED</code>, or <code>SKIP</code> on kernels without that object class.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="policy-artifacts">
+          <h2>Policy Artifacts</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Artifact</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Artifact"><code>policy/blastwall.te</code></td><td data-label="Purpose">Base SELinux reference-policy module for the Blastwall automation user, role, and domain.</td></tr>
+              <tr><td data-label="Artifact"><code>policy/blastwall-*-deny.cil</code></td><td data-label="Purpose">Standalone CIL deny scopes that subtract risky surfaces from <code>blastwall_t</code>.</td></tr>
+              <tr><td data-label="Artifact"><code>policy/Makefile</code></td><td data-label="Purpose">Builds the base policy and lists active deny scopes in <code>DENY_POLICIES</code>.</td></tr>
+              <tr><td data-label="Artifact"><code>playbooks/build-policy-rpm.yml</code></td><td data-label="Purpose">AAP Day 2 build job that packages a candidate policy RPM from Git source.</td></tr>
+              <tr><td data-label="Artifact"><code>playbooks/install-policy-rpm.yml</code></td><td data-label="Purpose">AAP Day 2 install job that stages and validates the candidate policy RPM on the endpoint.</td></tr>
+              <tr><td data-label="Artifact"><code>playbooks/promote-policy-rpm.yml</code></td><td data-label="Purpose">AAP Day 2 marker promotion job that writes the verified IdM marker with the FreeIPA collection.</td></tr>
+              <tr><td data-label="Artifact"><code>.github/workflows/policy-pipeline-smoke.yml</code></td><td data-label="Purpose">Self-hosted lab smoke workflow that launches the AAP policy pipeline and checks the evidence logs.</td></tr>
+              <tr><td data-label="Artifact"><code>playbooks/</code></td><td data-label="Purpose">Generic deployment, preflight, credential smoke, and verification playbooks.</td></tr>
+              <tr><td data-label="Artifact"><code>aap/</code></td><td data-label="Purpose">Controller configuration-as-code for the AAP proof.</td></tr>
+              <tr><td data-label="Artifact"><code>poc-calabi/</code></td><td data-label="Purpose">Calabi-specific lab runbooks and replay assets.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="lab-names">
+          <h2>Lab Names</h2>
+          <p>The docs use some names from earlier proof phases and some names from the current AAP demo. Treat this table as the current map.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Name</th><th>Scope</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Name"><code>svc-ansible-runner</code></td><td data-label="Scope">Ansible proof</td><td data-label="Meaning">Automation service principal used for Kerberos-backed host proof.</td></tr>
+              <tr><td data-label="Name"><code>blastwall-demo</code></td><td data-label="Scope">AAP proof</td><td data-label="Meaning">Demo launcher visible in Controller workflow output.</td></tr>
+              <tr><td data-label="Name"><code>mirror-registry.workshop.lan</code></td><td data-label="Scope">Calabi managed endpoint</td><td data-label="Meaning">Current host selected for verification in the recorded demos.</td></tr>
+              <tr><td data-label="Name"><code>stale-blastwall-01.workshop.lan</code></td><td data-label="Scope">Calabi fixture</td><td data-label="Meaning">Deliberately stale host used to prove preflight rejection.</td></tr>
+              <tr><td data-label="Name"><code>automation-endpoint</code></td><td data-label="Scope">Inventory group</td><td data-label="Meaning">Generic Ansible target group used by lab playbooks.</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Page Type</h2>
+          <p class="context-kicker">Reference</p>
+          <p class="context-copy">Use this page to look up exact names and expected outputs without rereading the demos.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#aap-objects">AAP Objects</a></li>
+            <li><a href="#idm-records">IdM Records</a></li>
+            <li><a href="#selinux-contexts">SELinux Contexts</a></li>
+            <li><a href="#probes">Probes</a></li>
+            <li><a href="#policy-artifacts">Policy Artifacts</a></li>
+            <li><a href="#lab-names">Lab Names</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="glossary.html">Glossary</a> defines terms. <a href="architecture.html">Architecture</a> explains how the parts fit together. <a href="day2-operations.html">Day 2 Operations</a> explains how policy source becomes baseline posture.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

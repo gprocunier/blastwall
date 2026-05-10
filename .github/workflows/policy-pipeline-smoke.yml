@@ -1,0 +1,106 @@
+name: policy-pipeline-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow_template:
+        description: AAP policy pipeline workflow template id or name
+        required: false
+        default: "Blastwall policy pipeline"
+      policy_version:
+        description: Candidate Blastwall policy version
+        required: false
+        default: "0.5.1"
+      policy_release:
+        description: Candidate Blastwall policy release
+        required: false
+        default: "1"
+
+jobs:
+  aap-policy-pipeline-smoke:
+    runs-on:
+      - self-hosted
+      - blastwall-lab
+    env:
+      TOWER_HOST: ${{ secrets.BLASTWALL_AAP_CONTROLLER_URL }}
+      TOWER_USERNAME: ${{ secrets.BLASTWALL_AAP_USERNAME }}
+      TOWER_PASSWORD: ${{ secrets.BLASTWALL_AAP_PASSWORD }}
+      TOWER_VERIFY_SSL: "false"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Require lab tools and AAP credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v awx
+          command -v jq
+          test -n "${TOWER_HOST}"
+          test -n "${TOWER_USERNAME}"
+          test -n "${TOWER_PASSWORD}"
+
+      - name: Launch Blastwall policy pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          awx workflow_job_templates launch "${{ inputs.workflow_template }}" \
+            --extra_vars "{\"BLASTWALL_POLICY_VERSION\":\"${{ inputs.policy_version }}\",\"BLASTWALL_POLICY_RELEASE\":\"${{ inputs.policy_release }}\"}" \
+            -f json |
+            tee /tmp/blastwall-policy-pipeline-launch.json |
+            jq '{workflow_job, status, launched_by: .launched_by.name}'
+
+          workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-policy-pipeline-launch.json)"
+          awx workflow_jobs monitor "${workflow_id}"
+
+          awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
+            tee /tmp/blastwall-policy-pipeline-nodes.json |
+            jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'
+
+      - name: Assert policy pipeline nodes succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            [.results[] | {identifier, status: .summary_fields.job.status}] as $nodes |
+            [
+              "policy_project_sync",
+              "policy_inventory_sync",
+              "build_policy_rpm",
+              "install_candidate_policy_rpm",
+              "verify_candidate_host",
+              "promote_policy_marker",
+              "post_promotion_inventory_sync",
+              "post_promotion_preflight"
+            ] as $expected |
+            all($expected[]; . as $id | any($nodes[]; .identifier == $id and .status == "successful"))
+          ' /tmp/blastwall-policy-pipeline-nodes.json
+
+      - name: Assert policy pipeline evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_id="$(jq -r '.results[] | select(.identifier == "build_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+          install_id="$(jq -r '.results[] | select(.identifier == "install_candidate_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+          verify_id="$(jq -r '.results[] | select(.identifier == "verify_candidate_host") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+          promote_id="$(jq -r '.results[] | select(.identifier == "promote_policy_marker") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+          preflight_id="$(jq -r '.results[] | select(.identifier == "post_promotion_preflight") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+
+          awx jobs stdout "${build_id}" | tee /tmp/blastwall-policy-pipeline-build.log
+          grep -F 'policy_pipeline_build' /tmp/blastwall-policy-pipeline-build.log
+          grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-build.log
+
+          awx jobs stdout "${install_id}" | tee /tmp/blastwall-policy-pipeline-install.log
+          grep -F 'policy_pipeline_install' /tmp/blastwall-policy-pipeline-install.log
+          grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-install.log
+
+          awx jobs stdout "${verify_id}" | tee /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'blastwall_u:blastwall_r:blastwall_t:s0' /tmp/blastwall-policy-pipeline-verify.log
+          grep -E 'SKIP: could not create AF_ALG socket|BLOCKED:' /tmp/blastwall-policy-pipeline-verify.log
+
+          awx jobs stdout "${promote_id}" | tee /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'policy_pipeline_promotion' /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'blastwall_policy_rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
+
+          awx jobs stdout "${preflight_id}" | tee /tmp/blastwall-policy-pipeline-preflight.log
+          grep -E 'All assertions passed|selected_hosts|candidate_hosts' /tmp/blastwall-policy-pipeline-preflight.log

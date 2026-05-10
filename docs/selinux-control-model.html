@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SELinux Control Model | blastwall</title>
+    <meta name="description" content="A practical SELinux control model for Blastwall, explaining users, roles, types, domains, sudo behavior, deny scopes, audit evidence, and host-local enforcement.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">How the mapped automation session becomes a confined SELinux subject on the managed host.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">Red Hat Identity Management (IdM) decides which automation identity may arrive. SELinux decides what that identity can do after it lands. Blastwall's SELinux model is the job-site boundary in the same dispatch analogy used by the IdM model.</p>
+        <p>The short version: the automation identity logs in through the IdM-controlled path, receives the SELinux context <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, can use sudo for delegated root work, and still remains inside <code>blastwall_t</code> when the deny scopes are enforced.</p>
+
+        <section id="why-selinux-matters">
+          <h2>Why SELinux Matters</h2>
+          <p>Ansible Automation Platform (AAP) and IdM can prevent bad launches, but they do not make the kernel denial. Once the job reaches the host, SELinux is the boundary that still applies when the automation process becomes UID 0 through sudo.</p>
+          <p>That distinction matters. Root is not the whole story on a SELinux-enforcing host. A root process still has a process label, and policy can deny dangerous access for that label.</p>
+        </section>
+
+        <section id="job-site-analogy">
+          <h2>Job-Site Analogy</h2>
+          <p>The IdM model uses dispatched work to a controlled job site. SELinux is what happens at the job site after dispatch approves the trip.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Analogy</th><th>SELinux Object</th><th>Blastwall Consequence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Analogy">Badge</td><td data-label="SELinux Object"><code>blastwall_u</code></td><td data-label="Blastwall Consequence">The login receives an automation-specific SELinux user rather than an unconfined one.</td></tr>
+              <tr><td data-label="Analogy">Assigned role</td><td data-label="SELinux Object"><code>blastwall_r</code></td><td data-label="Blastwall Consequence">The session stays in the role intended for the automation path.</td></tr>
+              <tr><td data-label="Analogy">Work zone</td><td data-label="SELinux Object"><code>blastwall_t</code></td><td data-label="Blastwall Consequence">The process domain controls what the automation subject may touch.</td></tr>
+              <tr><td data-label="Analogy">Site rules</td><td data-label="SELinux Object">Policy allow and deny rules</td><td data-label="Blastwall Consequence">The job can do permitted work while low-value exploit surfaces are denied.</td></tr>
+              <tr><td data-label="Analogy">Incident log</td><td data-label="SELinux Object">Audit and AVC records</td><td data-label="Blastwall Consequence">Denied operations produce target-host evidence reviewers can inspect.</td></tr>
+            </tbody>
+          </table>
+          <p>The analogy should not hide the exact terms. Blastwall depends on the real SELinux context, policy modules, CIL deny rules, and audit evidence.</p>
+        </section>
+
+        <section id="context-shape">
+          <h2>Context Shape</h2>
+          <p>A process context has four visible parts:</p>
+          <pre><code class="language-text">blastwall_u:blastwall_r:blastwall_t:s0
+    user        role        type      level</code></pre>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Part</th><th>Meaning</th><th>Blastwall Use</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Part"><code>blastwall_u</code></td><td data-label="Meaning">SELinux user component.</td><td data-label="Blastwall Use">Identifies the login as the Blastwall automation SELinux user.</td></tr>
+              <tr><td data-label="Part"><code>blastwall_r</code></td><td data-label="Meaning">SELinux role component.</td><td data-label="Blastwall Use">Constrains which process domains the session may enter.</td></tr>
+              <tr><td data-label="Part"><code>blastwall_t</code></td><td data-label="Meaning">SELinux type. For a process, this is also called the domain.</td><td data-label="Blastwall Use">The policy target for the automation denials.</td></tr>
+              <tr><td data-label="Part"><code>s0</code></td><td data-label="Meaning">SELinux level in this proof.</td><td data-label="Blastwall Use">The proof uses the ordinary single-level shape for the mapped automation path.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="login-path">
+          <h2>Login Path</h2>
+          <p>The SELinux context does not appear by accident. IdM holds the SELinux user map, SSSD reads the identity and policy state during login, and <code>pam_selinux</code> applies the mapped login label.</p>
+          <pre><code class="language-text">SSH login as automation identity
+  -> SSSD reads IdM identity and access state
+  -> pam_selinux applies the mapped SELinux user
+  -> session starts as blastwall_u:blastwall_r:blastwall_t:s0</code></pre>
+          <p>If the map is missing or stale, the proof should fail before anyone treats the host as suitable.</p>
+        </section>
+
+        <section id="sudo-boundary">
+          <h2>Sudo Boundary</h2>
+          <p>Sudo changes the effective privilege of the process. It does not automatically make the process unconfined. Blastwall checks the important property: after sudo reaches UID 0, the process is still in <code>blastwall_t</code>.</p>
+          <p>That is why the demo prints both UID and SELinux context. UID <code>0</code> proves delegated privilege. <code>blastwall_t</code> proves the host-local boundary still applies.</p>
+        </section>
+
+        <section id="deny-scopes">
+          <h2>Deny Scopes</h2>
+          <p>The current proof denies surfaces that have high exploit value and low expected value for privileged automation. The policy covers AF_ALG, BPF, packet_socket, user namespace creation, io_uring, and direct policy self-protection.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Scope</th><th>What The Probe Shows</th><th>Why It Matters</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Scope">AF_ALG</td><td data-label="What The Probe Shows">Socket creation or Copy Fail authencesn path is unavailable to the confined subject.</td><td data-label="Why It Matters">This is the first concrete pressure test from copy.fail.</td></tr>
+              <tr><td data-label="Scope">BPF</td><td data-label="What The Probe Shows"><code>BPF_MAP_CREATE</code> and <code>BPF_PROG_LOAD</code> fail.</td><td data-label="Why It Matters">Privileged automation rarely needs to create kernel BPF objects during ordinary fleet work.</td></tr>
+              <tr><td data-label="Scope">packet_socket</td><td data-label="What The Probe Shows">AF_PACKET socket creation fails.</td><td data-label="Why It Matters">Raw packet access is a powerful local capability and a poor default for automation.</td></tr>
+              <tr><td data-label="Scope">userns</td><td data-label="What The Probe Shows"><code>unshare(CLONE_NEWUSER)</code> fails.</td><td data-label="Why It Matters">User namespaces often help exploit chains turn a local bug into a practical escalation path. Blastwall treats that as a posture decision: if this automation identity does not need user namespace creation, it should not have it while waiting for the next userns-adjacent CVE.</td></tr>
+              <tr><td data-label="Scope">io_uring</td><td data-label="What The Probe Shows"><code>io_uring_setup</code> is blocked, or skipped on kernels without that SELinux object class.</td><td data-label="Why It Matters">It is a recurring kernel attack surface with little value for this automation identity path.</td></tr>
+              <tr><td data-label="Scope">policy self-protection</td><td data-label="What The Probe Shows"><code>semodule</code> remains denied from <code>blastwall_t</code> even when sudo can see it.</td><td data-label="Why It Matters">The confined identity should not remove the policy that confines it.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="audit-evidence">
+          <h2>Audit Evidence</h2>
+          <p>Audit output is the host-local review trail. AAP and Ansible output tell the operator what the workflow saw; audit records show that the managed host enforced a policy decision for the confined subject.</p>
+          <p>The proof therefore reads both command output and target audit logs. Command output is easier to show. Audit evidence is harder to fake accidentally.</p>
+        </section>
+
+        <section id="failure-modes">
+          <h2>Failure Modes</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Failure</th><th>Operator Symptom</th><th>Likely Cause</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Failure">Wrong context</td><td data-label="Operator Symptom"><code>id -Z</code> does not show <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</td><td data-label="Likely Cause">Missing IdM SELinux user map, stale SSSD state, or login path not using the expected identity.</td></tr>
+              <tr><td data-label="Failure">Sudo escapes the domain</td><td data-label="Operator Symptom">UID becomes <code>0</code>, but the process is no longer in <code>blastwall_t</code>.</td><td data-label="Likely Cause">Role/type transition mistake or overbroad local policy.</td></tr>
+              <tr><td data-label="Failure">Probe is allowed</td><td data-label="Operator Symptom">A probe prints success instead of <code>BLOCKED</code>.</td><td data-label="Likely Cause">Policy missing, wrong module version, compatibility gap, or the session is not confined.</td></tr>
+              <tr><td data-label="Failure">No audit evidence</td><td data-label="Operator Symptom">Command output says blocked, but audit search is empty.</td><td data-label="Likely Cause">Audit query mismatch, audit backlog, or denial happened before the expected audited path.</td></tr>
+              <tr><td data-label="Failure">Self-protection fails</td><td data-label="Operator Symptom">The automation identity can remove or modify deny modules.</td><td data-label="Likely Cause">Policy-management permissions were granted back to <code>blastwall_t</code> or sudo expansion bypassed the intended boundary.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="where-to-see-it">
+          <h2>Where To See It</h2>
+          <p><a href="aap-demo.html">AAP Demo</a> shows the Controller-facing verification output. <a href="demo.html">Ansible Demo</a> shows direct probes, audit evidence, and self-protection. <a href="ansible-lab.html">Ansible Lab</a> is the task-first replay for the non-AAP path.</p>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Model</h2>
+          <p class="context-kicker">Job-site boundary</p>
+          <p class="context-copy">IdM dispatches the right identity to the host. SELinux controls the work zone after that identity arrives.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#why-selinux-matters">Why SELinux Matters</a></li>
+            <li><a href="#job-site-analogy">Job-Site Analogy</a></li>
+            <li><a href="#context-shape">Context Shape</a></li>
+            <li><a href="#login-path">Login Path</a></li>
+            <li><a href="#sudo-boundary">Sudo Boundary</a></li>
+            <li><a href="#deny-scopes">Deny Scopes</a></li>
+            <li><a href="#audit-evidence">Audit Evidence</a></li>
+            <li><a href="#failure-modes">Failure Modes</a></li>
+            <li><a href="#where-to-see-it">Where To See It</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Short Version</h2>
+          <p>SELinux gives the automation identity a host-local work zone and keeps that zone in force after sudo reaches UID 0.</p>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="idm-control-model.html">IdM Control Model</a> explains how the identity gets dispatched. <a href="day2-operations.html">Day 2 Operations</a> explains how operators maintain the policy baseline.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

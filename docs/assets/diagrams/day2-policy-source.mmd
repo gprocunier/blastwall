@@ -1,0 +1,12 @@
+flowchart LR
+    subgraph BUILD["Build and verify"]
+      SOURCE["Policy source<br/>policy/ + CIL deny scopes"] --> ARTIFACT["Versioned artifact<br/>policy RPM"]
+      ARTIFACT --> HOST["Managed host<br/>install + verify"]
+    end
+
+    subgraph LAUNCH["Expose as launch state"]
+      STATE["Readiness state<br/>IdM marker + inventory fact"] --> PREFLIGHT["AAP preflight<br/>host suitability"]
+      PREFLIGHT --> JOB["Privileged automation<br/>current hosts only"]
+    end
+
+    HOST --> STATE

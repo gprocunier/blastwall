@@ -8,6 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = ROOT / "policy"
+PLAYBOOKS = ROOT / "playbooks"
 
 
 def fail(message: str) -> None:
@@ -36,3 +37,21 @@ for policy in deny_policies:
         fail(f"{cil_path.relative_to(ROOT)} does not contain a neverallow rule")
 
 print(f"PASS: validated {len(deny_policies)} deny policy scopes")
+
+collection_backed_marker_paths = [
+    ROOT / "playbooks" / "deploy-policy.yml",
+    ROOT / "playbooks" / "promote-policy-rpm.yml",
+    ROOT / "poc-calabi" / "aap" / "25-seed-selection-fixture.yml",
+]
+
+for path in collection_backed_marker_paths:
+    text = path.read_text(encoding="utf-8")
+    for raw_cli in ["ipa host-mod", "ipa host-add", "hostgroup-add-member"]:
+        if raw_cli in text:
+            fail(f"{path.relative_to(ROOT)} uses raw {raw_cli} instead of collection modules")
+
+promotion = (PLAYBOOKS / "promote-policy-rpm.yml").read_text(encoding="utf-8")
+if "freeipa.ansible_freeipa.ipahost" not in promotion:
+    fail("playbooks/promote-policy-rpm.yml does not use freeipa.ansible_freeipa.ipahost for marker writes")
+
+print("PASS: IdM marker writes use FreeIPA collection modules")

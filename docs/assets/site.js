@@ -685,6 +685,130 @@ const renderToc = () => {
   });
 };
 
+const docsMap = [
+  {
+    label: "Start Here",
+    pages: [
+      { href: "./", paths: ["", "index.html"], label: "Overview" },
+      { href: "architecture.html", label: "Architecture" },
+      { href: "day2-operations.html", label: "Day 2 Operations" }
+    ]
+  },
+  {
+    label: "Control Models",
+    pages: [
+      { href: "idm-control-model.html", label: "IdM Control Model" },
+      { href: "selinux-control-model.html", label: "SELinux Control Model" }
+    ]
+  },
+  {
+    label: "Demos And Labs",
+    pages: [
+      { href: "aap-demo.html", label: "AAP Demo" },
+      { href: "quick-demo.html", label: "AAP Lab" },
+      { href: "demo.html", label: "Ansible Demo" },
+      { href: "ansible-lab.html", label: "Ansible Lab" },
+      { href: "poc-flow.html", label: "Ansible Lab Flow" }
+    ]
+  },
+  {
+    label: "Security Review",
+    pages: [
+      { href: "comparable-approaches.html", label: "Comparison" },
+      { href: "threat-model.html", label: "Threat Model" }
+    ]
+  },
+  {
+    label: "Reference",
+    pages: [
+      { href: "glossary.html", label: "Glossary" },
+      { href: "reference.html", label: "Reference" },
+      { href: "https://github.com/gprocunier/blastwall", label: "Source" }
+    ]
+  }
+];
+
+const currentDocsPath = () => {
+  const path = window.location.pathname.split("/").pop() || "index.html";
+  return path === "" ? "index.html" : path;
+};
+
+const isCurrentDocsPage = (page, currentPath) => {
+  const paths = page.paths || [page.href];
+  return paths.some((path) => {
+    if (/^https?:\/\//.test(path)) {
+      return false;
+    }
+
+    const normalized = path.replace(/^\.\//, "") || "index.html";
+    return normalized === currentPath;
+  });
+};
+
+const renderDocsMap = () => {
+  const sideColumn = document.querySelector(".side-column");
+  if (!sideColumn || sideColumn.querySelector(".docs-map")) {
+    return;
+  }
+
+  const currentPath = currentDocsPath();
+  const section = document.createElement("section");
+  section.className = "docs-map";
+  section.setAttribute("aria-label", "Documentation map");
+
+  const heading = document.createElement("h2");
+  heading.textContent = "Documentation";
+
+  const nav = document.createElement("nav");
+  nav.setAttribute("aria-label", "Documentation sections");
+
+  docsMap.forEach((group) => {
+    const details = document.createElement("details");
+    details.className = "docs-map__group";
+
+    const hasCurrentPage = group.pages.some((page) => isCurrentDocsPage(page, currentPath));
+    if (hasCurrentPage) {
+      details.open = true;
+    }
+
+    const summary = document.createElement("summary");
+    summary.textContent = group.label;
+    details.appendChild(summary);
+
+    const list = document.createElement("ol");
+    list.className = "docs-map__links";
+
+    group.pages.forEach((page) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = page.href;
+      link.textContent = page.label;
+
+      if (isCurrentDocsPage(page, currentPath)) {
+        link.className = "is-current";
+        link.setAttribute("aria-current", "page");
+      }
+
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+
+    details.appendChild(list);
+    nav.appendChild(details);
+  });
+
+  section.append(heading, nav);
+  sideColumn.prepend(section);
+};
+
+const safeDecodeHash = (value) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
 const activateTocOnScroll = () => {
   const links = Array.from(document.querySelectorAll(".toc-block a[href^='#']"));
   if (!links.length || !("IntersectionObserver" in window)) {
@@ -692,7 +816,7 @@ const activateTocOnScroll = () => {
   }
 
   const linkById = new Map(
-    links.map((link) => [decodeURIComponent(link.getAttribute("href").slice(1)), link])
+    links.map((link) => [safeDecodeHash(link.getAttribute("href").slice(1)), link])
   );
 
   let activeId = "";
@@ -728,7 +852,7 @@ const activateTocOnScroll = () => {
   });
 
   if (links[0]) {
-    const initialId = decodeURIComponent(links[0].getAttribute("href").slice(1));
+    const initialId = safeDecodeHash(links[0].getAttribute("href").slice(1));
     setActive(initialId);
   }
 };
@@ -817,8 +941,59 @@ const activateDiagramLightbox = () => {
   });
 };
 
+const headerAnchorOffset = () => {
+  const header = document.querySelector(".site-header");
+  const headerHeight = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+  return headerHeight + 24;
+};
+
+const setAnchorOffset = () => {
+  document.documentElement.style.setProperty("--blastwall-anchor-offset", `${headerAnchorOffset()}px`);
+};
+
+const scrollHashTargetIntoView = () => {
+  if (!window.location.hash) {
+    return;
+  }
+
+  const id = safeDecodeHash(window.location.hash.slice(1));
+  const target = document.getElementById(id);
+  if (!target) {
+    return;
+  }
+
+  const top = target.getBoundingClientRect().top + window.scrollY - headerAnchorOffset();
+  window.scrollTo({
+    top: Math.max(0, top),
+    behavior: "auto"
+  });
+};
+
+const activateAnchorOffsets = () => {
+  setAnchorOffset();
+  window.addEventListener("resize", setAnchorOffset);
+  window.addEventListener("hashchange", () => {
+    setAnchorOffset();
+    requestAnimationFrame(scrollHashTargetIntoView);
+  });
+
+  requestAnimationFrame(() => {
+    setAnchorOffset();
+    scrollHashTargetIntoView();
+  });
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      setAnchorOffset();
+      scrollHashTargetIntoView();
+    });
+  }
+};
+
 window.addEventListener("DOMContentLoaded", async () => {
+  activateAnchorOffsets();
   renderAdmonitions();
+  renderDocsMap();
   renderToc();
   activateTocOnScroll();
   activateDiagramLightbox();

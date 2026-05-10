@@ -23,11 +23,9 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="aap-demo.html"><kbd>AAP Demo</kbd></a>
-          <a href="quick-demo.html"><kbd>AAP Lab</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
@@ -36,13 +34,40 @@
       <article class="content-column markdown-body">
         <p class="lead">The lab exercise should look like the demo: use <a href="glossary.html#aap">AAP</a> for the visible operator path, then fall back to the <a href="glossary.html#calabi">Calabi</a> playbooks only when preparing or resetting the lab. The result should be obvious in <a href="glossary.html#automation-controller">Controller</a>: a synced project, a credential smoke node, a synced <a href="glossary.html#idm">IdM</a> inventory, a passing <a href="glossary.html#preflight">preflight</a>, and a verify job that proves the confined <a href="glossary.html#selinux">SELinux</a> runtime on the managed host.</p>
 
-        <section>
-          <h2>Exercise Goal</h2>
+        <section id="goal">
+          <h2>Goal</h2>
           <p>Reproduce the AAP cast from a prepared Calabi lab. The exercise is successful when the workflow launch belongs to <code>blastwall-demo</code>, the workflow nodes complete successfully, preflight shows one selected current host and one stale fixture host, and the verification stdout shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> plus blocked <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes.</p>
         </section>
 
-        <section>
-          <h2>Prepare The Lab</h2>
+        <section id="prerequisites">
+          <h2>Prerequisites</h2>
+          <ul>
+            <li>Run from <code>bastion-01</code> against an already deployed Calabi AAP lab.</li>
+            <li>The AAP Controller route, IdM server, mirror registry, and managed endpoint must be reachable.</li>
+            <li>The local shell should have working <code>awx</code>, <code>jq</code>, Kerberos tools, and the Controller environment variables used by the lab.</li>
+            <li>Use the preparation playbooks only to build or reconcile the lab. Use <code>awx</code> for the audience-visible replay.</li>
+          </ul>
+        </section>
+
+        <section id="inputs">
+          <h2>Inputs And Environment Variables</h2>
+          <p>The prepared lab exports Controller access for <code>awx</code>. Use a keytab-backed IdM runtime credential for production-style runs; the Calabi demo can use the password fallback.</p>
+          <pre><code class="language-bash">export TOWER_HOST='https://controller.example'
+export TOWER_USERNAME='blastwall-demo'
+export TOWER_PASSWORD='...'
+export TOWER_VERIFY_SSL=false
+
+# Prepared by the lab for Controller reconciliation:
+export CONTROLLER_HOST="${TOWER_HOST}"
+export CONTROLLER_USERNAME='admin'
+export CONTROLLER_PASSWORD='...'
+export IPA_PRINCIPAL='svc-ansible-runner'
+export IPA_KEYTAB='/path/to/svc-ansible-runner.keytab'</code></pre>
+        </section>
+
+        <section id="procedure">
+          <h2>Procedure</h2>
+          <h3>1. Prepare The Lab</h3>
           <p>Run the Calabi preparation from <code>bastion-01</code>. These playbooks build the execution environment, prepare the demo launcher, and reconcile the public AAP objects.</p>
           <pre><code class="language-bash">ansible-playbook poc-calabi/aap/00-aap-readiness.yml
 ansible-playbook poc-calabi/aap/05-configure-ee-registry.yml
@@ -50,10 +75,9 @@ ansible-playbook poc-calabi/aap/10-build-and-push-ee.yml
 ansible-playbook poc-calabi/aap/15-prepare-demo-user.yml
 ansible-playbook poc-calabi/aap/20-configure-controller.yml
 ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml</code></pre>
-        </section>
+          <p>Expected output: the execution environment is available, the demo launcher exists, and Controller contains the Blastwall project, inventory, credentials, and workflow template.</p>
 
-        <section>
-          <h2>Show The AAP Surface</h2>
+          <h3>2. Show The AAP Surface</h3>
           <p>Use <code>awx</code> for the operator-visible part of the exercise. This keeps the demonstration close to AAP instead of hiding the value inside setup playbooks.</p>
           <pre><code class="language-bash">awx ping | jq '{controller_version: .version, active_node, capacity: .instances[0].capacity}'
 awx me -f human
@@ -61,19 +85,22 @@ awx projects list --name Blastwall -f human
 awx inventories list --name 'Blastwall IdM Inventory' -f human
 awx inventory_sources list --name 'Blastwall IdM Inventory Source' -f human
 awx credentials list --name 'Blastwall IdM Runtime' -f human
-awx workflow_job_template_nodes list --workflow_job_template 13 -f json |
-  jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
-        </section>
+workflow_template_id="$(awx workflow_job_templates list --name 'Blastwall runtime verification' -f json | jq -r '.results[0].id')"
 
-        <section>
-          <h2>Launch And Read Evidence</h2>
+awx workflow_job_template_nodes list --workflow_job_template "${workflow_template_id}" -f json |
+  jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
+          <p>Expected output: <code>awx me</code> shows <code>blastwall-demo</code>, and the workflow nodes include project sync, credential smoke, inventory sync, preflight, and managed-host verification.</p>
+
+          <h3>3. Launch And Read Evidence</h3>
           <p>Launch the workflow, monitor it, then read the preflight and verification job stdout. The key result is not only that the workflow is green; it is that the selected host proves the SELinux context and denied exploit surfaces.</p>
-          <pre><code class="language-bash">awx workflow_job_templates launch 13 -f json |
+          <pre><code class="language-bash">awx workflow_job_templates launch "${workflow_template_id}" -f json |
   tee /tmp/blastwall-aap-launch.json |
   jq '{workflow_job, status, launched_by: .launched_by.name}'
 
 workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-aap-launch.json)"
+
 awx workflow_jobs monitor "${workflow_id}"
+
 awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
   tee /tmp/blastwall-aap-nodes.json |
   jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'
@@ -90,9 +117,20 @@ awx jobs stdout "${preflight_id}" |
 
 awx jobs stdout "${verify_id}" |
   grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|BLOCKED:'</code></pre>
+          <p>Expected output: the workflow finishes successfully, the selected host is <code>mirror-registry.workshop.lan</code>, the stale fixture is <code>stale-blastwall-01.workshop.lan</code>, and verification prints the confined SELinux context plus blocked probes.</p>
         </section>
 
-        <section>
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <ul>
+            <li>If the workflow name or id changed, resolve it by name with <code>awx workflow_job_templates list --name 'Blastwall runtime verification'</code>.</li>
+            <li>If inventory sync fails, rerun the Controller configuration play and confirm the <code>Blastwall IdM Runtime</code> credential can authenticate.</li>
+            <li>If preflight rejects the target, inspect the selected and stale host output before launching another verify job.</li>
+            <li>If the verification job is green but output is hard to read, use <code>awx jobs stdout "${verify_id}"</code> and grep for the SELinux context and <code>BLOCKED</code> lines.</li>
+          </ul>
+        </section>
+
+        <section id="expected-output">
           <h2>Expected Output</h2>
           <ul>
             <li>Controller reports the <code>blastwall-demo</code> launcher.</li>
@@ -103,6 +141,13 @@ awx jobs stdout "${verify_id}" |
             <li>BPF, packet_socket, userns, and io_uring probes print <code>BLOCKED</code>.</li>
             <li>AF_ALG may print <code>SKIP</code> when socket creation is denied before the authencesn bind path is reachable.</li>
           </ul>
+        </section>
+
+        <section id="cleanup">
+          <h2>Cleanup Or Reset</h2>
+          <p>Use reset steps only when the lab should be prepared for another replay. Do not reset between normal evidence reads.</p>
+          <pre><code class="language-bash">ansible-playbook poc-calabi/aap/20-configure-controller.yml
+ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml</code></pre>
         </section>
       </article>
 
@@ -115,9 +160,11 @@ awx jobs stdout "${verify_id}" |
         <section class="toc-block">
           <h2>Related</h2>
           <ol class="path-list">
-            <li><a href="./">Overview</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="idm-control-model.html">IdM Control Model</a></li>
             <li><a href="aap-demo.html">AAP Demo</a></li>
-            <li><a href="https://github.com/gprocunier/blastwall#aap-lab">README Section</a></li>
+            <li><a href="threat-model.html">Threat Model</a></li>
+            <li><a href="glossary.html">Glossary</a></li>
           </ol>
         </section>
       </aside>

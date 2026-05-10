@@ -27,12 +27,9 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="idm-control-model.html"><kbd>IdM Model</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
-          <a href="glossary.html"><kbd>Glossary</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
@@ -40,6 +37,12 @@
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
         <p class="lead">Blastwall is scoped to privileged automation identities on managed RHEL hosts. This threat model states what the boundary defends, what it assumes, and where the constraints stop working.</p>
+
+        <section id="read-this-first">
+          <h2>Read This First</h2>
+          <p>The boundary is useful only while these facts remain true: IdM is trusted, AAP is trusted as a gate and evidence surface, the managed-host kernel enforces SELinux, and the automation session lands in <code>blastwall_u:blastwall_r:blastwall_t:s0</code>. If those facts do not hold, the model fails open or becomes only an audit story.</p>
+          <p>The highest residual risks are blunt: sudo expansion can erode the boundary, host markers can be stale or spoofed, and uncovered kernel surfaces remain outside current policy coverage until the deny lifecycle adds them.</p>
+        </section>
 
         <section id="scope">
           <h2>1. Purpose and Scope</h2>
@@ -81,8 +84,8 @@
           <p>AI-accelerated vulnerability research changes that side of the equation. The volume of discoverable kernel exploit surfaces will increase faster than patch cycles can absorb them. Blastwall assumes confinement must be in place before the CVE number is assigned, not after.</p>
 
           <h3>What This Means For Confinement</h3>
-          <p>The model is intentionally proactive. Automation identities start inside a boundary that blocks broad classes of dangerous surfaces by default, and the lifecycle can add new deny scopes faster than kernel patches move through the fleet.</p>
-          <p>That is the design constraint behind Blastwall's architecture: versioned policy RPMs, IdM-visible coverage markers, and AAP preflight gates that fail closed when the required coverage is not present.</p>
+          <p>The model has two sides. It can react to a live CVE by moving a deny scope through policy source, RPM build, rollout, verification, host marker, and AAP preflight. It can also set posture before the next CVE arrives by removing low-value exploit surfaces from privileged automation accounts.</p>
+          <p>User namespace creation is the clearest current example. User namespaces often help exploit chains turn a local bug into a practical escalation path, and this automation identity has no expected reason to create them. That is the design constraint behind Blastwall's architecture: versioned policy RPMs, IdM-visible coverage markers, and AAP preflight gates that fail closed when the required coverage is not present. The <a href="day2-operations.html">Day 2 model</a> explains how operators choose and maintain that baseline.</p>
         </section>
 
         <section id="adversary">
@@ -163,7 +166,7 @@
 
           <h3>AP-2: Sudo Expansion Granting Policy Modification</h3>
           <p>An automation team expands the sudo command allowlist to include <code>semodule</code>, <code>semanage</code>, or write access to <code>/etc/selinux/</code>.  The <code>blastwall_t</code> domain can then modify or remove its own confinement policy.</p>
-          <p>This is the most likely operational failure mode. It does not require a sophisticated attacker; it happens when legitimate pressure expands the sudo allowlist until policy-management tools are included.</p>
+          <p>This is the most likely operational failure mode. It does not require a sophisticated attacker; it happens when legitimate pressure expands the sudo allowlist until policy-management tools are included. The <a href="demo.html#recording-guide">Ansible self-protection proof</a> and <a href="ansible-lab.html#procedure">Ansible Lab procedure</a> show the current direct-denial check.</p>
           <table>
             <tbody>
               <tr><td><strong>Preconditions</strong></td><td>Sudo rule expanded without security review of SELinux implications.</td></tr>
@@ -175,6 +178,7 @@
 
           <h3>AP-3: IdM Host Marker Spoofing</h3>
           <p>An attacker (or misconfigured automation) writes a false <code>blastwall_policy_state=active</code> marker to a host's IdM description. The preflight gate selects that host even though no policy is installed.</p>
+          <p>The <a href="architecture.html#evidence-loop">architecture evidence loop</a> treats markers as selection hints, not as enforcement proof. The AAP demo keeps the current and stale host output visible for this reason.</p>
           <table>
             <tbody>
               <tr><td><strong>Preconditions</strong></td><td>Attacker has <code>ipa host-mod</code> access.</td></tr>
@@ -207,7 +211,8 @@
           </table>
 
           <h3>AP-6: Uncovered Exploit Surfaces</h3>
-          <p>The attacker targets a kernel exploit surface not denied by current policy.  The policy now denies <code>alg_socket</code> (Copy Fail), <code>bpf</code> (CVE-2026-31525, CVE-2026-31429, CVE-2025-38154), <code>packet_socket</code> (CVE-2025-38617, CVE-2026-31504), <code>userns_create</code> (an exploit chain enabler; 44% of kernel exploits require user namespaces), and <code>io_uring</code> (CVE-2026-43006; uses a CIL optional block for kernel compatibility). It also protects the policy-management surface from direct modification by <code>blastwall_t</code>.</p>
+          <p>The attacker targets a kernel exploit surface not denied by current policy. The current proof covers AF_ALG, BPF, packet_socket, user namespace creation, io_uring, and direct policy self-protection. It does not imply every future kernel surface belongs in the policy; each new deny scope needs exploit signal, automation-impact review, and verification evidence.</p>
+          <p>The current coverage is visible in the <a href="demo.html#evidence-map">Ansible evidence map</a>, <a href="aap-demo.html#evidence-map">AAP evidence map</a>, and <a href="architecture.html#deny-lifecycle">deny lifecycle</a>.</p>
           <table>
             <tbody>
               <tr><td><strong>Preconditions</strong></td><td>Weaponized exploit exists for an uncovered surface.</td></tr>
@@ -270,6 +275,7 @@
           <h2>On This Page</h2>
           <ol class="path-list">
             <li><a href="#scope">Scope</a></li>
+            <li><a href="#read-this-first">Read First</a></li>
             <li><a href="#threat-landscape">Threat Landscape</a></li>
             <li><a href="#adversary">Adversary Model</a></li>
             <li><a href="#boundaries">Trust Boundaries</a></li>
@@ -285,7 +291,7 @@
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="glossary.html">Glossary</a> defines the AAP, IdM, SELinux, and kernel terms used in this threat model.</p>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="glossary.html">Glossary</a> defines the AAP, IdM, SELinux, and kernel terms used in this threat model.</p>
         </section>
       </aside>
     </main>

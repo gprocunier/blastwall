@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       workflow_template:
-        description: AAP workflow template id or name
+        description: AAP runtime verification workflow template id or name
         required: false
-        default: "13"
+        default: "Blastwall runtime verification"
 
 jobs:
   aap-enforcement-smoke:

@@ -1,0 +1,12 @@
+flowchart LR
+    RUNNERS["Runner choice<br/>GitHub Actions<br/>GitLab Runner<br/>Tekton<br/>AAP workflow"]
+    CONTRACT["Common contract<br/>build, test, prove, promote"]
+    EVIDENCE["Evidence bundle<br/>RPM + logs + probes"]
+    DECISION{"Promote?"}
+    CONTENT["Content repository<br/>policy RPM"]
+    AAP["AAP preflight<br/>verified hosts only"]
+    BRANCH["Return to branch<br/>fix or split identity"]
+
+    RUNNERS --> CONTRACT --> EVIDENCE --> DECISION
+    DECISION -->|"yes"| CONTENT --> AAP
+    DECISION -->|"no"| BRANCH

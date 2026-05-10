@@ -350,6 +350,14 @@
         ask_variables_on_launch: true
         state: present
 
+    - name: Ensure Blastwall policy pipeline workflow template exists
+      awx.awx.workflow_job_template:
+        name: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        inventory: "{{ blastwall_aap_inventory }}"
+        ask_variables_on_launch: true
+        state: present
+
     - name: Ensure workflow preflight node exists
       awx.awx.workflow_job_template_node:
         identifier: project_sync
@@ -391,6 +399,12 @@
         - deploy_policy
         - post_deploy_inventory_sync
 
+    - name: Remove stale policy rollout workflow template
+      awx.awx.workflow_job_template:
+        name: Blastwall policy rollout
+        organization: "{{ blastwall_aap_organization }}"
+        state: absent
+
     - name: Link workflow nodes
       awx.awx.workflow_job_template_node:
         identifier: "{{ item.identifier }}"
@@ -416,6 +430,78 @@
           template: Blastwall preflight
           success_nodes:
             - verify_managed_host
+
+    - name: Ensure policy pipeline sync nodes exist
+      awx.awx.workflow_job_template_node:
+        identifier: "{{ item.identifier }}"
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: "{{ item.template }}"
+        state: present
+      loop:
+        - identifier: policy_project_sync
+          template: "{{ blastwall_aap_project }}"
+        - identifier: policy_inventory_sync
+          template: "{{ blastwall_aap_inventory_source }}"
+        - identifier: post_promotion_inventory_sync
+          template: "{{ blastwall_aap_inventory_source }}"
+
+    - name: Ensure policy pipeline job nodes exist
+      awx.awx.workflow_job_template_node:
+        identifier: "{{ item.identifier }}"
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: "{{ item.template }}"
+        state: present
+      loop:
+        - identifier: build_policy_rpm
+          template: Blastwall build policy RPM
+        - identifier: install_candidate_policy_rpm
+          template: Blastwall install candidate policy RPM
+        - identifier: verify_candidate_host
+          template: Blastwall verify managed host
+        - identifier: promote_policy_marker
+          template: Blastwall promote policy marker
+        - identifier: post_promotion_preflight
+          template: Blastwall preflight
+
+    - name: Link policy pipeline workflow nodes
+      awx.awx.workflow_job_template_node:
+        identifier: "{{ item.identifier }}"
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: "{{ item.template }}"
+        success_nodes: "{{ item.success_nodes }}"
+        state: present
+      loop:
+        - identifier: policy_project_sync
+          template: "{{ blastwall_aap_project }}"
+          success_nodes:
+            - policy_inventory_sync
+        - identifier: policy_inventory_sync
+          template: "{{ blastwall_aap_inventory_source }}"
+          success_nodes:
+            - build_policy_rpm
+        - identifier: build_policy_rpm
+          template: Blastwall build policy RPM
+          success_nodes:
+            - install_candidate_policy_rpm
+        - identifier: install_candidate_policy_rpm
+          template: Blastwall install candidate policy RPM
+          success_nodes:
+            - verify_candidate_host
+        - identifier: verify_candidate_host
+          template: Blastwall verify managed host
+          success_nodes:
+            - promote_policy_marker
+        - identifier: promote_policy_marker
+          template: Blastwall promote policy marker
+          success_nodes:
+            - post_promotion_inventory_sync
+        - identifier: post_promotion_inventory_sync
+          template: "{{ blastwall_aap_inventory_source }}"
+          success_nodes:
+            - post_promotion_preflight
 
     - name: Grant optional launch user Blastwall organization membership
       awx.awx.role:
@@ -443,6 +529,7 @@
         job_templates: "{{ blastwall_aap_job_templates | map(attribute='name') | list }}"
         workflows:
           - "{{ blastwall_aap_workflow }}"
+          - "{{ blastwall_aap_policy_pipeline_workflow }}"
         state: present
       when: blastwall_aap_launch_user | length > 0
 
@@ -454,6 +541,7 @@
         lookup_organization: "{{ blastwall_aap_organization }}"
         workflows:
           - "{{ blastwall_aap_workflow }}"
+          - "{{ blastwall_aap_policy_pipeline_workflow }}"
         state: present
       when: blastwall_aap_launch_user | length > 0
 
@@ -466,3 +554,4 @@
           execution_environment: "{{ blastwall_aap_ee_name }}"
           image: "{{ blastwall_aap_ee_image }}"
           workflow: "{{ blastwall_aap_workflow }}"
+          policy_pipeline_workflow: "{{ blastwall_aap_policy_pipeline_workflow }}"

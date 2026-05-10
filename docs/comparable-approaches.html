@@ -23,12 +23,9 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="idm-control-model.html"><kbd>IdM Model</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
-          <a href="glossary.html"><kbd>Glossary</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
@@ -38,33 +35,43 @@
         <p class="lead">Blastwall is aimed at privileged automation security. That is a narrower and more useful claim than "Linux sandbox" or "runtime security tool." The critical path is a centrally governed automation identity becoming root on a managed host; Blastwall makes that path constrained, visible, and selectable before the job runs.</p>
 
         <section id="position">
-          <h2>Position</h2>
+          <h2>Evaluation Question</h2>
+          <p><strong>What is the right tool for privileged automation confinement?</strong></p>
           <p>Blastwall is a strong fit when the security problem is enterprise automation reaching many RHEL systems with delegated privilege. It is not trying to beat every low-level control at its own job. <a href="glossary.html#bpf-lsm">BPF LSM</a> is sharper for one kernel hook. <a href="glossary.html#seccomp">seccomp</a> is cleaner for reducing one process' syscall surface. <a href="glossary.html#falco">Falco</a> and <a href="glossary.html#tetragon">Tetragon</a> are better places to start when the primary problem is runtime detection or event-rich observability.</p>
-          <p>The more specific claim is stronger: for privileged automation security at fleet scale, Blastwall has the better operating shape because it joins the controls that already decide who may run, where they may run, what local domain they enter, and how AAP proves the host is current before touching it.</p>
+          <p>The useful comparison is scope fit. For privileged automation security at fleet scale, Blastwall joins the controls that already decide who may run, where they may run, what local domain they enter, and how AAP proves the host is current before touching it.</p>
         </section>
 
         <section id="roles">
           <h2>The Four Parts</h2>
-          <p>The design works because each part has a bounded role. AAP is not the policy authority, and IdM does not author SELinux policy. Each system stays in its natural lane.</p>
+          <p>The design works because authority is explicit. The policy authority for confinement is the versioned SELinux policy artifact installed on the managed host. IdM records who and what should be in scope. <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> reads that state into inventory facts. AAP acts on the facts and records the run. <a href="day2-operations.html">Day 2 Operations</a> explains where that policy source comes from and how operators maintain it.</p>
 
-          <div class="feature-grid" aria-label="Blastwall control-plane roles">
-            <section class="feature-item">
-              <h3>SELinux: Enforcement Boundary</h3>
-              <p>The managed host enforces the runtime shape. The automation session enters <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo can reach UID 0 without leaving that domain, and broad exploit surfaces are denied for that confined subject.</p>
-            </section>
-            <section class="feature-item">
-              <h3>IdM: Authority</h3>
-              <p>IdM is the system of record for the automation identity relationship: users, groups, HBAC, sudo rules, SELinux user maps, host groups, and host markers. It says which identity is allowed to arrive where and in what mapped SELinux shape.</p>
-            </section>
-            <section class="feature-item">
-              <h3>eigenstate.ipa: State Translator</h3>
-              <p><a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> turns IdM state into inventory-visible facts AAP can act on. It is the read-side lens that makes identity, host, and marker state usable without turning Controller into an IdM parser.</p>
-            </section>
-            <section class="feature-item">
-              <h3>AAP: Actuator</h3>
-              <p>AAP is the fleet execution surface. It syncs the project, syncs the IdM-backed inventory, runs preflight, chooses current hosts, launches verification, and leaves operator-readable evidence in the workflow and job stdout.</p>
-            </section>
-          </div>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>System</th><th>Role</th><th>Authority Line</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="System">SELinux policy artifact</td>
+                <td data-label="Role">Defines and enforces the host-local automation boundary.</td>
+                <td data-label="Authority Line">Owns the confinement rules and deny scopes on the managed host.</td>
+              </tr>
+              <tr>
+                <td data-label="System">IdM</td>
+                <td data-label="Role">Records automation identities, host scope, HBAC, sudo, login mapping, and host markers.</td>
+                <td data-label="Authority Line">Owns identity and access relationships; it does not author the SELinux policy.</td>
+              </tr>
+              <tr>
+                <td data-label="System"><code>eigenstate.ipa</code></td>
+                <td data-label="Role">Turns IdM records into inventory-visible suitability facts.</td>
+                <td data-label="Authority Line">Reads and translates state; it does not create access or policy.</td>
+              </tr>
+              <tr>
+                <td data-label="System">AAP</td>
+                <td data-label="Role">Syncs inventory, runs preflight, launches workflows, and records job logs.</td>
+                <td data-label="Authority Line">Acts on suitability facts; it does not create confinement by itself.</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
 
         <section id="scale-complex">
@@ -82,70 +89,73 @@
           <h2>Comparable Approaches</h2>
           <table class="comparison-table">
             <thead>
-              <tr>
-                <th>Approach</th>
-                <th>Primary Lever</th>
-                <th>Best Fit</th>
-                <th>Fit For This Scope</th>
-              </tr>
+              <tr><th>Approach</th><th>Primary Lever</th><th>Best Fit</th><th>Why It Is Not The Same Problem</th><th>Where It Pairs Well</th></tr>
             </thead>
             <tbody>
               <tr>
                 <td data-label="Approach"><strong>Blastwall</strong></td>
                 <td data-label="Primary Lever">SELinux, IdM, <code>eigenstate.ipa</code>, and AAP</td>
                 <td data-label="Best Fit">Privileged automation security across managed RHEL fleets.</td>
-                <td data-label="Fit For This Scope">Purpose-built for the whole path: identity authority, inventory truth, fleet actuation, and host enforcement.</td>
+                <td data-label="Why It Is Not The Same Problem">This is the scoped target: identity authority, inventory truth, AAP gate, host enforcement, and job-log reconciliation after <code>eigenstate.ipa</code> checks endpoint suitability.</td>
+                <td data-label="Where It Pairs Well">Pairs with precise mitigations, detection, and isolation as additional layers.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://github.com/atgreen/block-copyfail">block-copyfail</a></td>
                 <td data-label="Primary Lever">BPF LSM hook logic</td>
                 <td data-label="Best Fit">Argument-precise runtime mitigation for the Copy Fail <code>authencesn</code> AF_ALG bind path.</td>
-                <td data-label="Fit For This Scope">Excellent as a surgical mitigation. It does not address identity mapping, delegated sudo, host suitability, or fleet rollout by itself.</td>
+                <td data-label="Why It Is Not The Same Problem">It answers the exact kernel-argument question, not the identity, sudo, host suitability, and AAP workflow question.</td>
+                <td data-label="Where It Pairs Well">Use it when Copy Fail precision is required while Blastwall narrows what automation identities can reach.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://github.com/parmstro/cfDr">cfDr</a></td>
                 <td data-label="Primary Lever">Ansible detection and remediation</td>
                 <td data-label="Best Fit">Finding and correcting Copy Fail exposure with a focused playbook workflow.</td>
-                <td data-label="Fit For This Scope">Useful for response and remediation. The narrower gap is that identity-backed confinement is not the central control model.</td>
+                <td data-label="Why It Is Not The Same Problem">Its center of gravity is exposure handling, not identity-backed confinement before automation runs.</td>
+                <td data-label="Where It Pairs Well">Use response playbooks to find or remediate exposure, then use Blastwall-style markers and preflight for future suitability checks.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://man7.org/linux/man-pages/man2/seccomp.2.html">seccomp</a></td>
                 <td data-label="Primary Lever">Syscall filtering</td>
                 <td data-label="Best Fit">Reducing a process' syscall surface, especially for services and containers with predictable behavior.</td>
-                <td data-label="Fit For This Scope">Strong local hardening. It does not decide which enterprise automation identity may become privileged on which managed host.</td>
+                <td data-label="Why It Is Not The Same Problem">It is process-local filtering. The enterprise access decision still needs identity, sudo, inventory, and workflow state.</td>
+                <td data-label="Where It Pairs Well">Use it for stable helper processes inside the automation path when their syscall shape is predictable.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://nono.sh/linux-sandbox">nono</a></td>
                 <td data-label="Primary Lever"><a href="glossary.html#landlock">Landlock</a> and platform sandboxing</td>
                 <td data-label="Best Fit">Constraining AI agents or local development tools inside an allowed workspace.</td>
-                <td data-label="Fit For This Scope">Good local containment. It is aimed at workstation or agent execution boundaries rather than centrally governed privileged fleet automation.</td>
+                <td data-label="Why It Is Not The Same Problem">It is aimed at local workspace or agent boundaries rather than centrally governed privileged fleet automation.</td>
+                <td data-label="Where It Pairs Well">Use it around local tooling that prepares automation content before that content enters the fleet path.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://tetragon.io/docs/">Tetragon</a></td>
                 <td data-label="Primary Lever"><a href="glossary.html#ebpf">eBPF</a> observability and enforcement</td>
                 <td data-label="Best Fit">Runtime security observability, especially around process, file, network, and Kubernetes activity.</td>
-                <td data-label="Fit For This Scope">Strong runtime visibility and enforcement. It starts from observed behavior, not from the identity-to-privilege decision before a job runs.</td>
+                <td data-label="Why It Is Not The Same Problem">It starts from observed behavior and runtime policy, not from the identity-to-privilege decision before a job runs.</td>
+                <td data-label="Where It Pairs Well">Use it to observe or enforce runtime behavior around the automation path and alert on abnormal activity.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://falco.org/docs/">Falco</a></td>
                 <td data-label="Primary Lever">Runtime detection rules</td>
                 <td data-label="Best Fit">Alerting on suspicious host, container, Kubernetes, and cloud behavior.</td>
-                <td data-label="Fit For This Scope">Strong detection layer. It is better paired with a preventive boundary than used as the boundary for privileged automation rights.</td>
+                <td data-label="Why It Is Not The Same Problem">It detects suspicious behavior. It does not decide which automation identity may arrive in which SELinux domain.</td>
+                <td data-label="Where It Pairs Well">Use it as a detection layer when a confined automation path still behaves unexpectedly.</td>
               </tr>
               <tr>
                 <td data-label="Approach"><a href="https://gvisor.dev/docs/">gVisor</a></td>
                 <td data-label="Primary Lever">User-space application kernel</td>
                 <td data-label="Best Fit">Adding a stronger isolation boundary around containerized workloads.</td>
-                <td data-label="Fit For This Scope">Strong workload isolation. The fit is weaker for administrative automation that lands on existing RHEL hosts through SSH, sudo, IdM, and AAP.</td>
+                <td data-label="Why It Is Not The Same Problem">It isolates containerized workloads. Blastwall targets administrative automation landing on existing RHEL hosts through SSH, sudo, IdM, and AAP.</td>
+                <td data-label="Where It Pairs Well">Use it where the workload is containerized and host administrative automation is a separate path.</td>
               </tr>
             </tbody>
           </table>
         </section>
 
         <section id="best-fit">
-          <h2>Best Fit</h2>
-          <p>If the scope is privileged automation security, Blastwall is the best fit among these approaches because it treats privilege as an enterprise relationship, not only as a local process property. The subject is not just a process making a syscall. The subject is an automation identity granted remote access, mapped by central policy, using sudo, running through AAP, and touching a fleet.</p>
-          <p>The claim stays scoped. Blastwall does not replace block-copyfail for argument-precise Copy Fail mitigation. It does not replace seccomp, gVisor, Falco, or Tetragon in their natural lanes. It gives privileged automation a boundary that lines up with the way enterprises actually operate RHEL estates: identity first, host enforcement second, automation actuation third, and proof visible to the people running the fleet.</p>
+          <h2>Scope Verdict</h2>
+          <p>If the scope is privileged automation security, Blastwall fits because it treats privilege as an enterprise relationship, not only as a local process property. The subject is not just a process making a syscall. The subject is an automation identity granted remote access, mapped by central policy, using sudo, running through AAP, and touching a fleet.</p>
+          <p>The claim stays narrow. Blastwall does not replace block-copyfail for argument-precise Copy Fail mitigation. It does not replace seccomp, gVisor, Falco, or Tetragon in their natural lanes. It gives privileged automation a boundary that lines up with the way RHEL estates are commonly operated: identity first, host enforcement second, automation actuation third, and proof visible to the people running the fleet.</p>
         </section>
       </article>
 
@@ -162,7 +172,7 @@
             <li><a href="#roles">Four Parts</a></li>
             <li><a href="#scale-complex">Scale Complex</a></li>
             <li><a href="#comparison">Comparison</a></li>
-            <li><a href="#best-fit">Best Fit</a></li>
+            <li><a href="#best-fit">Scope Verdict</a></li>
           </ol>
         </section>
         <section class="source-block">
@@ -171,7 +181,7 @@
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="idm-control-model.html">IdM Control Model</a> explains the identity records behind the four-part model. <a href="glossary.html">Glossary</a> defines the dense security terms used in the comparison.</p>
+          <p><a href="architecture.html">Architecture</a> explains the control chain behind this decision record.</p>
         </section>
       </aside>
     </main>

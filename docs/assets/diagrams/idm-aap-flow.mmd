@@ -1,8 +1,8 @@
 flowchart TB
-    IDM["IdM / FreeIPA<br/>identity + host + policy truth"] --> EIGEN["eigenstate.ipa<br/>read policy state"]
-    EIGEN --> AAP["AAP preflight<br/>gate and target selection"]
+    IDM["IdM / FreeIPA<br/>provides identity, host, access, and marker truth"] --> EIGEN["eigenstate.ipa<br/>reads IdM state into inventory"]
+    EIGEN --> AAP["AAP preflight<br/>selects suitable targets before launch"]
     AAP --> SSH["SSH to managed host"]
-    SSH --> PAM["SSSD + pam_selinux<br/>apply SELinux user map"]
-    PAM --> BW["blastwall_u confined session"]
+    SSH --> PAM["SSSD + pam_selinux<br/>apply mapped login label"]
+    PAM --> BW["Confined automation session<br/>runs under host SELinux policy"]
     BW --> LOCAL["Local root work<br/>inside SELinux boundary"]
     BW --> BLOCK["Exploit surfaces denied<br/>by versioned policy"]

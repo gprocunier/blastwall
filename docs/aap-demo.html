@@ -23,11 +23,9 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="quick-demo.html"><kbd>AAP Lab</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
@@ -36,12 +34,21 @@
       <article class="content-column markdown-body">
         <p class="lead">This <a href="glossary.html#aap">AAP</a> path was recorded in <a href="glossary.html#calabi">Calabi</a> after the bootstrap proof was already working. AAP reads the state it needs, chooses a <a href="glossary.html#current-host">current host</a>, and verifies the confined runtime without making <a href="glossary.html#blastwall-t"><code>blastwall_t</code></a> responsible for changing SELinux policy.</p>
 
-        <section id="purpose">
-          <h2>Purpose</h2>
+        <section id="what-this-proves">
+          <h2>What This Proves</h2>
           <p>The bootstrap proof creates the <a href="glossary.html#idm">IdM</a> shape, deploys the policy, runs the probes directly, and reads the target audit log. The steady-state <a href="glossary.html#automation-controller">Controller</a> question is whether AAP can consume that state, fail closed before execution, and prove the selected host is still confined.</p>
           <p>The recorded path uses <a href="glossary.html#awx"><code>awx</code></a> for the operator-facing surface: Controller health, object inventory, workflow graph, launch, node status, and job stdout.</p>
           <p>The refreshed workflow includes a credential smoke node before inventory sync. That makes the AAP runtime credential a visible control, not an assumption hidden behind a later preflight failure.</p>
           <p>The operational split matters. Policy <a href="glossary.html#rpm">RPM</a> rollout and marker publication happen before this workflow. AAP reads those markers as selection hints, then the verification job proves the <a href="glossary.html#selinux-context">SELinux context</a> and denial behavior on the managed host.</p>
+        </section>
+
+        <section id="what-this-does-not-prove">
+          <h2>What This Does Not Prove</h2>
+          <ul>
+            <li>It does not prove that AAP enforces SELinux policy. AAP gates execution and records evidence; the managed host enforces.</li>
+            <li>It does not mutate policy from <code>blastwall_t</code>. The AAP path verifies current host state after policy rollout and marker publication already happened.</li>
+            <li>It does not prove host markers are sufficient by themselves. The verification job still checks the runtime context and denied probes on the selected host.</li>
+          </ul>
         </section>
 
         <section id="demo-player">
@@ -58,14 +65,14 @@
           ></div>
         </section>
 
-        <section id="output-to-notice">
-          <h2>Output To Notice</h2>
-          <p>These are the lines that carry the evidence.</p>
+        <section id="evidence-map">
+          <h2>Evidence Map</h2>
+          <p>Each group maps one claim to the line of output that carries it.</p>
 
           <h3>Controller session</h3>
           <pre><code class="language-text">{
   "controller_version": "4.7.10",
-  "active_node": "workshop-aap-controller-web-b94677797-tdxnb",
+  "active_node": "workshop-aap-controller-web-b94677797-n48df",
   "capacity": 320
 }
 
@@ -103,7 +110,7 @@ id name
 Runtime credential
 id name
 == =====================
-5  Blastwall IdM Runtime
+6  Blastwall IdM Runtime
 
 Machine credential
 id name
@@ -119,18 +126,18 @@ preflight           Blastwall preflight
 verify_managed_host Blastwall verify managed host
 
 {
-  "workflow_job": 332,
+  "workflow_job": 467,
   "status": "pending",
   "launched_by": "blastwall-demo"
 }</code></pre>
           <p>The workflow graph is visible before launch, and the launch response gives the workflow job id used for the rest of the evidence.</p>
 
           <h3>Workflow outcome</h3>
-          <pre><code class="language-text">project_sync        333 project_update successful
-credential_smoke   334 job            successful
-inventory_sync      335 inventory_update successful
-preflight           338 job            successful
-verify_managed_host 342 job            successful</code></pre>
+          <pre><code class="language-text">project_sync        468 project_update   successful
+inventory_sync      473 inventory_update successful
+credential_smoke   469 job              successful
+preflight           476 job              successful
+verify_managed_host 480 job              successful</code></pre>
           <p>The Controller-side result is clean: project sync, credential smoke, IdM inventory sync, preflight, and managed-host verification all finished successfully.</p>
 
           <h3>Credential smoke</h3>
@@ -166,8 +173,8 @@ BLOCKED: io_uring_setup denied with EPERM</code></pre>
           <p>The verify job is the host-local proof. The automation identity enters <code>blastwall_t</code>, sudo reaches UID 0 without leaving <code>blastwall_t</code>, and the demonstrated exploit surfaces are denied for that confined session.</p>
         </section>
 
-        <section id="what-it-proves">
-          <h2>Takeaways</h2>
+        <section id="expected-result">
+          <h2>Expected Result</h2>
           <ol>
             <li><code>awx</code> reaches Controller and authenticates as the IdM-backed demo launcher.</li>
             <li>The AAP objects are concrete: project, execution environment, IdM inventory source, runtime credential, machine credential, and workflow template.</li>
@@ -181,8 +188,8 @@ BLOCKED: io_uring_setup denied with EPERM</code></pre>
           </ol>
         </section>
 
-        <section id="sequence">
-          <h2>Execution Sequence</h2>
+        <section id="recording-guide">
+          <h2>Recording Guide</h2>
           <h3>1. Separate setup from verification</h3>
           <p>The cast starts by keeping the boundary honest. AAP is here to select a current host and verify runtime confinement. It is not the path that lets the confined automation identity mutate SELinux policy, install policy RPMs, or publish host markers.</p>
           <p>That split makes the demo stronger. Controller shows the project, inventory, workflow, launch user, node status, and job stdout. SELinux still owns enforcement on the managed host.</p>
@@ -208,12 +215,14 @@ awx me -f human</code></pre>
 awx execution_environments list --name 'Blastwall EE' -f human
 awx inventory_sources list --name 'Blastwall IdM Inventory Source' -f human
 awx credentials list --name 'Blastwall IdM Runtime' -f human
-awx workflow_job_template_nodes list --workflow_job_template 13 -f json |
+workflow_template_id="$(awx workflow_job_templates list --name 'Blastwall runtime verification' -f json | jq -r '.results[0].id')"
+
+awx workflow_job_template_nodes list --workflow_job_template "${workflow_template_id}" -f json |
   jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
           <p>This is the AAP-facing control surface: synced code, synced IdM inventory, runtime credentials, and the workflow graph.</p>
 
           <h3>4. Launch the workflow from AAP</h3>
-          <pre><code class="language-bash">awx workflow_job_templates launch 13 -f json |
+          <pre><code class="language-bash">awx workflow_job_templates launch "${workflow_template_id}" -f json |
   tee /tmp/blastwall-aap-launch.json |
   jq '{workflow_job, status, launched_by: .launched_by.name}'
 
@@ -224,12 +233,12 @@ awx workflow_jobs monitor "${workflow_id}"
 awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
   jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'</code></pre>
           <p>The workflow completes the credential smoke, inventory, preflight, and verification path and exposes the job ids used for evidence.</p>
-          <pre><code class="language-text">Launching Blastwall policy rollout...
- ↳ 333 - Blastwall successful
- ↳ 334 - Blastwall credential smoke successful
- ↳ 335 - Blastwall IdM Inventory - Blastwall IdM Inventory Source successful
- ↳ 338 - Blastwall preflight successful
- ↳ 342 - Blastwall verify managed host successful</code></pre>
+          <pre><code class="language-text">Launching Blastwall runtime verification...
+ ↳ 468 - Blastwall successful
+ ↳ 469 - Blastwall credential smoke successful
+ ↳ 473 - Blastwall IdM Inventory - Blastwall IdM Inventory Source successful
+ ↳ 476 - Blastwall preflight successful
+ ↳ 480 - Blastwall verify managed host successful</code></pre>
 
           <h3>5. Read credential, preflight, and verification evidence</h3>
           <pre><code class="language-bash">credential_id="$(jq -r '.results[] | select(.identifier == "credential_smoke") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
@@ -245,6 +254,11 @@ awx jobs stdout "${preflight_id}" |
 awx jobs stdout "${verify_id}" |
   grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|BLOCKED:'</code></pre>
           <p>The first query proves the runtime credential. The second query shows the Controller-side gate and host selection. The third query shows the host-local result: confined login context, sudo confinement, and denied exploit surfaces.</p>
+        </section>
+
+        <section id="replay-link">
+          <h2>Replay Link</h2>
+          <p>Use <a href="quick-demo.html">AAP Lab</a> when you want the task-first procedure for replaying this Controller proof from a prepared Calabi lab.</p>
         </section>
 
         <section id="does-not-claim">
@@ -268,21 +282,23 @@ awx jobs stdout "${verify_id}" |
         <section class="toc-block">
           <h2>On This Page</h2>
           <ol class="path-list">
-            <li><a href="#purpose">Purpose</a></li>
+            <li><a href="#what-this-proves">Proves</a></li>
+            <li><a href="#what-this-does-not-prove">Does Not Prove</a></li>
             <li><a href="#demo-player">AAP Demo</a></li>
-            <li><a href="#output-to-notice">Output</a></li>
-            <li><a href="#what-it-proves">Takeaways</a></li>
-            <li><a href="#sequence">Sequence</a></li>
+            <li><a href="#evidence-map">Evidence Map</a></li>
+            <li><a href="#expected-result">Expected Result</a></li>
+            <li><a href="#recording-guide">Recording Guide</a></li>
+            <li><a href="#replay-link">Replay</a></li>
             <li><a href="#does-not-claim">Boundaries</a></li>
           </ol>
         </section>
         <section class="source-block">
           <h2>Recorded Result</h2>
-          <p>The AAP evidence path should show successful project sync, credential smoke, IdM inventory sync, preflight, and managed-host verification nodes.</p>
+          <p>Workflow <code>467</code> completed with successful project sync, credential smoke, IdM inventory sync, preflight, and managed-host verification nodes.</p>
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="quick-demo.html">AAP Lab</a> is the replay path for the Controller workflow and verification output. <a href="glossary.html">Glossary</a> defines the AAP and SELinux terms used here.</p>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="idm-control-model.html">IdM Control Model</a> explains the records AAP reads before launch. <a href="glossary.html">Glossary</a> defines the AAP and SELinux terms used here.</p>
         </section>
       </aside>
     </main>

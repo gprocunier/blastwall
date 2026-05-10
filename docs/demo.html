@@ -23,11 +23,9 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="ansible-lab.html"><kbd>Ansible Lab</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
@@ -36,8 +34,8 @@
       <article class="content-column markdown-body">
         <p class="lead">This Blastwall proof was recorded in <a href="glossary.html#calabi">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. Calabi gives this run a real <a href="glossary.html#idm">IdM</a> server, bastion host, mirror registry, <a href="glossary.html#kerberos">Kerberos</a> flow, and managed endpoint; Blastwall itself does not require Calabi.</p>
 
-        <section id="purpose">
-          <h2>Purpose</h2>
+        <section id="what-this-proves">
+          <h2>What This Proves</h2>
           <p>This demo shows the whole control path without requiring <a href="glossary.html#aap">AAP</a>. AAP is not needed to prove the local behavior: the same IdM state AAP would consume is visible before the mutation step, and the final denial is enforced by the target host <a href="glossary.html#selinux">SELinux</a> policy.</p>
           <p>The run starts from <code>bastion-01</code>, uses <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
           <p>The observable flow is:</p>
@@ -49,6 +47,15 @@
             <li>The AF_ALG/authencesn, BPF, packet_socket, userns, and io_uring probes are blocked for that mapped automation session.</li>
             <li>The target audit log shows denied <code>socket</code>, <code>bpf</code>, and namespace syscall evidence for <code>blastwall_t</code>; the <code>io_uring</code> denial is visible in the probe output.</li>
             <li>A temporary sudo expansion exposes <code>/usr/sbin/semodule</code>, and SELinux still prevents the automation identity from removing a deny module.</li>
+          </ul>
+        </section>
+
+        <section id="what-this-does-not-prove">
+          <h2>What This Does Not Prove</h2>
+          <ul>
+            <li>It does not compete with the AAP demo as the main operator-facing proof. This is the bootstrap and host-local proof.</li>
+            <li>It does not require AAP to prove the local behavior. AAP later consumes and records the state shown here.</li>
+            <li>It does not run live exploit payloads. The probes exercise safe entry points that should be denied before useful exploit behavior.</li>
           </ul>
         </section>
 
@@ -66,8 +73,8 @@
           ></div>
         </section>
 
-        <section id="what-it-proves">
-          <h2>What The Demo Proves</h2>
+        <section id="evidence-map">
+          <h2>Evidence Map</h2>
           <ol>
             <li>The IdM side is not assumed. It is queried before the endpoint enforcement play runs.</li>
             <li>The inventory candidate view includes <code>mirror-registry.workshop.lan</code> through the Blastwall policy objects.</li>
@@ -83,8 +90,8 @@
           </ol>
         </section>
 
-        <section id="sequence">
-          <h2>Execution Sequence</h2>
+        <section id="recording-guide">
+          <h2>Recording Guide</h2>
           <h3>1. Start from the bastion-local PoC tree</h3>
           <pre><code class="language-bash">pwd
 cd ~/blastwall/poc-calabi</code></pre>
@@ -156,6 +163,16 @@ grep -E \
           <p>The self-protection play temporarily adds <code>/usr/sbin/semodule</code> to the Blastwall sudo command group, verifies the automation identity can see that sudo expansion, then attempts to remove a deny module. Sudo is not the final boundary: SELinux denies <code>semodule</code> from <code>blastwall_t</code>, and the deny modules remain installed.</p>
         </section>
 
+        <section id="expected-result">
+          <h2>Expected Result</h2>
+          <p>A successful bootstrap proof shows the mapped context <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving that context, blocked AF_ALG, BPF, packet_socket, userns, and io_uring probes, audit evidence on the target host, and a self-protection denial when the confined automation identity attempts policy manipulation.</p>
+        </section>
+
+        <section id="replay-link">
+          <h2>Replay Link</h2>
+          <p>Use <a href="ansible-lab.html">Ansible Lab</a> for the task-first replay procedure. Use <a href="poc-flow.html">Lab Flow</a> for the compact full runbook.</p>
+        </section>
+
         <section id="does-not-claim">
           <h2>Scope Notes</h2>
           <ul>
@@ -177,16 +194,19 @@ grep -E \
         <section class="toc-block">
           <h2>On This Page</h2>
           <ol class="path-list">
-            <li><a href="#purpose">Purpose</a></li>
+            <li><a href="#what-this-proves">Proves</a></li>
+            <li><a href="#what-this-does-not-prove">Does Not Prove</a></li>
             <li><a href="#demo-player">Ansible Demo</a></li>
-            <li><a href="#what-it-proves">Proof Points</a></li>
-            <li><a href="#sequence">Sequence</a></li>
+            <li><a href="#evidence-map">Evidence Map</a></li>
+            <li><a href="#recording-guide">Recording Guide</a></li>
+            <li><a href="#expected-result">Expected Result</a></li>
+            <li><a href="#replay-link">Replay</a></li>
             <li><a href="#does-not-claim">Boundaries</a></li>
           </ol>
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="ansible-lab.html">Ansible Lab</a> turns the same playbook chain into a replay exercise. <a href="glossary.html">Glossary</a> defines the lab and kernel terms used here.</p>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="poc-flow.html">Lab Flow</a> traces the playbook chain behind the recording. <a href="glossary.html">Glossary</a> defines the lab and kernel terms used here.</p>
         </section>
       </aside>
     </main>

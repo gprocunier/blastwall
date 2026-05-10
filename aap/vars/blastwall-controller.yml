@@ -75,6 +75,21 @@ blastwall_aap_registry_password: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_PASSWORD') | default('', true) }}
 
 blastwall_aap_job_templates:
+  - name: Blastwall build policy RPM
+    playbook: playbooks/build-policy-rpm.yml
+    credentials:
+      - "{{ blastwall_aap_machine_credential }}"
+    limit: blastwall_policy_current
+  - name: Blastwall install candidate policy RPM
+    playbook: playbooks/install-policy-rpm.yml
+    credentials:
+      - "{{ blastwall_aap_machine_credential }}"
+    limit: blastwall_policy_current
+  - name: Blastwall promote policy marker
+    playbook: playbooks/promote-policy-rpm.yml
+    credentials:
+      - "{{ blastwall_aap_idm_credential }}"
+    limit: blastwall_policy_current
   - name: Blastwall credential smoke
     playbook: playbooks/credential-smoke.yml
     credentials:
@@ -92,4 +107,5 @@ blastwall_aap_job_templates:
       - "{{ blastwall_aap_machine_credential }}"
     limit: blastwall_policy_current
 
-blastwall_aap_workflow: Blastwall policy rollout
+blastwall_aap_workflow: Blastwall runtime verification
+blastwall_aap_policy_pipeline_workflow: Blastwall policy pipeline

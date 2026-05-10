@@ -6,12 +6,16 @@ const pages = [
   "index.html",
   "demo.html",
   "aap-demo.html",
+  "architecture.html",
   "ansible-lab.html",
   "comparable-approaches.html",
+  "day2-operations.html",
   "glossary.html",
   "idm-control-model.html",
   "poc-flow.html",
   "quick-demo.html",
+  "reference.html",
+  "selinux-control-model.html",
   "threat-model.html"
 ];
 
@@ -27,18 +31,7 @@ const pageSlug = (path) => path.replace(/\.html$/, "").replace(/^index$/, "home"
 const docsRoot = path.resolve(__dirname, "../../docs");
 const repoRoot = path.resolve(__dirname, "../..");
 
-const expectedNav = {
-  "index.html": ["Ansible Demo", "AAP Demo", "Comparison", "Threat Model", "Source"],
-  "demo.html": ["Overview", "Ansible Lab", "Comparison", "Threat Model", "Source"],
-  "aap-demo.html": ["Overview", "AAP Lab", "Comparison", "Threat Model", "Source"],
-  "ansible-lab.html": ["Overview", "Ansible Demo", "Ansible Lab", "Lab Flow", "Comparison", "Source"],
-  "quick-demo.html": ["Overview", "AAP Demo", "AAP Lab", "Comparison", "Source"],
-  "poc-flow.html": ["Overview", "Ansible Demo", "Ansible Lab", "PoC Source"],
-  "glossary.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"],
-  "idm-control-model.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"],
-  "comparable-approaches.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"],
-  "threat-model.html": ["Overview", "IdM Model", "Comparison", "Threat Model", "Glossary", "Source"]
-};
+const expectedHighValueNav = ["GitHub Repo", "eigenstate.ipa", "Ansible Galaxy"];
 
 const markdownHeadingAnchor = (heading) => heading
   .toLowerCase()
@@ -186,16 +179,69 @@ test.describe("GitHub Pages rendering", () => {
     await expect(lightbox).toBeHidden();
   });
 
-  test("site nav matches the intended page map", async ({ page }, testInfo) => {
+  test("site nav is reserved for high-value destinations", async ({ page }, testInfo) => {
     const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
 
-    for (const [path, expectedLabels] of Object.entries(expectedNav)) {
+    for (const path of pages) {
       await page.goto(`${baseUrl}/${path}`, { waitUntil: "domcontentloaded" });
       const labels = await page.locator(".site-header__actions a").evaluateAll((links) =>
         links.map((link) => link.textContent.trim())
       );
-      expect(labels, path).toEqual(expectedLabels);
+      expect(labels, path).toEqual(expectedHighValueNav);
     }
+  });
+
+  test("docs accordion shows the active document branch", async ({ page }, testInfo) => {
+    const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
+
+    await page.goto(`${baseUrl}/quick-demo.html`, { waitUntil: "domcontentloaded" });
+
+    const groups = await page.locator(".docs-map__group summary").evaluateAll((summaries) =>
+      summaries.map((summary) => summary.textContent.trim())
+    );
+    expect(groups).toEqual(["Start Here", "Control Models", "Demos And Labs", "Security Review", "Reference"]);
+
+    const current = page.locator(".docs-map a[aria-current='page']");
+    await expect(current).toHaveText("AAP Lab");
+    await expect(current.locator("xpath=ancestor::details[contains(@class, 'docs-map__group')]")).toHaveAttribute("open", "");
+
+    const demoLinks = await page.locator(".docs-map__group", { hasText: "Demos And Labs" }).locator("a").evaluateAll((links) =>
+      links.map((link) => link.textContent.trim())
+    );
+    expect(demoLinks).toEqual(["AAP Demo", "AAP Lab", "Ansible Demo", "Ansible Lab", "Ansible Lab Flow"]);
+  });
+
+  test("glossary hash targets clear the sticky header", async ({ page }, testInfo) => {
+    const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
+
+    await page.setViewportSize({ width: 733, height: 427 });
+    await page.goto(`${baseUrl}/glossary.html#selinux-context`, { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => document.fonts?.status === "loaded");
+    await page.waitForTimeout(250);
+
+    const result = await page.evaluate(() => {
+      const header = document.querySelector(".site-header").getBoundingClientRect();
+      const target = document.getElementById("selinux-context").getBoundingClientRect();
+
+      return {
+        headerBottom: Math.round(header.bottom),
+        targetTop: Math.round(target.top)
+      };
+    });
+
+    expect(result.targetTop).toBeGreaterThanOrEqual(result.headerBottom + 16);
+  });
+
+  test("malformed hashes do not break site JavaScript", async ({ page }, testInfo) => {
+    const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    await page.goto(`${baseUrl}/glossary.html#%E0%A4%A`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(250);
+
+    expect(pageErrors).toEqual([]);
+    await expect(page.locator(".site-brand__title")).toBeVisible();
   });
 
   test("local and repository hash links resolve", async () => {
@@ -229,6 +275,10 @@ test.describe("GitHub Pages rendering", () => {
         }
 
         if (href.startsWith("https://github.com/gprocunier/blastwall")) {
+          continue;
+        }
+
+        if (/^https?:\/\//.test(href)) {
           continue;
         }
 

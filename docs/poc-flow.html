@@ -23,17 +23,16 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="demo.html"><kbd>Ansible Demo</kbd></a>
-          <a href="ansible-lab.html"><kbd>Ansible Lab</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi"><kbd>PoC Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
 
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">This is the source-level playbook flow behind the recorded Calabi proof. It shows exactly where the lab runs, which playbooks build the state, and what evidence should appear when the SELinux confinement is working.</p>
+        <p class="lead">This is the source-level runbook behind the recorded Calabi proof. It shows where the lab runs, which playbooks build the state, and what evidence should appear when the SELinux confinement is working.</p>
 
         <p>The flow configures <a href="glossary.html#idm">IdM</a>, validates the read-side gate with <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a>, builds a policy <a href="glossary.html#rpm">RPM</a>, deploys it, and proves <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, <a href="glossary.html#io-uring">io_uring</a>, and self-protection denials from a mapped automation identity on the <a href="glossary.html#calabi">Calabi</a> lab target <code>mirror-registry.workshop.lan</code>, then reads the target <a href="glossary.html#audit-log">audit log</a> for <a href="glossary.html#selinux">SELinux</a> evidence.</p>
 
@@ -53,12 +52,24 @@ export BLASTWALL_AUTO_PASSWORD='...'</code></pre>
 
         <section>
           <h2>Run Order</h2>
-          <pre><code>ansible-playbook 00-preflight.yml
+          <p>Run the steps in order. The early playbooks create the identity and read-side state; the later playbooks mutate the managed host and prove enforcement.</p>
+          <pre><code class="language-bash">ansible-playbook 00-preflight.yml
 ansible-playbook 10-configure-idm.yml
 ansible-playbook 15-validate-idm-with-eigenstate.yml
 ansible-playbook 20-build-policy-rpm.yml
 ansible-playbook 30-deploy-and-test.yml
 ansible-playbook 35-test-self-protection.yml</code></pre>
+        </section>
+
+        <section>
+          <h2>Retry Points</h2>
+          <ul>
+            <li>Rerun <code>00-preflight.yml</code> when connectivity or inventory looks wrong.</li>
+            <li>Rerun <code>10-configure-idm.yml</code> when identities, groups, HBAC, sudo, or SELinux maps drift.</li>
+            <li>Rerun <code>15-validate-idm-with-eigenstate.yml</code> before deployment whenever IdM state changed.</li>
+            <li>Rerun <code>20-build-policy-rpm.yml</code> only when policy source or package metadata changed.</li>
+            <li>Rerun <code>30-deploy-and-test.yml</code> when the managed-host proof needs fresh evidence.</li>
+          </ul>
         </section>
 
         <section>
@@ -76,6 +87,12 @@ ansible-playbook 35-test-self-protection.yml</code></pre>
             <li>A target-side audit-log query shows SELinux denial evidence for <code>blastwall_t</code>.</li>
           </ul>
         </section>
+
+        <section>
+          <h2>Cleanup</h2>
+          <p>Use cleanup only when the lab should return to a baseline state for another recording or replay. Do not run cleanup between normal evidence reads.</p>
+          <pre><code class="language-bash">ansible-playbook 99-cleanup.yml</code></pre>
+        </section>
       </article>
 
       <aside class="side-column" aria-label="Page context">
@@ -87,9 +104,10 @@ ansible-playbook 35-test-self-protection.yml</code></pre>
         <section class="toc-block">
           <h2>Related</h2>
           <ol class="path-list">
-            <li><a href="./">Overview</a></li>
-            <li><a href="demo.html">Ansible Demo</a></li>
-            <li><a href="ansible-lab.html">Ansible Lab</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="idm-control-model.html">IdM Control Model</a></li>
+            <li><a href="threat-model.html">Threat Model</a></li>
+            <li><a href="glossary.html">Glossary</a></li>
             <li><a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi">PoC Source</a></li>
           </ol>
         </section>

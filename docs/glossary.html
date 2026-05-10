@@ -23,47 +23,48 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="idm-control-model.html"><kbd>IdM Model</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
-          <a href="glossary.html"><kbd>Glossary</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
 
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
-        <p class="lead">This glossary defines the terms that carry the Blastwall argument. The definitions are practical: what the term means in this project, and why it matters for privileged automation security.</p>
+        <p class="lead">This glossary defines the terms used across the Blastwall docs. The definitions are intentionally short and practical, so demo and explanation pages can move without stopping to expand every platform, identity, SELinux, kernel, or lab term.</p>
 
         <section id="platform-identity">
           <h2>Platform And Identity</h2>
           <dl class="glossary-list">
             <dt id="aap">AAP</dt>
-            <dd>Ansible Automation Platform. In Blastwall, AAP is the fleet execution surface: it syncs code and inventory, runs preflight checks, launches workflows, and leaves operator-readable evidence.</dd>
+            <dd><a href="https://www.redhat.com/en/technologies/management/ansible">Ansible Automation Platform</a>. In Blastwall, AAP is the fleet execution surface: it syncs code and inventory, runs preflight checks, launches workflows, and leaves operator-readable evidence.</dd>
             <dt id="automation-controller">Automation Controller</dt>
-            <dd>The AAP control plane formerly associated with AWX/Tower. Blastwall uses Controller workflow templates, job templates, credentials, inventory sources, and job stdout as the visible demo surface.</dd>
+            <dd>The <a href="https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform">AAP</a> control plane formerly associated with AWX/Tower. Blastwall uses Controller workflow templates, job templates, credentials, inventory sources, and job stdout as the visible demo surface.</dd>
             <dt id="awx">awx</dt>
-            <dd>The command-line client used to interact with Automation Controller. The AAP demo uses <code>awx</code> so the operator path is visible instead of hidden inside setup playbooks.</dd>
+            <dd>The <a href="https://github.com/ansible/awx">AWX</a> command-line client used to interact with Automation Controller. The AAP demo uses <code>awx</code> so the operator path is visible instead of hidden inside setup playbooks.</dd>
             <dt id="execution-environment">Execution Environment</dt>
-            <dd>An AAP container image that carries the Ansible runtime and dependencies needed by a job. Blastwall's execution environment includes the IdM and Kerberos pieces needed for inventory and preflight.</dd>
+            <dd>An <a href="https://ansible.readthedocs.io/projects/builder/en/latest/">Ansible execution environment</a> container image that carries the Ansible runtime and dependencies needed by a job. Blastwall's execution environment includes the IdM and Kerberos pieces needed for inventory and preflight.</dd>
             <dt id="idm">IdM</dt>
-            <dd>Red Hat Identity Management. IdM is the central authority for automation identities, host groups, HBAC, sudo rules, SELinux user maps, and host markers.</dd>
+            <dd><a href="https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/managing_idm_users_groups_hosts_and_access_control_rules/index">Red Hat Identity Management</a>. IdM is the central authority for automation identities, host groups, HBAC, sudo rules, SELinux user maps, and host markers. See <a href="idm-control-model.html">IdM Control Model</a>.</dd>
             <dt id="freeipa">FreeIPA</dt>
-            <dd>The upstream identity project behind Red Hat IdM. The docs use FreeIPA when discussing the general identity technology and IdM when discussing the RHEL enterprise shape.</dd>
+            <dd>The <a href="https://www.freeipa.org/">upstream identity project</a> behind Red Hat IdM. The docs use FreeIPA when discussing the general identity technology and IdM when discussing the RHEL enterprise shape.</dd>
             <dt id="eigenstate-ipa">eigenstate.ipa</dt>
-            <dd>An Ansible collection that reads IdM state and exposes it as inventory-visible facts. Blastwall uses it as the state translator between IdM records and AAP preflight decisions.</dd>
+            <dd>An <a href="https://gprocunier.github.io/eigenstate-ipa/">Ansible collection</a> that reads IdM state and exposes it as inventory-visible facts. Blastwall uses it as the state translator between IdM records and AAP preflight decisions.</dd>
             <dt id="hbac">HBAC</dt>
             <dd>Host-Based Access Control. In IdM, an HBAC rule decides whether a user or group may log in to a host or host group through a service such as SSH.</dd>
             <dt id="sssd">SSSD</dt>
-            <dd>System Security Services Daemon. On the managed host, SSSD reads IdM identity and policy state and participates in applying the correct login mapping.</dd>
+            <dd>The <a href="https://sssd.io/">managed-host service</a> that reads IdM identity and policy state during login and participates in applying the correct local mapping.</dd>
             <dt id="pam-selinux">pam_selinux</dt>
-            <dd>The PAM module that applies SELinux login context during authentication. In Blastwall, it is part of the path that turns an IdM SELinux user map into a local session context.</dd>
+            <dd>The <a href="https://man7.org/linux/man-pages/man8/pam_selinux.8.html">PAM module</a> that applies SELinux login context during authentication. In Blastwall, it is part of the path that turns an IdM SELinux user map into a local session context.</dd>
             <dt id="sudo">sudo</dt>
-            <dd>The delegated privilege mechanism used after login. Blastwall allows sudo to reach UID 0 while SELinux keeps the session inside the confined automation domain.</dd>
+            <dd>The <a href="https://www.sudo.ws/">delegated privilege mechanism</a> used after login. Blastwall allows sudo to reach UID 0 while SELinux keeps the session inside the confined automation domain.</dd>
             <dt id="preflight">preflight</dt>
             <dd>A fail-closed suitability check that runs before target execution. Blastwall preflight checks identity mapping, HBAC, sudo, host markers, and inventory state before selecting a host.</dd>
+            <dt id="ci-cd">CI/CD</dt>
+            <dd>Continuous integration and continuous delivery. In the Blastwall posture story, CI/CD is the pipeline discipline for building, testing, promoting, and tightening SELinux policy artifacts instead of leaving deny scopes as one-off local edits.</dd>
+            <dt id="baseline-disposition">baseline disposition</dt>
+            <dd>The current operator decision about what a class of privileged automation should normally be allowed to do. See <a href="day2-operations.html#baseline-disposition">Day 2 baseline disposition</a>.</dd>
           </dl>
         </section>
 
@@ -71,9 +72,9 @@
           <h2>SELinux And Blastwall Model</h2>
           <dl class="glossary-list">
             <dt id="selinux">SELinux</dt>
-            <dd>Security-Enhanced Linux. Blastwall uses SELinux as the host-local enforcement boundary for the automation session after it reaches a managed RHEL host.</dd>
+            <dd><a href="https://github.com/SELinuxProject/selinux">Security-Enhanced Linux</a>. Blastwall uses SELinux as the host-local enforcement boundary for the automation session after it reaches a managed RHEL host. See <a href="selinux-control-model.html">SELinux Control Model</a>.</dd>
             <dt id="selinux-context">SELinux context</dt>
-            <dd>The label attached to a process or object. A process context such as <code>blastwall_u:blastwall_r:blastwall_t:s0</code> contains a user, role, type, and level.</dd>
+            <dd>The label attached to a process or object. A process context such as <code>blastwall_u:blastwall_r:blastwall_t:s0</code> contains a user, role, type, and level. See <a href="selinux-control-model.html#context-shape">context shape</a>.</dd>
             <dt id="selinux-user">SELinux user</dt>
             <dd>The SELinux identity component of a context. Blastwall maps automation logins into <code>blastwall_u</code> rather than an unconfined user.</dd>
             <dt id="selinux-role">SELinux role</dt>
@@ -81,21 +82,27 @@
             <dt id="selinux-type">SELinux type/domain</dt>
             <dd>The SELinux enforcement type for a process or object. For a process, the type is often called a domain; Blastwall's confined automation domain is <code>blastwall_t</code>.</dd>
             <dt id="blastwall-u">blastwall_u</dt>
-            <dd>The SELinux user assigned to mapped automation sessions in this proof of concept.</dd>
+            <dd>The Blastwall SELinux user. The <code>_u</code> suffix follows SELinux convention for the user component of a context.</dd>
             <dt id="blastwall-r">blastwall_r</dt>
-            <dd>The SELinux role used with the Blastwall automation user mapping.</dd>
+            <dd>The Blastwall SELinux role. The <code>_r</code> suffix follows SELinux convention for the role component of a context.</dd>
             <dt id="blastwall-t">blastwall_t</dt>
-            <dd>The confined SELinux domain that carries Blastwall's deny rules for privileged automation.</dd>
+            <dd>The Blastwall SELinux type/domain. The <code>_t</code> suffix follows SELinux convention for the type component; for a running process, that type is usually called the domain.</dd>
             <dt id="host-marker">host marker</dt>
             <dd>An IdM-visible claim written after local verification succeeds. AAP can read host markers during inventory sync, but markers are not proof by themselves.</dd>
             <dt id="coverage-marker">coverage marker</dt>
             <dd>A host marker for a specific policy coverage claim, such as <code>blastwall_policy_bpf=denied</code>. It helps AAP select hosts that match the job's required deny scopes.</dd>
-            <dt id="current-host">current host</dt>
-            <dd>A host whose identity, access, mapping, and policy markers satisfy the preflight requirements for the job.</dd>
+            <dt id="current-host">current eligible host</dt>
+            <dd>A host that preflight can target because its identity access, login mapping, and required policy coverage are current for the job.</dd>
             <dt id="stale-host">stale host</dt>
             <dd>A host that is visible but does not satisfy the current policy or coverage requirements for the job.</dd>
             <dt id="deny-scope">deny scope</dt>
-            <dd>A named exploit surface or policy-management surface that Blastwall denies for the confined automation domain.</dd>
+            <dd>A named exploit surface, policy-management surface, or posture-hardening surface that Blastwall denies for the confined automation domain. A deny scope can start as a response to a live CVE or as a proactive decision that privileged automation should not have a low-value capability.</dd>
+            <dt id="policy-source">policy source</dt>
+            <dd>The SELinux source files under <code>policy/</code>: the base <code>blastwall.te</code> reference-policy module and the CIL deny scopes. See <a href="day2-operations.html#where-policy-comes-from">where policy comes from</a>.</dd>
+            <dt id="policy-artifact">policy artifact</dt>
+            <dd>The built, versioned SELinux policy package that is installed on managed hosts and then verified before marker state is published.</dd>
+            <dt id="targeted-policy">targeted policy</dt>
+            <dd>The standard RHEL SELinux policy model Blastwall builds against. Day 2 work uses that baseline as the substrate, then prunes risky or low-value surfaces from the automation domain.</dd>
           </dl>
         </section>
 
@@ -103,21 +110,23 @@
           <h2>Kernel And Exploit Surfaces</h2>
           <dl class="glossary-list">
             <dt id="bpf-lsm">BPF LSM</dt>
-            <dd>A way to attach BPF programs to Linux Security Module decision points. It can be very precise because it can inspect hook arguments, such as the algorithm name in an AF_ALG bind.</dd>
+            <dd>A <a href="https://docs.kernel.org/bpf/prog_lsm.html">Linux security hook mechanism</a> that attaches small BPF programs to access-control decisions. It can be very precise because it can inspect hook arguments, such as the algorithm name in an AF_ALG bind.</dd>
             <dt id="ebpf">eBPF</dt>
-            <dd>Extended Berkeley Packet Filter, a programmable kernel facility used for tracing, networking, observability, and some enforcement. BPF LSM is one specific eBPF security use case.</dd>
+            <dd><a href="https://ebpf.io/">Extended Berkeley Packet Filter</a>, a programmable kernel facility used for tracing, networking, observability, and some enforcement. BPF LSM is one specific eBPF security use case.</dd>
             <dt id="bpf">BPF</dt>
-            <dd>The kernel facility and syscall family used to create BPF maps and load BPF programs. Blastwall's BPF probe checks that confined automation cannot create maps or load programs.</dd>
+            <dd>The <a href="https://docs.kernel.org/bpf/">kernel facility and syscall family</a> used to create BPF maps and load BPF programs. Blastwall's BPF probe checks that confined automation cannot create maps or load programs.</dd>
             <dt id="af-alg">AF_ALG</dt>
-            <dd>The Linux kernel socket family for using kernel cryptographic algorithms from user space. Copy Fail reaches the vulnerable path through this interface.</dd>
+            <dd>The <a href="https://www.kernel.org/doc/html/latest/crypto/userspace-if.html">Linux kernel socket family</a> for using kernel cryptographic algorithms from user space. Copy Fail reaches the vulnerable path through this interface.</dd>
+            <dt id="copy-fail">Copy Fail</dt>
+            <dd>The <a href="https://copy.fail/">public exploit write-up and proof</a> that motivates Blastwall's first concrete deny-scope example.</dd>
             <dt id="authencesn">authencesn</dt>
-            <dd>The specific authenticated encryption template shape associated with the Copy Fail exploit path. Blastwall blocks the broader AF_ALG surface for mapped automation instead of matching this argument.</dd>
+            <dd>The specific authenticated encryption template shape associated with the <a href="https://copy.fail/">Copy Fail</a> exploit path. Blastwall blocks the broader AF_ALG surface for mapped automation instead of matching this argument.</dd>
             <dt id="seccomp">seccomp</dt>
-            <dd>A Linux syscall filtering mechanism. It is useful when a process has a predictable syscall surface and should not be allowed to call outside it.</dd>
+            <dd>A <a href="https://man7.org/linux/man-pages/man2/seccomp.2.html">Linux syscall filtering mechanism</a>. It is useful when a process has a predictable syscall surface and should not be allowed to call outside it.</dd>
             <dt id="io-uring">io_uring</dt>
-            <dd>A high-performance Linux asynchronous I/O interface. It has been an important kernel exploit surface, so Blastwall treats access to it as low-value for privileged automation and blocks it.</dd>
+            <dd>A <a href="https://man7.org/linux/man-pages/man2/io_uring_setup.2.html">high-performance Linux asynchronous I/O interface</a>. It has been an important kernel exploit surface, so Blastwall treats access to it as low-value for privileged automation and blocks it.</dd>
             <dt id="userns">userns</dt>
-            <dd>User namespaces. They let a process create a namespace with different user and capability mappings, and they are often useful as an exploit-chain enabler.</dd>
+            <dd><a href="https://man7.org/linux/man-pages/man7/user_namespaces.7.html">User namespaces</a>. They let a process create a namespace with different user and capability mappings, and they are often useful as an exploit-chain enabler. Blastwall blocks user namespace creation for the confined automation path as a proactive posture decision.</dd>
             <dt id="packet-socket">packet_socket</dt>
             <dd>The SELinux object class associated with raw packet socket use. Blastwall denies this surface for confined automation.</dd>
             <dt id="af-packet">AF_PACKET</dt>
@@ -125,11 +134,11 @@
             <dt id="syscall">syscall</dt>
             <dd>A system call: a request from user space into the kernel. Several Blastwall probes verify that sensitive syscalls or socket operations fail before reaching useful exploit behavior.</dd>
             <dt id="cil">CIL</dt>
-            <dd>SELinux Common Intermediate Language. Blastwall uses CIL for deny rules and optional policy blocks.</dd>
+            <dd><a href="https://github.com/SELinuxProject/cil">SELinux Common Intermediate Language</a>, a policy language used after policy source is compiled. Blastwall uses CIL for deny rules and optional policy blocks.</dd>
             <dt id="audit-log">audit log</dt>
             <dd>The host log stream that records security-relevant events, including SELinux denials. Blastwall reads target audit logs to show host-local enforcement evidence.</dd>
             <dt id="avc">AVC</dt>
-            <dd>Access Vector Cache. In practice, an AVC denial is the SELinux audit record showing that policy blocked an attempted access.</dd>
+            <dd>The SELinux audit record showing that policy blocked an attempted access.</dd>
           </dl>
         </section>
 
@@ -137,21 +146,21 @@
           <h2>Lab And Operations</h2>
           <dl class="glossary-list">
             <dt id="calabi">Calabi</dt>
-            <dd>The nested-KVM lab environment used to record and validate Blastwall. It provides a real IdM server, bastion host, mirror registry, Kerberos flow, and managed endpoint.</dd>
+            <dd>The <a href="https://github.com/gprocunier/calabi">nested-KVM lab environment</a> used to record and validate Blastwall. It provides a real IdM server, bastion host, mirror registry, Kerberos flow, and managed endpoint.</dd>
             <dt id="bastion">bastion</dt>
             <dd>The controlled jump and execution host for lab playbooks. Blastwall's Calabi runs stage and execute from <code>bastion-01</code>, not directly from the workstation.</dd>
             <dt id="mirror-registry">mirror registry</dt>
             <dd>The lab container registry used to host the Blastwall execution environment image for AAP.</dd>
             <dt id="gssapi">GSSAPI</dt>
-            <dd>A generic security API used here for Kerberos-backed SSH authentication. It lets the automation identity connect without plain SSH passwords.</dd>
+            <dd>A <a href="https://web.mit.edu/kerberos/krb5-latest/doc/appdev/gssapi.html">standard interface</a> used here for Kerberos-backed SSH authentication. It lets the automation identity connect without plain SSH passwords.</dd>
             <dt id="kerberos">Kerberos</dt>
-            <dd>A ticket-based authentication protocol used by IdM. Blastwall uses Kerberos tickets or keytabs for the automation identity path.</dd>
+            <dd>A <a href="https://web.mit.edu/kerberos/">ticket-based authentication protocol</a> used by IdM. Blastwall uses Kerberos tickets or keytabs for the automation identity path.</dd>
             <dt id="keytab">keytab</dt>
             <dd>A file containing Kerberos principal keys. Production-style AAP runs should prefer a least-privilege service principal with a keytab over password fallback.</dd>
             <dt id="rpm">RPM</dt>
-            <dd>The package format used by RHEL. Blastwall treats SELinux policy as a versioned RPM artifact so normal content lifecycle tools can stage, promote, audit, and roll it back.</dd>
+            <dd>The <a href="https://rpm.org/">package format</a> used by RHEL. Blastwall treats SELinux policy as a versioned RPM artifact so normal content lifecycle tools can stage, promote, audit, and roll it back.</dd>
             <dt id="satellite">Satellite</dt>
-            <dd>Red Hat Satellite, a content and lifecycle management platform for RHEL estates. The docs mention it as a natural place to stage and promote policy RPMs.</dd>
+            <dd><a href="https://www.redhat.com/en/technologies/management/satellite">Red Hat Satellite</a>, a content and lifecycle management platform for RHEL estates. The docs mention it as a natural place to stage and promote policy RPMs.</dd>
           </dl>
         </section>
 
@@ -159,20 +168,41 @@
           <h2>Comparable Tools</h2>
           <dl class="glossary-list">
             <dt id="block-copyfail">block-copyfail</dt>
-            <dd>Anthony Green's BPF LSM proof of concept that blocks the Copy Fail <code>authencesn</code> AF_ALG bind path with kernel-argument precision.</dd>
+            <dd><a href="https://github.com/atgreen/block-copyfail">Anthony Green's BPF LSM proof of concept</a> that blocks the Copy Fail <code>authencesn</code> AF_ALG bind path with kernel-argument precision.</dd>
             <dt id="cfdr">cfDr</dt>
-            <dd>An Ansible detection and remediation approach for Copy Fail exposure.</dd>
+            <dd>An <a href="https://github.com/parmstro/cfDr">Ansible detection and remediation approach</a> for Copy Fail exposure.</dd>
             <dt id="nono">nono</dt>
-            <dd>A local sandboxing approach aimed at constraining AI agents or development tools inside allowed workspaces.</dd>
+            <dd>A <a href="https://nono.sh/linux-sandbox">local sandboxing approach</a> aimed at constraining AI agents or development tools inside allowed workspaces.</dd>
             <dt id="landlock">Landlock</dt>
-            <dd>A Linux security feature for unprivileged filesystem sandboxing. nono uses Landlock as part of its containment model.</dd>
+            <dd>A <a href="https://landlock.io/">Linux security feature</a> for unprivileged filesystem sandboxing. nono uses Landlock as part of its containment model.</dd>
             <dt id="falco">Falco</dt>
-            <dd>A runtime detection and alerting tool for suspicious host, container, Kubernetes, and cloud behavior.</dd>
+            <dd>A <a href="https://falco.org/">runtime detection and alerting tool</a> for suspicious host, container, Kubernetes, and cloud behavior.</dd>
             <dt id="tetragon">Tetragon</dt>
-            <dd>An eBPF-based runtime observability and enforcement tool focused on process, file, network, and Kubernetes activity.</dd>
+            <dd>An <a href="https://tetragon.io/">eBPF-based runtime observability and enforcement tool</a> focused on process, file, network, and Kubernetes activity.</dd>
             <dt id="gvisor">gVisor</dt>
-            <dd>A container isolation project that adds a user-space application kernel between workloads and the host kernel.</dd>
+            <dd>A <a href="https://gvisor.dev/">container isolation project</a> that adds a user-space application kernel between workloads and the host kernel.</dd>
           </dl>
+        </section>
+
+        <section id="naming-note">
+          <h2>Naming Note</h2>
+          <p>The current AAP recording uses <code>blastwall-demo</code> as the Controller launcher and <code>svc-ansible-runner</code> as the IdM-backed runtime identity. The selected managed host is <code>mirror-registry.workshop.lan</code>; <code>stale-blastwall-01.workshop.lan</code> is a fixture for preflight rejection. <code>automation-endpoint</code> is the generic Ansible inventory group used by lab playbooks.</p>
+        </section>
+
+        <section id="reference-links">
+          <h2>Reference Links</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Category</th><th>Proof</th><th>Configuration</th><th>Exact Names</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Category">AAP</td><td data-label="Proof"><a href="aap-demo.html#evidence-map">AAP evidence map</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/aap">AAP source</a></td><td data-label="Exact Names"><a href="reference.html#aap-objects">AAP objects</a></td></tr>
+              <tr><td data-label="Category">IdM</td><td data-label="Proof"><a href="demo.html#recording-guide">Ansible proof guide</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/idm">IdM source</a></td><td data-label="Exact Names"><a href="reference.html#idm-records">IdM records</a></td></tr>
+              <tr><td data-label="Category">SELinux</td><td data-label="Proof"><a href="selinux-control-model.html#deny-scopes">Deny scopes</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/policy">Policy source</a></td><td data-label="Exact Names"><a href="reference.html#selinux-contexts">SELinux contexts</a></td></tr>
+              <tr><td data-label="Category">Kernel surfaces</td><td data-label="Proof"><a href="demo.html#evidence-map">Probe evidence</a></td><td data-label="Configuration"><a href="https://github.com/gprocunier/blastwall/tree/main/tests">Probe source</a></td><td data-label="Exact Names"><a href="reference.html#probes">Probe scripts</a></td></tr>
+              <tr><td data-label="Category">Lab</td><td data-label="Proof"><a href="ansible-lab.html#expected-output">Expected output</a></td><td data-label="Configuration"><a href="poc-flow.html">Lab flow</a></td><td data-label="Exact Names"><a href="reference.html#lab-names">Lab names</a></td></tr>
+            </tbody>
+          </table>
         </section>
       </article>
 
@@ -190,7 +220,13 @@
             <li><a href="#kernel-security">Kernel Security</a></li>
             <li><a href="#lab-operations">Lab Operations</a></li>
             <li><a href="#comparable-tools">Comparable Tools</a></li>
+            <li><a href="#naming-note">Naming Note</a></li>
+            <li><a href="#reference-links">Reference Links</a></li>
           </ol>
+        </section>
+        <section class="source-block">
+          <h2>Reference</h2>
+          <p><a href="reference.html">Reference</a> lists exact objects, probes, artifacts, expected outputs, and lab names.</p>
         </section>
       </aside>
     </main>

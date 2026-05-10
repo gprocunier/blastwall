@@ -1,0 +1,13 @@
+flowchart TB
+    SOURCE["Git policy source<br/>selected branch"]
+    FACTS["IdM inventory facts<br/>current markers"]
+    BUILD["Build + install<br/>candidate RPM"]
+    PROOF{"Host proof<br/>passes?"}
+    MARKER["Promote marker<br/>policy version + scopes"]
+    GATE["Inventory + preflight<br/>AAP selects current host"]
+    REFINE["Return to branch<br/>fix policy or split identity"]
+
+    SOURCE --> BUILD --> PROOF
+    FACTS --> PROOF
+    PROOF -->|"yes"| MARKER --> GATE
+    PROOF -->|"no"| REFINE --> SOURCE

@@ -1,0 +1,9 @@
+flowchart LR
+    FEATURE["Feature branch<br/>new deny scope"]
+    REVIEW["Review + merge<br/>operator approval"]
+    MAIN["Main branch<br/>master policy baseline"]
+    BUILD["Build policy RPM<br/>unit checks"]
+    PROVE["Staging replay<br/>safe probes"]
+    PROMOTE["Promote artifact<br/>content repo + AAP gate"]
+
+    FEATURE --> REVIEW --> MAIN --> BUILD --> PROVE --> PROMOTE

@@ -23,12 +23,9 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="./"><kbd>Overview</kbd></a>
-          <a href="idm-control-model.html"><kbd>IdM Model</kbd></a>
-          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
-          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
-          <a href="glossary.html"><kbd>Glossary</kbd></a>
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
       </div>
     </header>
@@ -90,6 +87,24 @@
           </table>
         </section>
 
+        <section id="real-object-map">
+          <h2>Real Object Map</h2>
+          <p>The analogy is only a warmup. This table maps the job-site language back to the current lab object names.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Job-Site Term</th><th>Blastwall Object</th><th>Where It Appears</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Job-Site Term">Automation crew</td><td data-label="Blastwall Object"><code>svc-ansible-runner</code></td><td data-label="Where It Appears">Kerberos principal, IdM user, Ansible proof, AAP runtime credential.</td></tr>
+              <tr><td data-label="Job-Site Term">Dispatcher</td><td data-label="Blastwall Object"><code>Blastwall runtime verification</code></td><td data-label="Where It Appears">AAP workflow template.</td></tr>
+              <tr><td data-label="Job-Site Term">Records office</td><td data-label="Blastwall Object">IdM / FreeIPA</td><td data-label="Where It Appears">HBAC, sudo, SELinux user map, groups, host markers.</td></tr>
+              <tr><td data-label="Job-Site Term">Query desk</td><td data-label="Blastwall Object"><code>eigenstate.ipa</code></td><td data-label="Where It Appears">AAP inventory source and Ansible read-side gate.</td></tr>
+              <tr><td data-label="Job-Site Term">Job site</td><td data-label="Blastwall Object"><code>mirror-registry.workshop.lan</code></td><td data-label="Where It Appears">Selected current host in the recorded proof.</td></tr>
+              <tr><td data-label="Job-Site Term">Inspection tag</td><td data-label="Blastwall Object">Host marker</td><td data-label="Where It Appears">IdM-visible verified coverage fact consumed by inventory sync.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
         <section id="walkthrough">
           <h2>Concrete Walkthrough</h2>
           <p>In the lab, think of <code>svc-ansible-runner</code> as the automation crew and <code>mirror-registry.workshop.lan</code> as the job site. A valid Blastwall run needs the following chain to line up:</p>
@@ -123,16 +138,21 @@
         </section>
 
         <section id="failure-modes">
-          <h2>What Can Go Wrong</h2>
-          <p>Each failure points to a specific missing or weak record:</p>
-          <ul>
-            <li><strong>Missing automation group membership:</strong> the identity is not part of the Blastwall automation population.</li>
-            <li><strong>Missing hostgroup membership:</strong> the host is not an eligible target for that automation population.</li>
-            <li><strong>Missing HBAC:</strong> the identity is not allowed to enter the host through the expected login service.</li>
-            <li><strong>Missing SELinux user map:</strong> the login does not receive the <code>blastwall_u:s0</code> shape.</li>
-            <li><strong>Over-broad sudo:</strong> privilege delegation is wider than the workflow needs, even if SELinux still confines the session.</li>
-            <li><strong>Stale host marker:</strong> AAP may see old coverage state, so verification has to refresh or reject it before launch.</li>
-          </ul>
+          <h2>Failure Modes</h2>
+          <p>Each failure points to a specific missing or weak record.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Missing Or Weak State</th><th>Operator Symptom</th><th>Where To Look</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Missing Or Weak State">Automation group membership</td><td data-label="Operator Symptom">The identity is not part of the Blastwall automation population.</td><td data-label="Where To Look">IdM group membership and credential smoke output.</td></tr>
+              <tr><td data-label="Missing Or Weak State">Hostgroup membership</td><td data-label="Operator Symptom">The host is visible but not eligible for the workflow.</td><td data-label="Where To Look">IdM hostgroup and <code>eigenstate.ipa</code> inventory facts.</td></tr>
+              <tr><td data-label="Missing Or Weak State">HBAC rule</td><td data-label="Operator Symptom">SSH access fails or preflight refuses the target.</td><td data-label="Where To Look"><code>blastwall-ssh</code> and SSSD login behavior.</td></tr>
+              <tr><td data-label="Missing Or Weak State">SELinux user map</td><td data-label="Operator Symptom">The login does not receive <code>blastwall_u:s0</code>.</td><td data-label="Where To Look"><code>blastwall-root-local-map</code>, SSSD, and <code>id -Z</code>.</td></tr>
+              <tr><td data-label="Missing Or Weak State">Sudo rule</td><td data-label="Operator Symptom">Root delegation fails, or the delegated command set is broader than intended.</td><td data-label="Where To Look"><code>blastwall-root-local-sudo</code> and self-protection proof.</td></tr>
+              <tr><td data-label="Missing Or Weak State">Host marker</td><td data-label="Operator Symptom">AAP sees stale coverage or rejects the host before verification.</td><td data-label="Where To Look">Inventory sync, preflight selected/stale host output, and local verification job.</td></tr>
+            </tbody>
+          </table>
         </section>
 
         <section id="where-to-see-it">
@@ -153,6 +173,7 @@
             <li><a href="#why-idm-matters">Why IdM Matters</a></li>
             <li><a href="#dispatch-analogy">Dispatch Analogy</a></li>
             <li><a href="#identity-records">IdM Records</a></li>
+            <li><a href="#real-object-map">Real Object Map</a></li>
             <li><a href="#walkthrough">Walkthrough</a></li>
             <li><a href="#aap-selection">AAP Selection</a></li>
             <li><a href="#runtime-boundary">Runtime Boundary</a></li>
@@ -166,7 +187,7 @@
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="glossary.html">Glossary</a> defines the identity and SELinux terms used on this page.</p>
+          <p><a href="architecture.html">Architecture</a> explains the full control chain. <a href="selinux-control-model.html">SELinux Control Model</a> explains the host-local boundary. <a href="day2-operations.html">Day 2 Operations</a> explains how policy source becomes baseline posture.</p>
         </section>
       </aside>
     </main>

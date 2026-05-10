@@ -7,7 +7,7 @@
     - ../group_vars/all.yml
     - vars/calabi-aap.yml
   vars:
-    calabi_blastwall_workflow: Blastwall policy rollout
+    calabi_blastwall_workflow: Blastwall runtime verification
   tasks:
     - name: Read Calabi demo password fallback from OpenShift
       ansible.builtin.shell: |

@@ -16,7 +16,15 @@
 }
 
 * { box-sizing: border-box; }
-html { font-size: 16px; scroll-behavior: smooth; }
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--blastwall-anchor-offset, 14rem);
+}
+
+:target {
+  scroll-margin-top: var(--blastwall-anchor-offset, 14rem);
+}
 body {
   margin: 0;
   background: linear-gradient(180deg, #ffffff 0, #ffffff 8rem, var(--rh-sand) 8rem, var(--rh-sand) 100%);
@@ -140,7 +148,7 @@ a {
 
 .page-shell {
   display: grid;
-  grid-template-columns: minmax(0, var(--rh-body-width)) minmax(220px, var(--rh-sidebar-width));
+  grid-template-columns: minmax(240px, var(--rh-sidebar-width)) minmax(0, var(--rh-body-width));
   gap: 3rem;
   padding-top: 2rem;
   padding-bottom: 4rem;
@@ -151,16 +159,19 @@ a {
 .side-column { min-width: 0; }
 
 .content-column {
+  grid-column: 2;
   padding: 2rem 2.4rem 3rem;
   background: #ffffff;
   border: 1px solid var(--rh-gray-20);
 }
 
 .page-shell--wide {
-  grid-template-columns: minmax(0, 980px) minmax(220px, var(--rh-sidebar-width));
+  grid-template-columns: minmax(240px, var(--rh-sidebar-width)) minmax(0, 980px);
 }
 
 .side-column {
+  grid-column: 1;
+  grid-row: 1;
   position: sticky;
   top: 7rem;
 }
@@ -424,6 +435,7 @@ a {
 
 .feature-item,
 .context-block,
+.docs-map,
 .toc-block,
 .source-block {
   border: 1px solid var(--rh-gray-20);
@@ -466,6 +478,7 @@ a {
 .workflow-list li { margin-bottom: 0.5rem; }
 
 .context-block,
+.docs-map,
 .toc-block,
 .source-block {
   margin-bottom: 1rem;
@@ -473,6 +486,7 @@ a {
 }
 
 .context-block h2,
+.docs-map h2,
 .toc-block h2,
 .source-block h2 {
   margin: 0 0 0.6rem;
@@ -484,6 +498,94 @@ a {
 }
 
 .context-block--meta { border-top: 3px solid var(--rh-red); }
+
+.docs-map {
+  border-top: 3px solid var(--rh-red);
+}
+
+.docs-map__group {
+  border-top: 1px solid var(--rh-gray-20);
+}
+
+.docs-map__group:first-of-type {
+  border-top: 0;
+}
+
+.docs-map__group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.35rem;
+  margin: 0;
+  padding: 0.55rem 0;
+  color: var(--rh-gray-90);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.docs-map__group summary::-webkit-details-marker {
+  display: none;
+}
+
+.docs-map__group summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-left: 0.65rem;
+  border: 1px solid var(--rh-gray-40);
+  color: var(--rh-gray-80);
+  font-size: 1rem;
+  line-height: 1.2rem;
+  text-align: center;
+}
+
+.docs-map__group[open] summary::after {
+  content: "-";
+  color: #ffffff;
+  background: var(--rh-red);
+  border-color: var(--rh-red);
+}
+
+.docs-map__group summary:hover,
+.docs-map__group summary:focus {
+  color: var(--rh-red-dark);
+}
+
+.docs-map__links {
+  display: grid;
+  gap: 0.2rem;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.docs-map__links a {
+  display: block;
+  padding: 0.45rem 0.55rem;
+  border-left: 3px solid transparent;
+  color: inherit;
+  font-size: 0.94rem;
+  line-height: 1.25;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.docs-map__links a:hover,
+.docs-map__links a:focus {
+  color: var(--rh-red-dark);
+  background: var(--rh-gray-10);
+  border-left-color: var(--rh-gray-40);
+}
+
+.docs-map__links a.is-current {
+  color: var(--rh-red-dark);
+  background: var(--rh-gray-10);
+  border-left-color: var(--rh-red);
+  font-weight: 700;
+}
 
 .context-kicker {
   margin: 0 0 0.3rem;
@@ -538,6 +640,11 @@ a {
 
 @media (max-width: 980px) {
   .page-shell { grid-template-columns: 1fr; gap: 1.5rem; }
+  .content-column,
+  .side-column {
+    grid-column: auto;
+    grid-row: auto;
+  }
   .side-column { position: static; }
   .feature-grid { grid-template-columns: 1fr; }
   .stage-flow__stages,
@@ -612,6 +719,7 @@ a {
   margin: 1.35rem 0 2rem;
   border: 1px solid var(--rh-gray-20);
   background: #ffffff;
+  overflow-x: auto;
 }
 
 .diagram-card figcaption {
@@ -746,11 +854,13 @@ a {
 }
 
 .diagram-card .diagram-artifact {
+  box-sizing: border-box;
   display: block;
   width: 100%;
   max-width: 100%;
   height: auto;
   margin: 0 auto;
+  padding: 0.85rem;
   background: #ffffff;
   cursor: zoom-in;
 }
@@ -761,6 +871,18 @@ a {
 
 #candidate-flow .diagram-artifact {
   width: min(100%, 40rem);
+}
+
+#day2-aap-policy-pipeline .diagram-artifact {
+  width: min(100%, 34rem);
+}
+
+#day2-aap-node-evidence .diagram-artifact {
+  width: min(100%, 38rem);
+}
+
+#day2-calabi-runner-boundary .diagram-artifact {
+  width: min(100%, 28rem);
 }
 
 .diagram-card--focus .diagram-artifact {

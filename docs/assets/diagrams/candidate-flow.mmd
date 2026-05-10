@@ -1,9 +1,9 @@
-flowchart TD
-    JOB["AAP job declares required coverage"] --> REQ["Required markers<br/>policy version + scopes"]
-    REQ --> H1{"Host A markers<br/>0.1.0 alg_socket"}
-    REQ --> H2{"Host B markers<br/>0.5.0 alg_socket + bpf + packet_socket + userns + io_uring + self-protect"}
-    H1 -->|missing new scope| STALE["Eligible but stale<br/>skip or remediate"]
-    H2 -->|all required scopes| SELECT["Preferred candidate"]
-    STALE --> REMEDIATE["Run policy update workflow"]
-    REMEDIATE --> MARKER["Refresh IdM marker"]
-    MARKER --> SELECT
+flowchart LR
+    JOB["AAP job<br/>required coverage"] --> REQ["Required markers<br/>policy version + scopes"]
+    REQ --> H1{"Host A<br/>older marker"}
+    REQ --> H2{"Host B<br/>current marker set"}
+    H1 -->|"missing scope"| STALE["Stale candidate<br/>skip or remediate"]
+    STALE --> REMEDIATE["Policy update<br/>workflow"]
+    REMEDIATE --> MARKER["Refresh<br/>IdM marker"]
+    MARKER --> H2
+    H2 -->|"all scopes"| SELECT["Preferred<br/>candidate"]

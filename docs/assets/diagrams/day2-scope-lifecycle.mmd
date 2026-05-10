@@ -1,0 +1,10 @@
+flowchart LR
+    DECISION["Scope decision<br/>CVE or hardening goal"] --> SOURCE["CIL deny scope<br/>plus guard"]
+    SOURCE --> BUILD["Build RPM<br/>content pipeline"]
+    BUILD --> REPLAY["Replay automation<br/>staging corpus"]
+    REPLAY --> PASS{"Baseline<br/>still works?"}
+    PASS -->|"no"| REFINE["Refine allow<br/>or split identity"]
+    REFINE --> SOURCE
+    PASS -->|"yes"| PROBE["Safe probe<br/>blocked output + audit"]
+    PROBE --> MARKER["Verified marker<br/>version + scope"]
+    MARKER --> PROMOTE["Promote baseline<br/>AAP can trust it"]
