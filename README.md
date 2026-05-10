@@ -50,23 +50,48 @@ move through the fleet.
 A formal threat model covering scope, trust boundaries, adversary capabilities,
 and concrete attack paths is in [`THREAT-MODEL.md`](THREAT-MODEL.md).
 
-## Calabi Demo
+## Demo Paths
 
-The GitHub Pages demo in [`docs/demo.html`](docs/demo.html) was recorded in
+The GitHub Pages site is the best starting point:
+[`gprocunier.github.io/blastwall`](https://gprocunier.github.io/blastwall/).
+
+Start with the
+[`AAP Demo`](https://gprocunier.github.io/blastwall/aap-demo.html) when the
+goal is the show path: Controller health, object inventory, workflow launch,
+preflight, node status, job stdout, and managed-host verification.  That is the
+operator-facing path I would show first.
+
+Use the
+[`Ansible Demo`](https://gprocunier.github.io/blastwall/demo.html) when the
+goal is to inspect the bootstrap proof and host-local mechanics.  It shows the
+PoC from `bastion-01`: IdM creates and proves `svc-ansible-runner`,
+`eigenstate.ipa` validates the read-side gate, direct GSSAPI SSH probes land in
+`blastwall_u:blastwall_r:blastwall_t:s0`, the target audit log shows denied
+AF_ALG, BPF, packet_socket, and userns activity, the io_uring probe shows
+`io_uring_setup` blocked, and the final self-protection step proves SELinux
+blocks a sudo-expanded `semodule` breakout.
+
+Both recordings were made in
 [`Calabi`](https://gprocunier.github.io/calabi/), my lab project for folding a
 realistic disconnected OpenShift and support-services environment into a
-controlled nested-KVM system. In Blastwall, Calabi is not a required platform.
+controlled nested-KVM system. Calabi is not a required platform for Blastwall.
 It is the validation lab I used because it gives the proof a real IdM server,
 bastion host, mirror registry, Kerberos flow, and managed endpoint instead of a
 mock topology.
 
-The demo shows the PoC from `bastion-01`: IdM creates and proves
-`svc-ansible-runner`, `eigenstate.ipa` validates the read-side gate, direct
-GSSAPI SSH probes land in `blastwall_u:blastwall_r:blastwall_t:s0`, the target
-audit log shows denied AF_ALG, BPF, packet_socket, and userns activity, the
-io_uring probe shows `io_uring_setup` blocked, and the final self-protection
-step proves SELinux blocks a sudo-expanded `semodule`
-breakout.
+### AAP Lab
+
+[`docs/quick-demo.html`](docs/quick-demo.html) is the replay exercise for the
+AAP path.  It assumes the Calabi AAP preparation is already in place, then uses
+the `awx` CLI to show Controller health, configured objects, workflow launch,
+node status, and verification stdout.
+
+### Ansible Lab
+
+[`docs/ansible-lab.html`](docs/ansible-lab.html) is the replay exercise for the
+Ansible/bootstrap path.  It follows the playbook chain that creates the IdM
+shape, validates the read-side gate, deploys policy, runs direct probes, reads
+audit evidence, and proves policy self-protection.
 
 ## The Argument
 
@@ -75,17 +100,20 @@ map named identities into SELinux users and roles that already exist on the
 endpoint.  I also do not think AAP should discover halfway through a play that
 the target host was not in the right confinement state.
 
-The model has three parts:
+The model has four parts:
 
-1. Local policy on each managed RHEL host defines `blastwall_u`,
-   `blastwall_r`, and the confined automation domain
+1. SELinux is the host-local boundary.  Local policy on each managed RHEL host
+   defines `blastwall_u`, `blastwall_r`, and the confined automation domain
    `blastwall_root_local_t`.
-2. FreeIPA/IdM maps AAP automation identities into `blastwall_u` with an
-   HBAC-linked SELinux user map.
-3. AAP uses [`eigenstate.ipa`](https://gprocunier.github.io/eigenstate-ipa/)
-   before running jobs to select eligible hosts and fail closed when SELinux
-   map, HBAC, sudo, or optional host policy markers do
-   not match expectations.
+2. FreeIPA/IdM is the authority.  It maps AAP automation identities into
+   `blastwall_u` with an HBAC-linked SELinux user map and carries the host
+   groups, sudo rules, and optional coverage markers.
+3. [`eigenstate.ipa`](https://gprocunier.github.io/eigenstate-ipa/) is the
+   state translator.  It turns IdM state into inventory-visible facts that AAP
+   can act on without making Controller parse IdM policy directly.
+4. AAP is the actuator and evidence surface.  It syncs the project and
+   inventory, runs preflight, chooses current hosts, launches verification, and
+   leaves operator-readable workflow and job output.
 
 The point is not to replace kernel patches.  The point is to make privileged
 automation land inside a narrow domain where known exploit surfaces can be
@@ -239,6 +267,8 @@ manual bastion sequence. The Controller configuration lives under `aap/`, and
 the execution environment definition lives under `execution-environment/`.
 The full recorded demo path, including the separate AAP landing-zone guidance,
 is documented in [`AAP-DEMO.md`](AAP-DEMO.md).
+The published AAP recording and breakdown are available at
+[`docs/aap-demo.html`](docs/aap-demo.html).
 
 The intended Controller objects are:
 
@@ -294,6 +324,11 @@ ansible-playbook poc-calabi/aap/40-collect-evidence.yml
 Admin access is used for setup and troubleshooting. The workflow itself is
 launched by the demo user, while target automation obtains a Kerberos ticket
 and connects over SSH as `svc-ansible-runner`.
+
+The recorded operator path uses the conventional `awx` CLI for visible AAP
+interaction. The setup playbooks can reconcile Controller state, but the demo
+surface should show AAP directly: health, configured objects, workflow launch,
+node status, and job stdout.
 
 The AAP workflow is deliberately a current-host verification path. Policy RPM
 installation, SELinux policy mutation, and IdM marker publication happen in the

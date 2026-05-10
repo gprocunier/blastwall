@@ -3,11 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lab Exercise | blastwall</title>
+    <title>AAP Lab | blastwall</title>
     <meta name="description" content="Lab exercise flow for installing Blastwall policy, configuring IdM, and verifying confined automation behavior.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="stylesheet" href="assets/site.css">
     <script type="module" src="assets/site.js"></script>
   </head>
@@ -18,66 +19,98 @@
         <div class="site-brand">
           <div>
             <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
-            <p class="site-brand__tagline">A short path through the Blastwall argument: install the host policy, map the automation identity, then prove the session starts constrained.</p>
+            <p class="site-brand__tagline">A replay checklist for the AAP demo: prepare Controller, sync IdM-backed inventory, launch the workflow, and read the host-local proof.</p>
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
           <a href="./"><kbd>Overview</kbd></a>
-          <a href="demo.html"><kbd>Demo</kbd></a>
+          <a href="aap-demo.html"><kbd>AAP Demo</kbd></a>
+          <a href="quick-demo.html"><kbd>AAP Lab</kbd></a>
+          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
           <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
-          <a href="poc-flow.html"><kbd>PoC Flow</kbd></a>
         </nav>
       </div>
     </header>
 
     <main class="page-shell">
       <article class="content-column markdown-body">
-        <p class="lead">This is the shortest version of the idea. I want a managed endpoint to prove three things before I trust it for privileged automation: the local policy is installed, IdM maps the automation identity into the confined SELinux user, and AAP can see enough policy state to fail closed before it runs.</p>
+        <p class="lead">The lab exercise should look like the demo: use AAP for the visible operator path, then fall back to the Calabi playbooks only when preparing or resetting the lab. The result should be obvious in Controller: a synced project, a synced IdM inventory, a passing preflight, and a verify job that proves the confined SELinux runtime on the managed host.</p>
 
         <section>
-          <h2>Managed Host Setup</h2>
-          <p>Install the local SELinux policy on each managed RHEL host that should accept the confined automation identity.</p>
-          <pre><code>sudo make -C policy install
-sudo install -D -m 0644 \
-  policy/contexts/blastwall_u \
-  /etc/selinux/targeted/contexts/users/blastwall_u
-sudo semanage user -a -R blastwall_r -r s0 blastwall_u</code></pre>
+          <h2>Exercise Goal</h2>
+          <p>Reproduce the AAP cast from a prepared Calabi lab. The exercise is successful when the workflow launch belongs to <code>blastwall-demo</code>, the workflow nodes complete successfully, and the verification stdout shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> plus blocked BPF, packet_socket, userns, and io_uring probes.</p>
         </section>
 
         <section>
-          <h2>IdM Objects</h2>
-          <p>Create the automation group, managed-host group, HBAC rule, sudo rule, and SELinux user map described by the IdM object model. Apply the equivalent FreeIPA module or <code>ipa</code> CLI workflow from a host with an admin ticket.</p>
-          <pre><code>idm/bootstrap-blastwall.yml
-poc-calabi/10-configure-idm.yml</code></pre>
+          <h2>Prepare The Lab</h2>
+          <p>Run the Calabi preparation from <code>bastion-01</code>. These playbooks build the execution environment, prepare the demo launcher, and reconcile the public AAP objects.</p>
+          <pre><code class="language-bash">ansible-playbook poc-calabi/aap/00-aap-readiness.yml
+ansible-playbook poc-calabi/aap/05-configure-ee-registry.yml
+ansible-playbook poc-calabi/aap/10-build-and-push-ee.yml
+ansible-playbook poc-calabi/aap/15-prepare-demo-user.yml
+ansible-playbook poc-calabi/aap/20-configure-controller.yml</code></pre>
         </section>
 
         <section>
-          <h2>AAP Inventory And Gate</h2>
-          <p>Sync inventory from the <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> inventory source, then run the preflight before any mutation job.</p>
-          <pre><code>inventory/blastwall-idm.yml
-playbooks/preflight.yml</code></pre>
+          <h2>Show The AAP Surface</h2>
+          <p>Use <code>awx</code> for the operator-visible part of the exercise. This keeps the demonstration close to AAP instead of hiding the value inside setup playbooks.</p>
+          <pre><code class="language-bash">awx ping | jq '{controller_version: .version, active_node, capacity: .instances[0].capacity}'
+awx me -f human
+awx projects list --name Blastwall -f human
+awx inventories list --name 'Blastwall IdM Inventory' -f human
+awx inventory_sources list --name 'Blastwall IdM Inventory Source' -f human
+awx workflow_job_template_nodes list --workflow_job_template 13 -f json |
+  jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
         </section>
 
         <section>
-          <h2>Verification</h2>
-          <p>Run the managed-host verification playbook. The expected result is a confined SELinux context and blocked AF_ALG/authencesn, BPF, packet_socket, userns, and io_uring probes on the automation endpoint. The io_uring probe can report <code>SKIP</code> on older kernels where the SELinux object class does not exist.</p>
-          <pre><code>playbooks/verify-managed-host.yml</code></pre>
+          <h2>Launch And Read Evidence</h2>
+          <p>Launch the workflow, monitor it, then read the preflight and verification job stdout. The key result is not only that the workflow is green; it is that the selected host proves the SELinux context and denied exploit surfaces.</p>
+          <pre><code class="language-bash">awx workflow_job_templates launch 13 -f json |
+  tee /tmp/blastwall-aap-launch.json |
+  jq '{workflow_job, status, launched_by: .launched_by.name}'
+
+workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-aap-launch.json)"
+awx workflow_jobs monitor "${workflow_id}"
+awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
+  tee /tmp/blastwall-aap-nodes.json |
+  jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'
+
+preflight_id="$(jq -r '.results[] | select(.identifier == "preflight") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+verify_id="$(jq -r '.results[] | select(.identifier == "verify_managed_host") | .summary_fields.job.id' /tmp/blastwall-aap-nodes.json)"
+
+awx jobs stdout "${preflight_id}" |
+  grep -E 'All assertions passed|blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|candidate_hosts|selected_hosts|stale_hosts'
+
+awx jobs stdout "${verify_id}" |
+  grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|BLOCKED:'</code></pre>
+        </section>
+
+        <section>
+          <h2>Expected Output</h2>
+          <ul>
+            <li>Controller reports the <code>blastwall-demo</code> launcher.</li>
+            <li>Project sync, IdM inventory sync, preflight, and verify nodes finish successfully.</li>
+            <li>Preflight shows the SELinux map, HBAC rule, sudo rule, selected hosts, and no stale hosts.</li>
+            <li>Verification shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> before and after sudo reaches UID 0.</li>
+            <li>BPF, packet_socket, userns, and io_uring probes print <code>BLOCKED</code>.</li>
+            <li>AF_ALG may print <code>SKIP</code> when socket creation is denied before the authencesn bind path is reachable.</li>
+          </ul>
         </section>
       </article>
 
       <aside class="side-column" aria-label="Page context">
         <section class="context-block context-block--meta">
-          <h2>Demo Boundary</h2>
-          <p class="context-kicker">Small path first</p>
-          <p class="context-copy">Use this when you want the shortest route through local policy, IdM mapping, AAP preflight, and runtime verification.</p>
+          <h2>Exercise Boundary</h2>
+          <p class="context-kicker">AAP evidence path</p>
+          <p class="context-copy">Prepare with Calabi playbooks. Demonstrate with <code>awx</code>. Prove enforcement through Controller job output.</p>
         </section>
         <section class="toc-block">
           <h2>Related</h2>
           <ol class="path-list">
             <li><a href="./">Overview</a></li>
-            <li><a href="demo.html">Demo</a></li>
-            <li><a href="poc-flow.html">PoC Flow</a></li>
-            <li><a href="https://github.com/gprocunier/blastwall#quick-demo-flow">README Section</a></li>
+            <li><a href="aap-demo.html">AAP Demo</a></li>
+            <li><a href="https://github.com/gprocunier/blastwall#aap-lab">README Section</a></li>
           </ol>
         </section>
       </aside>

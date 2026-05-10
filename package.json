@@ -1,0 +1,10 @@
+{
+  "name": "blastwall-docs",
+  "private": true,
+  "scripts": {
+    "test:docs": "playwright test tests/docs/docs-render.spec.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.0"
+  }
+}

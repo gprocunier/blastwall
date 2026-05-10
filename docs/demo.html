@@ -3,11 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Demo | blastwall</title>
+    <title>Ansible Demo | blastwall</title>
     <meta name="description" content="Blastwall proof recorded in the Calabi lab with IdM, eigenstate.ipa, SELinux user mapping, AF_ALG, BPF, packet_socket, userns, io_uring, self-protection denial probes, and audit evidence.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="stylesheet" href="assets/site.css">
     <script type="module" src="assets/site.js"></script>
   </head>
@@ -23,8 +24,9 @@
         </div>
         <nav class="site-header__actions" aria-label="Project links">
           <a href="./"><kbd>Overview</kbd></a>
-          <a href="quick-demo.html"><kbd>Lab Exercise</kbd></a>
-          <a href="poc-flow.html"><kbd>PoC Flow</kbd></a>
+          <a href="ansible-lab.html"><kbd>Ansible Lab</kbd></a>
+          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
+          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
           <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
         </nav>
       </div>
@@ -36,7 +38,7 @@
 
         <section id="purpose">
           <h2>Purpose</h2>
-          <p>I wanted the demo to show the whole control path without requiring AAP. The important point is not that a single playbook can fail a probe. The important point is that the same information AAP would consume is visible before the mutation step, and the final denial is enforced by the target host SELinux policy.</p>
+          <p>This demo shows the whole control path without requiring AAP. AAP is not needed to prove the local behavior: the same IdM state AAP would consume is visible before the mutation step, and the final denial is enforced by the target host SELinux policy.</p>
           <p>The run starts from <code>bastion-01</code>, uses <code>eigenstate.ipa</code> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs AF_ALG, BPF, packet_socket, userns, and io_uring probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
           <p>The observable flow is:</p>
           <ul>
@@ -51,7 +53,7 @@
         </section>
 
         <section id="demo-player">
-          <h2>Demo</h2>
+          <h2>Ansible Demo</h2>
           <div
             data-asciinema-src="blastwall-poc.cast"
             data-asciinema-poster="npt:0:08"
@@ -155,10 +157,10 @@ grep -E \
         </section>
 
         <section id="does-not-claim">
-          <h2>What This Demo Does Not Claim</h2>
+          <h2>Scope Notes</h2>
           <ul>
             <li>It does not replace a kernel fix.</li>
-            <li>It does not claim SELinux can inspect the same kernel hook arguments as BPF LSM.</li>
+            <li>SELinux does not inspect the same kernel hook arguments as BPF LSM.</li>
             <li>It does not require AAP to prove the local behavior.</li>
             <li>It does not run live exploit payloads. The probes exercise safe entry points that should be denied before reaching the dangerous path.</li>
             <li>It does not say host markers are proof by themselves. They are useful only after a local verification workflow writes them.</li>
@@ -176,7 +178,7 @@ grep -E \
           <h2>On This Page</h2>
           <ol class="path-list">
             <li><a href="#purpose">Purpose</a></li>
-            <li><a href="#demo-player">Demo</a></li>
+            <li><a href="#demo-player">Ansible Demo</a></li>
             <li><a href="#what-it-proves">Proof Points</a></li>
             <li><a href="#sequence">Sequence</a></li>
             <li><a href="#does-not-claim">Boundaries</a></li>
@@ -184,7 +186,7 @@ grep -E \
         </section>
         <section class="source-block">
           <h2>Related</h2>
-          <p><a href="poc-flow.html">PoC Flow</a> describes the same playbook chain without the embedded run.</p>
+          <p><a href="ansible-lab.html">Ansible Lab</a> turns the same playbook chain into a replay exercise. <a href="poc-flow.html">Lab Flow</a> is the compact run-order reference.</p>
         </section>
       </aside>
     </main>

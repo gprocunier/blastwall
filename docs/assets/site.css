@@ -348,7 +348,7 @@ a {
 
 .markdown-body .codebox pre.shiki {
   margin: 0;
-  overflow: visible;
+  overflow: auto;
 }
 
 .markdown-body .codebox pre.shiki code,
@@ -399,8 +399,10 @@ a {
 
 .markdown-body table {
   width: 100%;
+  max-width: 100%;
   margin: 1rem 0 1.5rem;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 0.96rem;
 }
 
@@ -410,6 +412,8 @@ a {
   border: 1px solid var(--rh-gray-20);
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .markdown-body th {
@@ -458,6 +462,8 @@ a {
   margin: 0;
   color: var(--rh-gray-80);
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .path-list {
@@ -474,6 +480,8 @@ a {
   color: inherit;
   padding: 0.5rem 0.55rem;
   border: 1px solid transparent;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .path-list a:hover,
@@ -513,6 +521,55 @@ a {
   .markdown-body .codebox__toolbar { align-items: flex-start; flex-direction: column; }
   .markdown-body th,
   .markdown-body td { padding: 0.55rem; }
+
+  .markdown-body .comparison-table,
+  .markdown-body .comparison-table thead,
+  .markdown-body .comparison-table tbody,
+  .markdown-body .comparison-table tr,
+  .markdown-body .comparison-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .markdown-body .comparison-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .markdown-body .comparison-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .markdown-body .comparison-table tr {
+    margin: 0 0 1rem;
+    border: 1px solid var(--rh-gray-20);
+    background: #ffffff;
+  }
+
+  .markdown-body .comparison-table td {
+    border: 0;
+    border-bottom: 1px solid var(--rh-gray-20);
+  }
+
+  .markdown-body .comparison-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .markdown-body .comparison-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--rh-gray-70);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 }
 
 .diagram-card {
@@ -659,6 +716,15 @@ a {
   height: auto;
   margin: 0 auto;
   background: #ffffff;
+  cursor: zoom-in;
+}
+
+#idm-aap-flow .diagram-artifact {
+  width: min(100%, 34rem);
+}
+
+#candidate-flow .diagram-artifact {
+  width: min(100%, 40rem);
 }
 
 .diagram-card--focus .diagram-artifact {
@@ -669,4 +735,72 @@ a {
 .diagram-card .nodeLabel,
 .diagram-card .label {
   font-family: "Red Hat Text", "Helvetica Neue", Arial, sans-serif !important;
+}
+
+body.has-diagram-lightbox {
+  overflow: hidden;
+}
+
+.diagram-lightbox[hidden] {
+  display: none;
+}
+
+.diagram-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(21, 21, 21, 0.82);
+}
+
+.diagram-lightbox__frame {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  width: min(100%, 90rem);
+  max-height: calc(100vh - 4rem);
+}
+
+.diagram-lightbox__close {
+  justify-self: end;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.8rem;
+  color: #ffffff;
+  background: var(--rh-red);
+  border: 1px solid var(--rh-red);
+  font-family: "Red Hat Text", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.diagram-lightbox__close:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.diagram-lightbox__image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100vh - 7rem);
+  margin: 0 auto;
+  background: #ffffff;
+  cursor: zoom-out;
+}
+
+@media (max-width: 680px) {
+  .diagram-lightbox {
+    padding: 1rem;
+  }
+
+  .diagram-lightbox__frame {
+    max-height: calc(100vh - 2rem);
+  }
+
+  .diagram-lightbox__image {
+    max-height: calc(100vh - 5.5rem);
+  }
 }

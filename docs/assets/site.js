@@ -733,10 +733,95 @@ const activateTocOnScroll = () => {
   }
 };
 
+const activateDiagramLightbox = () => {
+  const diagrams = Array.from(document.querySelectorAll(".diagram-artifact"));
+  if (!diagrams.length) {
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "diagram-lightbox";
+  overlay.hidden = true;
+  overlay.setAttribute("aria-hidden", "true");
+
+  const frame = document.createElement("div");
+  frame.className = "diagram-lightbox__frame";
+  frame.setAttribute("role", "dialog");
+  frame.setAttribute("aria-modal", "true");
+  frame.setAttribute("aria-label", "Expanded diagram");
+
+  const close = document.createElement("button");
+  close.className = "diagram-lightbox__close";
+  close.type = "button";
+  close.textContent = "Close";
+
+  const image = document.createElement("img");
+  image.className = "diagram-lightbox__image";
+  image.alt = "";
+
+  frame.append(close, image);
+  overlay.append(frame);
+  document.body.append(overlay);
+
+  let activeDiagram = null;
+
+  const closeLightbox = () => {
+    overlay.hidden = true;
+    overlay.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("has-diagram-lightbox");
+    image.removeAttribute("src");
+
+    if (activeDiagram) {
+      activeDiagram.focus();
+      activeDiagram = null;
+    }
+  };
+
+  const openLightbox = (diagram) => {
+    activeDiagram = diagram;
+    image.src = diagram.currentSrc || diagram.src;
+    image.alt = diagram.alt || "Expanded diagram";
+    overlay.hidden = false;
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.classList.add("has-diagram-lightbox");
+    close.focus();
+  };
+
+  diagrams.forEach((diagram) => {
+    diagram.tabIndex = 0;
+    diagram.title = "Click to enlarge";
+    diagram.setAttribute("role", "button");
+    diagram.setAttribute("aria-label", `${diagram.alt || "Diagram"}; click to enlarge`);
+
+    diagram.addEventListener("click", () => openLightbox(diagram));
+    diagram.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openLightbox(diagram);
+      }
+    });
+  });
+
+  close.addEventListener("click", closeLightbox);
+  image.addEventListener("click", closeLightbox);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeLightbox();
+    }
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (!overlay.hidden && event.key === "Escape") {
+      closeLightbox();
+    }
+  });
+};
+
 window.addEventListener("DOMContentLoaded", async () => {
   renderAdmonitions();
   renderToc();
   activateTocOnScroll();
+  activateDiagramLightbox();
   await renderCodeboxes();
   await renderAsciinemaPlayers();
 });

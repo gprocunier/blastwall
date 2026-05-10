@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AAP Demo | blastwall</title>
+    <meta name="description" content="Blastwall AAP proof recorded in the Calabi lab with Controller workflow launch, eigenstate.ipa inventory sync, preflight, managed-host verification, and SELinux denial evidence.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">The AAP version of the Blastwall proof: select a current host, run preflight, and verify the confined SELinux runtime without turning the confined path into the policy mutation path.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="./"><kbd>Overview</kbd></a>
+          <a href="quick-demo.html"><kbd>AAP Lab</kbd></a>
+          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
+          <a href="threat-model.html"><kbd>Threat Model</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <article class="content-column markdown-body">
+        <p class="lead">This AAP path was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a> after the bootstrap proof was already working. AAP reads the state it needs, chooses a current host, and verifies the confined runtime without making <code>blastwall_t</code> responsible for changing SELinux policy.</p>
+
+        <section id="purpose">
+          <h2>Purpose</h2>
+          <p>The bootstrap proof creates the IdM shape, deploys the policy, runs the probes directly, and reads the target audit log. The steady-state Controller question is whether AAP can consume that state, fail closed before execution, and prove the selected host is still confined.</p>
+          <p>The recorded path uses <code>awx</code> for the operator-facing surface: Controller health, object inventory, workflow graph, launch, node status, and job stdout.</p>
+          <p>The operational split matters. Policy RPM rollout and marker publication happen before this workflow. AAP reads those markers as selection hints, then the verification job proves the SELinux context and denial behavior on the managed host.</p>
+        </section>
+
+        <section id="demo-player">
+          <h2>AAP Demo</h2>
+          <div
+            data-asciinema-src="blastwall-aap.cast"
+            data-asciinema-poster="npt:0:08"
+            data-asciinema-speed="1.45"
+            data-asciinema-idle-time-limit="4"
+            data-asciinema-terminal-font-family="'MesloGL Nerd Font Mono', 'MesloLGL Nerd Font Mono', 'Red Hat Mono', Consolas, monospace"
+            data-asciinema-terminal-font-size="7pt"
+            data-asciinema-cols="272"
+            data-asciinema-rows="54"
+          ></div>
+        </section>
+
+        <section id="output-to-notice">
+          <h2>Output To Notice</h2>
+          <p>These are the lines that carry the evidence.</p>
+
+          <h3>Controller session</h3>
+          <pre><code class="language-text">{
+  "controller_version": "4.7.10",
+  "active_node": "workshop-aap-controller-web-b94677797-tdxnb",
+  "capacity": 320
+}
+
+id username
+== ==============
+5  blastwall-demo</code></pre>
+          <p>The launch path uses <code>blastwall-demo</code>, not the setup administrator.</p>
+
+          <h3>AAP objects</h3>
+          <pre><code class="language-text">Organization
+id name
+== =========
+2  Blastwall
+
+Project
+id name
+== =========
+8  Blastwall
+
+Execution environment
+id name
+== ============
+4  Blastwall EE
+
+Inventory
+id name
+== =======================
+2  Blastwall IdM Inventory
+
+Inventory source
+id name
+== ==============================
+9  Blastwall IdM Inventory Source
+
+Runtime credential
+id name
+== =====================
+5  Blastwall IdM Runtime
+
+Machine credential
+id name
+== ==================
+4  svc-ansible-runner</code></pre>
+          <p>The workflow uses ordinary AAP objects: organization, project, execution environment, IdM inventory, inventory source, runtime credential, and machine credential.</p>
+
+          <h3>Workflow graph and launch</h3>
+          <pre><code class="language-text">project_sync        Blastwall
+inventory_sync      Blastwall IdM Inventory Source
+preflight           Blastwall preflight
+verify_managed_host Blastwall verify managed host
+
+{
+  "workflow_job": 332,
+  "status": "pending",
+  "launched_by": "blastwall-demo"
+}</code></pre>
+          <p>The workflow graph is visible before launch, and the launch response gives the workflow job id used for the rest of the evidence.</p>
+
+          <h3>Workflow outcome</h3>
+          <pre><code class="language-text">project_sync        333 project_update successful
+inventory_sync      334 inventory_update successful
+preflight           337 job            successful
+verify_managed_host 341 job            successful</code></pre>
+          <p>The Controller-side result is clean: project sync, IdM inventory sync, preflight, and managed-host verification all finished successfully.</p>
+
+          <h3>Preflight gate</h3>
+          <pre><code class="language-text">All assertions passed
+blastwall-root-local-map
+hbac_rule: blastwall-ssh
+blastwall-root-local-sudo
+candidate_hosts
+selected_hosts
+selinux_user: blastwall_u:s0
+stale_hosts: []</code></pre>
+          <p>Preflight is the fail-closed gate. It reads IdM and inventory state before the verify job reaches the managed host.</p>
+
+          <h3>Managed-host proof</h3>
+          <pre><code class="language-text">blastwall_u:blastwall_r:blastwall_t:s0
+0
+blastwall_u:blastwall_r:blastwall_t:s0
+SKIP: could not create AF_ALG socket: [Errno 13] Permission denied
+BLOCKED: bpf(BPF_MAP_CREATE) denied with errno 13
+BLOCKED: bpf(BPF_PROG_LOAD) denied with errno 13
+BLOCKED: AF_PACKET socket creation denied with errno 13
+BLOCKED: unshare(CLONE_NEWUSER) denied with EACCES errno 13
+BLOCKED: io_uring_setup denied with EPERM</code></pre>
+          <p>The verify job is the host-local proof. The automation identity enters <code>blastwall_t</code>, sudo reaches UID 0 without leaving <code>blastwall_t</code>, and the demonstrated exploit surfaces are denied for that confined session.</p>
+        </section>
+
+        <section id="what-it-proves">
+          <h2>Takeaways</h2>
+          <ol>
+            <li><code>awx</code> reaches Controller and authenticates as the IdM-backed demo launcher.</li>
+            <li>The AAP objects are concrete: project, execution environment, IdM inventory source, runtime credential, machine credential, and workflow template.</li>
+            <li>The workflow shape is visible before launch: project sync, inventory sync, preflight, and managed-host verification.</li>
+            <li>The run is attributable to <code>blastwall-demo</code>, and Controller reports each node job and status.</li>
+            <li>Preflight reads the SELinux user map, HBAC rule, sudo rule, and candidate host state before verification runs.</li>
+            <li>The verification job shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving <code>blastwall_t</code>, and denied BPF, packet_socket, userns, and io_uring probes.</li>
+            <li>The AF_ALG result is a denial at socket creation time for this confined automation domain. That is the broad SELinux tradeoff in this proof.</li>
+          </ol>
+        </section>
+
+        <section id="sequence">
+          <h2>Execution Sequence</h2>
+          <h3>1. Separate setup from verification</h3>
+          <p>The cast starts by keeping the boundary honest. AAP is here to select a current host and verify runtime confinement. It is not the path that lets the confined automation identity mutate SELinux policy, install policy RPMs, or publish host markers.</p>
+          <p>That split makes the demo stronger. Controller shows the project, inventory, workflow, launch user, node status, and job stdout. SELinux still owns enforcement on the managed host.</p>
+          <pre><code class="language-text">AAP verifies:
+  project sync
+  IdM-backed inventory sync
+  preflight suitability
+  managed-host runtime proof
+
+AAP does not do from blastwall_t:
+  SELinux policy mutation
+  policy package installation
+  host marker publication</code></pre>
+
+          <h3>2. Prove the AAP session</h3>
+          <pre><code class="language-bash">awx ping | jq '{controller_version: .version, active_node, capacity: .instances[0].capacity}'
+awx me -f human</code></pre>
+          <p>This proves the Controller route is live and the session belongs to the demo launcher, not the setup administrator.</p>
+
+          <h3>3. Show the AAP objects</h3>
+          <pre><code class="language-bash">awx projects list --name Blastwall -f human
+awx execution_environments list --name 'Blastwall EE' -f human
+awx inventory_sources list --name 'Blastwall IdM Inventory Source' -f human
+awx credentials list --name 'Blastwall IdM Runtime' -f human
+awx workflow_job_template_nodes list --workflow_job_template 13 -f json |
+  jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
+          <p>This is the AAP-facing control surface: synced code, synced IdM inventory, runtime credentials, and the workflow graph.</p>
+
+          <h3>4. Launch the workflow from AAP</h3>
+          <pre><code class="language-bash">awx workflow_job_templates launch 13 -f json |
+  tee /tmp/blastwall-aap-launch.json |
+  jq '{workflow_job, status, launched_by: .launched_by.name}'
+
+workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-aap-launch.json)"
+
+awx workflow_jobs monitor "${workflow_id}"
+
+awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
+  jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'</code></pre>
+          <p>The workflow completes the four-node path and exposes the job ids used for evidence.</p>
+          <pre><code class="language-text">Launching Blastwall policy rollout...
+ ↳ 333 - Blastwall successful
+ ↳ 334 - Blastwall IdM Inventory - Blastwall IdM Inventory Source successful
+ ↳ 337 - Blastwall preflight successful
+ ↳ 341 - Blastwall verify managed host successful</code></pre>
+
+          <h3>5. Read preflight and verification evidence</h3>
+          <pre><code class="language-bash">awx jobs stdout "${preflight_id}" |
+  grep -E 'blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|"candidate_hosts"|"selected_hosts"|"stale_hosts"|"selinux_user"|All assertions passed'
+
+awx jobs stdout "${verify_id}" |
+  grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|BLOCKED:'</code></pre>
+          <p>The first query shows the Controller-side gate. The second query shows the host-local result: confined login context, sudo confinement, and denied exploit surfaces.</p>
+        </section>
+
+        <section id="does-not-claim">
+          <h2>Scope Notes</h2>
+          <ul>
+            <li>The Ansible-only path remains the bootstrap proof; the AAP workflow verifies current hosts after that state exists.</li>
+            <li>AAP is the gate and the evidence surface. SELinux on the managed host is the enforcement boundary.</li>
+            <li>IdM host markers are selection hints. The verification job still has to prove the runtime behavior.</li>
+            <li>This is an operational mitigation model, not a replacement for kernel fixes or argument-precise BPF LSM work.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>AAP Boundary</h2>
+          <p class="context-kicker">Current-host verification</p>
+          <p class="context-copy">Controller consumes IdM state, fails closed before execution, and verifies the confined SELinux runtime on a selected host.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#purpose">Purpose</a></li>
+            <li><a href="#demo-player">AAP Demo</a></li>
+            <li><a href="#output-to-notice">Output</a></li>
+            <li><a href="#what-it-proves">Takeaways</a></li>
+            <li><a href="#sequence">Sequence</a></li>
+            <li><a href="#does-not-claim">Boundaries</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Recorded Result</h2>
+          <p>Workflow <code>332</code> completed with successful project sync, IdM inventory sync, preflight, and managed-host verification nodes.</p>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="quick-demo.html">AAP Lab</a> is the replay path for the Controller workflow and verification output.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

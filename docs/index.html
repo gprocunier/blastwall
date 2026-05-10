@@ -12,9 +12,11 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="blastwall">
     <meta name="twitter:description" content="SELinux, IdM, and AAP guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
+    <meta name="google-site-verification" content="-cAcLaA0l0O_JyCuMrNDwKoISaFm8JtOsfjnvXLGgA4" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="stylesheet" href="assets/site.css">
     <script type="module" src="assets/site.js"></script>
   </head>
@@ -29,28 +31,40 @@
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
-          <a href="demo.html"><kbd>Demo</kbd></a>
-          <a href="quick-demo.html"><kbd>Lab Exercise</kbd></a>
-          <a href="poc-flow.html"><kbd>PoC Flow</kbd></a>
+          <a href="demo.html"><kbd>Ansible Demo</kbd></a>
+          <a href="aap-demo.html"><kbd>AAP Demo</kbd></a>
+          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
           <a href="threat-model.html"><kbd>Threat Model</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
         </nav>
       </div>
     </header>
 
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
-        <p class="lead"><code>blastwall</code> is a proof of concept for using SELinux user confinement as an exploit firewall for privileged automation. The diagrams below are the argument, not decoration: they show where this model sits beside BPF LSM precision, how it moves through RHEL operations, and where AAP should decide to run, skip, or remediate.</p>
+        <p class="lead"><code>blastwall</code> is a proof of concept for privileged automation security on RHEL: central identity decides which automation may run, AAP acts on that state, and SELinux confines the session when it reaches the managed host.</p>
         <p>Recent events make the argument in <a href="https://gprocunier.github.io/privileged-automation-security/">Privileged Automation Security</a> feel less theoretical. Blastwall is a concrete sketch of that concern: privileged automation should arrive constrained, observable, and policy-gated before it can touch the rest of the fleet.</p>
 
-        <section id="demo">
-          <h2>Demo</h2>
-          <p>The <a href="demo.html">demo</a> was recorded in <a href="https://gprocunier.github.io/calabi/">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. In this project, Calabi is the validation lab, not a Blastwall dependency. The demo shows the proof path from <code>bastion-01</code>: IdM service identity creation, <code>eigenstate.ipa</code> read-side validation, direct GSSAPI SSH probes as <code>svc-ansible-runner</code>, target audit evidence for AF_ALG, BPF, packet_socket, and userns denials, an io_uring probe denial, and a final self-protection proof that blocks a sudo-expanded <code>semodule</code> breakout.</p>
+        <section id="start">
+          <h2>Start Here</h2>
+          <p>Watch the AAP path first when you need the show path. Use the Ansible path when you need to inspect the bootstrap proof and host-local mechanics.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Path</th><th>Use It For</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Path"><a href="aap-demo.html">AAP Demo</a></td><td data-label="Use It For">The audience-facing path: Controller health, object inventory, workflow launch, preflight, and managed-host verification.</td></tr>
+              <tr><td data-label="Path"><a href="demo.html">Ansible Demo</a></td><td data-label="Use It For">The bootstrap/reference proof: IdM object creation, policy rollout, direct probe output, audit evidence, and SELinux self-protection.</td></tr>
+              <tr><td data-label="Path"><a href="comparable-approaches.html">Comparison</a></td><td data-label="Use It For">The positioning note: why Blastwall is scoped to privileged automation security rather than general Linux sandboxing.</td></tr>
+              <tr><td data-label="Path"><a href="threat-model.html">Threat Model</a></td><td data-label="Use It For">The assumptions, attack paths, and residual risks behind the confinement model.</td></tr>
+              <tr><td data-label="Path"><a href="https://github.com/gprocunier/blastwall">Source</a></td><td data-label="Use It For">The repository with policy source, playbooks, Controller assets, and Calabi lab files.</td></tr>
+            </tbody>
+          </table>
         </section>
 
         <section id="problem">
           <h2>The Problem</h2>
-          <p>The failure mode I am trying to avoid is simple: automation gets the same broad local shape as an operator, but it executes faster, across more hosts, and with less human friction. If that automation lands as an unconfined identity, every mistake and every exploit path starts from a position I do not want to defend.</p>
+          <p>The failure mode is simple: automation gets the same broad local shape as an operator, but it executes faster, across more hosts, and with less human friction. If that automation lands as an unconfined identity, every mistake and every exploit path starts from a position that is difficult to defend.</p>
           <p>Copy Fail is the concrete example here. Anthony Green's <a href="https://github.com/atgreen/block-copyfail">block-copyfail</a> shows the precise BPF LSM answer: inspect the AF_ALG bind argument and deny the vulnerable <code>authencesn</code> shape. Blastwall asks a different operational question: if the risky path should be unavailable to privileged automation, can I make that part of the same SELinux, IdM, AAP, and content-delivery model RHEL operators already understand?</p>
           <figure class="diagram-card" id="copy-fail-map">
             <figcaption>
@@ -71,7 +85,7 @@
 
         <section id="argument">
           <h2>The Argument</h2>
-          <p>I do not think FreeIPA should author SELinux policy. I want IdM to map named automation identities into SELinux users and roles that already exist on the endpoint. I also do not want AAP discovering halfway through a job that the host was never in the right confinement state.</p>
+          <p>FreeIPA should not author SELinux policy. IdM should map named automation identities into SELinux users and roles that already exist on the endpoint. AAP should not discover halfway through a job that the host was never in the right confinement state.</p>
           <div class="feature-grid" aria-label="Blastwall model components">
             <section class="feature-item">
               <h3>Local Policy</h3>
@@ -110,9 +124,9 @@
         </section>
 
         <section id="why-build">
-          <h2>Why I Would Build This</h2>
-          <p>I would build this because the logistics matter. In a RHEL automation estate, a versioned SELinux policy RPM is often easier to stage, promote, audit, and roll back than a new set of dynamically attached probes. That does not make SELinux more precise than BPF LSM. It makes the mitigation fit the machinery already wrapped around RHEL operations.</p>
-          <p>The point is not to replace kernel patches. The point is to make privileged automation start constrained while the real fix moves through the fleet. If the exploit can be mitigated by denying a broad surface for automation identities, I want that denial to have an artifact name, a rollout state, and an inventory-visible coverage claim.</p>
+          <h2>Why Build This</h2>
+          <p>The logistics matter. In a RHEL automation estate, a versioned SELinux policy RPM is often easier to stage, promote, audit, and roll back than a new set of dynamically attached probes. That does not make SELinux more precise than BPF LSM. It makes the mitigation fit the machinery already wrapped around RHEL operations.</p>
+          <p>The goal is not to replace kernel patches. The goal is to make privileged automation start constrained while the real fix moves through the fleet. If the exploit can be mitigated by denying a broad surface for automation identities, that denial should have an artifact name, a rollout state, and an inventory-visible coverage claim.</p>
           <figure class="diagram-card diagram-card--focus" id="rollout-flow">
             <figcaption>
               <strong>Why The Logistics Matter</strong>
@@ -301,6 +315,7 @@
         <section class="toc-block">
           <h2>On This Page</h2>
           <ol class="path-list">
+            <li><a href="#start">Start Here</a></li>
             <li><a href="#problem">Problem</a></li>
             <li><a href="#threat-landscape">Threat Landscape</a></li>
             <li><a href="#argument">Argument</a></li>
@@ -309,12 +324,11 @@
             <li><a href="#runtime">Runtime</a></li>
             <li><a href="#tradeoff">Tradeoff</a></li>
             <li><a href="#layout">Repository</a></li>
-            <li><a href="demo.html">Demo</a></li>
           </ol>
         </section>
         <section class="source-block">
           <h2>Requirements</h2>
-          <p>RHEL with SELinux enforcing, SELinux userspace 3.6+, IdM/FreeIPA, AAP, and <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> for inventory-aware gates.</p>
+          <p>RHEL with SELinux enforcing, IdM/FreeIPA, AAP, and <a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa</code></a> for inventory-aware gates.</p>
         </section>
       </aside>
     </main>

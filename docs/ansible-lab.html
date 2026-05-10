@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ansible Lab | blastwall</title>
+    <meta name="description" content="Non-AAP Blastwall lab exercise for replaying the Calabi proof with Ansible, IdM, eigenstate.ipa, SELinux confinement, denial probes, and audit evidence.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">A non-AAP replay exercise: build the IdM shape, deploy the SELinux policy, run the probes, and read host-local audit evidence.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="./"><kbd>Overview</kbd></a>
+          <a href="demo.html"><kbd>Ansible Demo</kbd></a>
+          <a href="ansible-lab.html"><kbd>Ansible Lab</kbd></a>
+          <a href="poc-flow.html"><kbd>Lab Flow</kbd></a>
+          <a href="comparable-approaches.html"><kbd>Comparison</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall"><kbd>Source</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <article class="content-column markdown-body">
+        <p class="lead">This exercise follows the non-AAP cast. It runs from <code>bastion-01</code>, uses Ansible for the lab work, and proves the same host-local boundary without involving Controller. Use it when the goal is to understand the bootstrap proof before the AAP verification path.</p>
+
+        <section>
+          <h2>Exercise Goal</h2>
+          <p>The exercise is successful when IdM contains the expected automation identity and policy objects, <code>eigenstate.ipa</code> can read the suitability state, the managed host enters <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo reaches UID 0 without leaving <code>blastwall_t</code>, and the denial probes produce visible evidence.</p>
+        </section>
+
+        <section>
+          <h2>Execution Boundary</h2>
+          <p>Run the playbooks from the staged <code>poc-calabi/</code> tree on <code>bastion-01</code>. The workstation should not directly configure guests.</p>
+          <pre><code class="language-bash">cd ~/blastwall/poc-calabi
+
+ansible-playbook 00-preflight.yml</code></pre>
+        </section>
+
+        <section>
+          <h2>Build The Identity Boundary</h2>
+          <p>Create the service identity, the <code>blastwall</code> group, HBAC, sudo, hostgroup, and SELinux user-map state. Then read the important IdM objects directly so the exercise is not trusting Ansible output alone.</p>
+          <pre><code class="language-bash">ansible-playbook 10-configure-idm.yml
+
+kinit admin
+
+ipa user-show svc-ansible-runner --all --raw |
+  grep -E 'uid:|memberof_group:|memberOf:'
+
+ipa group-show blastwall --all --raw |
+  grep -E 'cn:|member_user:|member:'</code></pre>
+        </section>
+
+        <section>
+          <h2>Run The Read-Side Gate</h2>
+          <p>Use <code>eigenstate.ipa</code> before touching the endpoint. This proves the inventory-facing view can see the SELinux map, HBAC rule, sudo rule, and candidate host.</p>
+          <pre><code class="language-bash">ansible-playbook 15-validate-idm-with-eigenstate.yml |
+  tee /tmp/blastwall-eigenstate.log
+
+grep -E 'hbac_rule|selinux_map|sudo_rule|target' \
+  /tmp/blastwall-eigenstate.log</code></pre>
+        </section>
+
+        <section>
+          <h2>Deploy And Prove The Host</h2>
+          <p>Deploy the policy RPM to the managed host and run the proof play. This is the point where the exercise stops being an identity check and becomes a host-local SELinux check.</p>
+          <pre><code class="language-bash">ansible-playbook 20-build-policy-rpm.yml
+
+ansible-playbook 30-deploy-and-test.yml |
+  tee /tmp/blastwall-proof.log
+
+grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|BLOCKED|SKIP' \
+  /tmp/blastwall-proof.log</code></pre>
+        </section>
+
+        <section>
+          <h2>Run The Probes Directly</h2>
+          <p>Direct GSSAPI SSH probes make the proof easy to follow. The automation identity logs in normally, lands in the confined SELinux context, and the risky kernel surfaces are unavailable from that session.</p>
+          <pre><code class="language-bash">kinit svc-ansible-runner
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-copyfail-afalg.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-bpf-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-packet-socket-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-userns-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-io-uring-deny.py</code></pre>
+        </section>
+
+        <section>
+          <h2>Read Audit Evidence</h2>
+          <p>Finish with target-side evidence. The audit log confirms the denials happened under <code>blastwall_t</code>, not just inside a local script variable.</p>
+          <pre><code class="language-bash">ansible automation_endpoints -i inventory.yml -b -m shell -a '
+  grep -a "subj=blastwall" /var/log/audit/audit.log |
+  tail -n 16'</code></pre>
+        </section>
+
+        <section>
+          <h2>Self-Protection Check</h2>
+          <p>The final check temporarily exposes <code>/usr/sbin/semodule</code> through sudo, then proves SELinux still prevents the confined automation identity from removing its own deny policy.</p>
+          <pre><code class="language-bash">ansible-playbook 35-test-self-protection.yml |
+  tee /tmp/blastwall-selfprotect.log
+
+grep -E 'sudo_expansion_seen|semodule_attempt_rc|Permission denied|blastwall-(alg|bpf|packet|userns|io-uring|policy)' \
+  /tmp/blastwall-selfprotect.log</code></pre>
+        </section>
+
+        <section>
+          <h2>Expected Output</h2>
+          <ul>
+            <li><code>svc-ansible-runner</code> is present in IdM and belongs to the <code>blastwall</code> group.</li>
+            <li><code>eigenstate.ipa</code> reports the expected SELinux map, HBAC rule, sudo rule, and candidate host.</li>
+            <li><code>id -Z</code> reports <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</li>
+            <li><code>sudo -n /usr/bin/id -u</code> returns <code>0</code> without leaving <code>blastwall_t</code>.</li>
+            <li>AF_ALG, BPF, packet_socket, userns, and io_uring probes print <code>BLOCKED</code> or the documented AF_ALG <code>SKIP</code> denial shape.</li>
+            <li>The self-protection play shows sudo expansion is visible, but SELinux blocks policy-management execution from <code>blastwall_t</code>.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Exercise Boundary</h2>
+          <p class="context-kicker">Ansible proof path</p>
+          <p class="context-copy">Use this path to understand the bootstrap proof before layering AAP on top of it.</p>
+        </section>
+        <section class="toc-block">
+          <h2>Related</h2>
+          <ol class="path-list">
+            <li><a href="demo.html">Ansible Demo</a></li>
+            <li><a href="poc-flow.html">Lab Flow</a></li>
+            <li><a href="https://github.com/gprocunier/blastwall/tree/main/poc-calabi">PoC Source</a></li>
+          </ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

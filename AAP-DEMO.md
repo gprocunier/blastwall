@@ -4,6 +4,8 @@ This page describes the Controller-based Blastwall demo path. It is separate
 from the Calabi Ansible-only proof path so the AAP workflow can be repeated,
 reset, and recorded without disturbing the baseline lab exercise.
 
+The published recording and breakdown live at `docs/aap-demo.html`.
+
 ## Demo Boundary
 
 Use the Ansible-only path as the bootstrap and reference proof. Use the AAP demo
@@ -96,6 +98,12 @@ ansible-playbook poc-calabi/aap/40-collect-evidence.yml
 Admin credentials are for setup and troubleshooting. The workflow launch should
 be exercised with an IdM-backed AAP user, such as `blastwall-demo`. Target
 automation runs as `svc-ansible-runner`.
+
+For recording and operator-facing demos, prefer the conventional `awx` CLI for
+visible AAP interaction. Use the Calabi playbooks to prepare or reconcile
+Controller objects, then show the high-value path manually with `awx`: Controller
+health, object lists, workflow launch, workflow monitoring, node job status, and
+targeted job stdout.
 
 ## Workflow
 

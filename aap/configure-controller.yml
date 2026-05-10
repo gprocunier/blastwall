@@ -339,6 +339,10 @@
           - "{{ blastwall_aap_project }}"
         inventories:
           - "{{ blastwall_aap_inventory }}"
+        credentials:
+          - "{{ blastwall_aap_idm_credential }}"
+          - "{{ blastwall_aap_machine_credential }}"
+        job_templates: "{{ blastwall_aap_job_templates | map(attribute='name') | list }}"
         workflows:
           - "{{ blastwall_aap_workflow }}"
         state: present
