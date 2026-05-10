@@ -125,7 +125,11 @@ ssh -o GSSAPIAuthentication=yes \
 
 ssh -o GSSAPIAuthentication=yes \
   svc-ansible-runner@mirror-registry.workshop.lan \
-  /usr/local/libexec/blastwall-poc/trigger-io-uring-deny.py</code></pre>
+  /usr/local/libexec/blastwall-poc/trigger-io-uring-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-dirtyfrag-deny.py</code></pre>
           <p>Expected output: each probe prints <code>BLOCKED</code>, or the documented AF_ALG socket-denial <code>SKIP</code> shape.</p>
 
           <h3>5. Read Audit Evidence</h3>
@@ -162,7 +166,7 @@ grep -E 'sudo_expansion_seen|semodule_attempt_rc|Permission denied|blastwall-(al
             <li><code>eigenstate.ipa</code> reports the expected SELinux map, HBAC rule, sudo rule, and candidate host.</li>
             <li><code>id -Z</code> reports <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</li>
             <li><code>sudo -n /usr/bin/id -u</code> returns <code>0</code> without leaving <code>blastwall_t</code>.</li>
-            <li>AF_ALG, BPF, packet_socket, userns, and io_uring probes print <code>BLOCKED</code> or the documented AF_ALG <code>SKIP</code> denial shape.</li>
+            <li>AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes print <code>BLOCKED</code> or the documented AF_ALG <code>SKIP</code> denial shape.</li>
             <li>The self-protection play shows sudo expansion is visible, but SELinux blocks policy-management execution from <code>blastwall_t</code>.</li>
           </ul>
         </section>

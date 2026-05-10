@@ -1,12 +1,12 @@
 ---
 - name: Build Blastwall SELinux policy RPM from Git source
-  hosts: "{{ blastwall_policy_pipeline_build_hosts | default('blastwall_policy_current') }}"
+  hosts: "{{ blastwall_policy_pipeline_build_hosts | default('blastwall_policy_stale') }}"
   become: true
   gather_facts: false
   vars:
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
-      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.1', true), true) }}
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
     blastwall_policy_release: >-
       {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
@@ -118,8 +118,15 @@
         src: "{{ blastwall_source_dir }}/Makefile"
       register: blastwall_policy_makefile
 
-    - name: Capture deny policy line from Makefile
+    - name: Capture policy module lines from Makefile
       ansible.builtin.set_fact:
+        blastwall_support_policy_line: >-
+          {{
+            (blastwall_policy_makefile.content | b64decode).splitlines()
+            | select('match', '^SUPPORT_POLICIES[ ]*:=')
+            | first
+            | default('')
+          }}
         blastwall_deny_policy_line: >-
           {{
             (blastwall_policy_makefile.content | b64decode).splitlines()
@@ -128,8 +135,14 @@
             | default('')
           }}
 
-    - name: Parse deny policy list from Makefile
+    - name: Parse policy module lists from Makefile
       ansible.builtin.set_fact:
+        blastwall_support_policy_modules: >-
+          {{
+            blastwall_support_policy_line
+            | regex_replace('^SUPPORT_POLICIES[ ]*:=[ ]*', '')
+            | split
+          }}
         blastwall_deny_policy_modules: >-
           {{
             blastwall_deny_policy_line
@@ -192,8 +205,14 @@
           make
 
           %install
+          install -D -m 0644 blastwall-role.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-role.cil
           install -D -m 0644 blastwall.pp \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall.pp
+          {% for module in blastwall_support_policy_modules %}
+          install -D -m 0644 {{ module }}.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/{{ module }}.cil
+          {% endfor %}
           {% for module in blastwall_deny_policy_modules %}
           install -D -m 0644 {{ module }}.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/{{ module }}.cil
@@ -202,14 +221,21 @@
             %{buildroot}%{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
           %files
+          %{_datadir}/selinux/packages/blastwall/blastwall-role.cil
           %{_datadir}/selinux/packages/blastwall/blastwall.pp
+          {% for module in blastwall_support_policy_modules %}
+          %{_datadir}/selinux/packages/blastwall/{{ module }}.cil
+          {% endfor %}
           {% for module in blastwall_deny_policy_modules %}
           %{_datadir}/selinux/packages/blastwall/{{ module }}.cil
           {% endfor %}
           %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
           %changelog
-          * Thu May 07 2026 Blastwall Policy Pipeline <blastwall@example.com> - {{ blastwall_policy_version }}-{{ blastwall_policy_release }}
+          * Fri May 08 2026 Blastwall Policy Pipeline <blastwall@example.com> - {{ blastwall_policy_version }}-{{ blastwall_policy_release }}
+          - Add Dirty Frag xfrm and RxRPC deny scopes
+
+          * Thu May 07 2026 Blastwall Policy Pipeline <blastwall@example.com> - 0.5.1-1
           - Rebuild from versioned Git policy source through the Day 2 pipeline
 
     - name: Build candidate policy RPM
@@ -241,4 +267,5 @@
           policy_pipeline_build: passed
           policy_rpm: "{{ blastwall_policy_artifact_path }}"
           policy_nevra: "{{ blastwall_policy_nevra }}"
+          support_modules: "{{ blastwall_support_policy_modules }}"
           deny_scopes: "{{ blastwall_deny_policy_modules }}"

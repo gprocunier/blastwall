@@ -10,7 +10,7 @@ on:
       policy_version:
         description: Candidate Blastwall policy version
         required: false
-        default: "0.5.1"
+        default: "0.5.2"
       policy_release:
         description: Candidate Blastwall policy release
         required: false
@@ -97,6 +97,8 @@ jobs:
           awx jobs stdout "${verify_id}" | tee /tmp/blastwall-policy-pipeline-verify.log
           grep -F 'blastwall_u:blastwall_r:blastwall_t:s0' /tmp/blastwall-policy-pipeline-verify.log
           grep -E 'SKIP: could not create AF_ALG socket|BLOCKED:' /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'Dirty Frag NETLINK_XFRM' /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'Dirty Frag AF_RXRPC' /tmp/blastwall-policy-pipeline-verify.log
 
           awx jobs stdout "${promote_id}" | tee /tmp/blastwall-policy-pipeline-promote.log
           grep -F 'policy_pipeline_promotion' /tmp/blastwall-policy-pipeline-promote.log

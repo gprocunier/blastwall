@@ -1,0 +1,13 @@
+; Deny AF_RXRPC sockets for the blastwall automation domain.
+; Dirty Frag's RxRPC path uses an AF_RXRPC client socket and RxKAD packet
+; verification.  Fleet automation has no expected need to speak RxRPC.
+
+(deny blastwall_t self (rxrpc_socket
+  (accept append bind connect create getattr getopt ioctl listen lock map
+   name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+   setattr setopt shutdown write)))
+
+(neverallow blastwall_t self (rxrpc_socket
+  (accept append bind connect create getattr getopt ioctl listen lock map
+   name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+   setattr setopt shutdown write)))

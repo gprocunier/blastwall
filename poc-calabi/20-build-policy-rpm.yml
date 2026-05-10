@@ -51,7 +51,7 @@
         dest: "{{ blastwall_source_dir }}/blastwall.te"
         mode: "0644"
         content: |
-          policy_module(blastwall, 0.5.0)
+          policy_module(blastwall, 0.5.2)
 
           ########################################
           #
@@ -91,6 +91,18 @@
           (deny blastwall_t self (capability2 (bpf)))
           (neverallow blastwall_t self (capability2 (bpf)))
 
+    - name: Write SSH login transition support module
+      ansible.builtin.copy:
+        dest: "{{ blastwall_source_dir }}/blastwall-sshd-login.cil"
+        mode: "0644"
+        content: |
+          (typeattributeset cil_gen_require sshd_t)
+          (typeattributeset cil_gen_require blastwall_t)
+          (allow sshd_t blastwall_t (process
+            (transition dyntransition sigchld noatsecure siginh rlimitinh)))
+          (allow sshd_t blastwall_t (fd (use)))
+          (allow blastwall_t sshd_t (fd (use)))
+
     - name: Write packet_socket CIL deny module
       ansible.builtin.copy:
         dest: "{{ blastwall_source_dir }}/blastwall-packet-socket-deny.cil"
@@ -121,6 +133,18 @@
           (optional blastwall_io_uring_deny
             (deny blastwall_t self (io_uring (cmd override_creds sqpoll)))
             (neverallow blastwall_t self (io_uring (cmd override_creds sqpoll))))
+
+    - name: Write xfrm CIL deny module
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../policy/blastwall-xfrm-deny.cil"
+        dest: "{{ blastwall_source_dir }}/blastwall-xfrm-deny.cil"
+        mode: "0644"
+
+    - name: Write RxRPC CIL deny module
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../policy/blastwall-rxrpc-deny.cil"
+        dest: "{{ blastwall_source_dir }}/blastwall-rxrpc-deny.cil"
+        mode: "0644"
 
     - name: Write policy self-protection CIL deny module
       ansible.builtin.copy:
@@ -179,7 +203,7 @@
         mode: "0644"
         content: |
           Name:           blastwall-selinux
-          Version:        0.5.0
+          Version:        0.5.2
           Release:        1
           Summary:        SELinux policy for the Blastwall automation PoC
           License:        MIT
@@ -204,6 +228,8 @@
           %install
           install -D -m 0644 blastwall.pp \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall.pp
+          install -D -m 0644 blastwall-sshd-login.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-sshd-login.cil
           install -D -m 0644 blastwall-alg-socket-deny.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-alg-socket-deny.cil
           install -D -m 0644 blastwall-bpf-deny.cil \
@@ -214,6 +240,10 @@
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil
           install -D -m 0644 blastwall-io-uring-deny.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-io-uring-deny.cil
+          install -D -m 0644 blastwall-xfrm-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-xfrm-deny.cil
+          install -D -m 0644 blastwall-rxrpc-deny.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-rxrpc-deny.cil
           install -D -m 0644 blastwall-policy-selfprotect.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
           install -D -m 0644 contexts/blastwall_u \
@@ -222,11 +252,14 @@
           %post
           semodule -i \
             %{_datadir}/selinux/packages/blastwall/blastwall.pp \
+            %{_datadir}/selinux/packages/blastwall/blastwall-sshd-login.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-alg-socket-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-io-uring-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-xfrm-deny.cil \
+            %{_datadir}/selinux/packages/blastwall/blastwall-rxrpc-deny.cil \
             %{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
           install -D -m 0644 \
             %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u \
@@ -241,11 +274,14 @@
           %preun
           if [ "$1" -eq 0 ]; then
             semodule -r blastwall-policy-selfprotect || true
+            semodule -r blastwall-rxrpc-deny || true
+            semodule -r blastwall-xfrm-deny || true
             semodule -r blastwall-io-uring-deny || true
             semodule -r blastwall-userns-deny || true
             semodule -r blastwall-packet-socket-deny || true
             semodule -r blastwall-bpf-deny || true
             semodule -r blastwall-alg-socket-deny || true
+            semodule -r blastwall-sshd-login || true
             semodule -r blastwall || true
             semanage user -d blastwall_u || true
             rm -f /etc/selinux/targeted/contexts/users/blastwall_u
@@ -253,15 +289,21 @@
 
           %files
           %{_datadir}/selinux/packages/blastwall/blastwall.pp
+          %{_datadir}/selinux/packages/blastwall/blastwall-sshd-login.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-alg-socket-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-bpf-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-packet-socket-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-userns-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-io-uring-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-xfrm-deny.cil
+          %{_datadir}/selinux/packages/blastwall/blastwall-rxrpc-deny.cil
           %{_datadir}/selinux/packages/blastwall/blastwall-policy-selfprotect.cil
           %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
           %changelog
+          * Fri May 08 2026 Blastwall PoC <root@localhost> - 0.5.2-1
+          - Add Dirty Frag xfrm and RxRPC deny scopes
+
           * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.5.0-1
           - Add io_uring deny scope with optional block for kernel compat (CVE-2026-43006)
 
@@ -338,6 +380,18 @@
           register: alg_socket_baseline
           failed_when: false
 
+        - name: Query netlink_xfrm_socket permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, netlink_xfrm_socket]
+          register: xfrm_baseline
+          failed_when: false
+
+        - name: Query rxrpc_socket permissions granted to blastwall_t
+          ansible.builtin.command:
+            argv: [sesearch, -A, -s, blastwall_t, -c, rxrpc_socket]
+          register: rxrpc_baseline
+          failed_when: false
+
         - name: Query SELinux security class permissions granted to blastwall_t
           ansible.builtin.command:
             argv: [sesearch, -A, -s, blastwall_t, -c, security]
@@ -375,6 +429,12 @@
 
               --- user_namespace grants (denied by blastwall-userns-deny.cil) ---
               {{ userns_baseline.stdout | default('(none found)') }}
+
+              --- netlink_xfrm_socket grants (denied by blastwall-xfrm-deny.cil) ---
+              {{ xfrm_baseline.stdout | default('(none found)') }}
+
+              --- rxrpc_socket grants (denied by blastwall-rxrpc-deny.cil) ---
+              {{ rxrpc_baseline.stdout | default('(none found)') }}
 
               --- security class grants (denied by blastwall-policy-selfprotect.cil) ---
               {{ security_baseline.stdout | default('(none found)') }}

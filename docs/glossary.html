@@ -119,6 +119,8 @@
             <dd>The <a href="https://www.kernel.org/doc/html/latest/crypto/userspace-if.html">Linux kernel socket family</a> for using kernel cryptographic algorithms from user space. Copy Fail reaches the vulnerable path through this interface.</dd>
             <dt id="copy-fail">Copy Fail</dt>
             <dd>The <a href="https://copy.fail/">public exploit write-up and proof</a> that motivates Blastwall's first concrete deny-scope example.</dd>
+            <dt id="dirty-frag">Dirty Frag</dt>
+            <dd>A <a href="https://github.com/V4bel/dirtyfrag">public Linux local privilege escalation write-up and proof</a> that chains xfrm-ESP and RxRPC page-cache write paths. Blastwall responds by denying those entry points for confined automation.</dd>
             <dt id="authencesn">authencesn</dt>
             <dd>The specific authenticated encryption template shape associated with the <a href="https://copy.fail/">Copy Fail</a> exploit path. Blastwall blocks the broader AF_ALG surface for mapped automation instead of matching this argument.</dd>
             <dt id="seccomp">seccomp</dt>
@@ -131,6 +133,10 @@
             <dd>The SELinux object class associated with raw packet socket use. Blastwall denies this surface for confined automation.</dd>
             <dt id="af-packet">AF_PACKET</dt>
             <dd>The Linux socket family for packet-level network access. Blastwall's packet socket probe checks that this path is denied for the confined automation domain.</dd>
+            <dt id="xfrm">xfrm</dt>
+            <dd>The Linux IPsec transformation framework. Blastwall's Dirty Frag response denies <code>netlink_xfrm_socket</code> access for confined automation so that automation cannot register XFRM security-association state.</dd>
+            <dt id="rxrpc">RxRPC</dt>
+            <dd>A Linux remote procedure call protocol family used by AFS-related code paths. Blastwall's Dirty Frag response denies <code>rxrpc_socket</code> access for confined automation.</dd>
             <dt id="syscall">syscall</dt>
             <dd>A system call: a request from user space into the kernel. Several Blastwall probes verify that sensitive syscalls or socket operations fail before reaching useful exploit behavior.</dd>
             <dt id="cil">CIL</dt>

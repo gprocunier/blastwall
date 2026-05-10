@@ -1,8 +1,14 @@
 # Blastwall Policy Modules
 
 Each deny scope is a standalone CIL file loaded alongside the base
-`blastwall.pp` module.  The `Makefile` lists active scopes in
-`DENY_POLICIES` and loads them in a single `semodule -i` call.
+`blastwall.pp` module.  The `Makefile` lists active enforcement helpers in
+`SUPPORT_POLICIES`, active deny scopes in `DENY_POLICIES`, and loads them in a
+single `semodule -i` call.
+
+`blastwall-sshd-login.cil` is a support module, not a deny scope. It lets sshd
+complete the `pam_selinux` selected-context transition into `blastwall_t` so
+GSSAPI automation can enter the confined domain before the deny scopes are
+tested.
 
 ## Optional blocks
 
@@ -32,3 +38,18 @@ enforced on each host.
 4. Add an inventory group condition to `inventory/blastwall-idm.yml`.
 5. Write a test probe in `tests/`.
 6. Bump the policy version.
+
+Support modules that keep login or packaging mechanics working belong in
+`SUPPORT_POLICIES`, not `DENY_POLICIES`.
+
+## Current Dirty Frag response
+
+Blastwall `0.5.2` adds two deny scopes for the Dirty Frag disclosure:
+
+- `blastwall-xfrm-deny.cil` denies `netlink_xfrm_socket` access so confined
+  automation cannot register XFRM/IPsec state.
+- `blastwall-rxrpc-deny.cil` denies `rxrpc_socket` access so confined
+  automation cannot open the RxRPC protocol entry point.
+
+The matching safe probe is `tests/trigger-dirtyfrag-deny.py`.  It only checks
+entry-point reachability and does not run exploit payload logic.

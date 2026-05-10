@@ -98,6 +98,7 @@
               <tr><td data-label="Probe"><code>trigger-packet-socket-deny.py</code></td><td data-label="Surface">AF_PACKET socket creation.</td><td data-label="Expected Output"><code>BLOCKED</code> for packet socket creation.</td></tr>
               <tr><td data-label="Probe"><code>trigger-userns-deny.py</code></td><td data-label="Surface">User namespace creation.</td><td data-label="Expected Output"><code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</td></tr>
               <tr><td data-label="Probe"><code>trigger-io-uring-deny.py</code></td><td data-label="Surface">io_uring setup.</td><td data-label="Expected Output"><code>BLOCKED</code>, or <code>SKIP</code> on kernels without that object class.</td></tr>
+              <tr><td data-label="Probe"><code>trigger-dirtyfrag-deny.py</code></td><td data-label="Surface">Dirty Frag xfrm and RxRPC entry points.</td><td data-label="Expected Output"><code>BLOCKED</code> for <code>NETLINK_XFRM</code> and <code>AF_RXRPC</code>, or <code>SKIP</code> for AF_RXRPC when the kernel lacks that protocol.</td></tr>
             </tbody>
           </table>
         </section>
@@ -110,8 +111,10 @@
             </thead>
             <tbody>
               <tr><td data-label="Artifact"><code>policy/blastwall.te</code></td><td data-label="Purpose">Base SELinux reference-policy module for the Blastwall automation user, role, and domain.</td></tr>
+              <tr><td data-label="Artifact"><code>policy/blastwall-sshd-login.cil</code></td><td data-label="Purpose">Support module that lets sshd complete the selected-context transition into <code>blastwall_t</code> for GSSAPI automation sessions.</td></tr>
               <tr><td data-label="Artifact"><code>policy/blastwall-*-deny.cil</code></td><td data-label="Purpose">Standalone CIL deny scopes that subtract risky surfaces from <code>blastwall_t</code>.</td></tr>
-              <tr><td data-label="Artifact"><code>policy/Makefile</code></td><td data-label="Purpose">Builds the base policy and lists active deny scopes in <code>DENY_POLICIES</code>.</td></tr>
+              <tr><td data-label="Artifact"><code>policy/blastwall-xfrm-deny.cil</code> and <code>policy/blastwall-rxrpc-deny.cil</code></td><td data-label="Purpose">Dirty Frag response scopes added after the May 7, 2026 public disclosure.</td></tr>
+              <tr><td data-label="Artifact"><code>policy/Makefile</code></td><td data-label="Purpose">Builds the base policy and lists support modules and active deny scopes.</td></tr>
               <tr><td data-label="Artifact"><code>playbooks/build-policy-rpm.yml</code></td><td data-label="Purpose">AAP Day 2 build job that packages a candidate policy RPM from Git source.</td></tr>
               <tr><td data-label="Artifact"><code>playbooks/install-policy-rpm.yml</code></td><td data-label="Purpose">AAP Day 2 install job that stages and validates the candidate policy RPM on the endpoint.</td></tr>
               <tr><td data-label="Artifact"><code>playbooks/promote-policy-rpm.yml</code></td><td data-label="Purpose">AAP Day 2 marker promotion job that writes the verified IdM marker with the FreeIPA collection.</td></tr>

@@ -25,7 +25,7 @@
     blastwall_expected_selinux_user: blastwall_u:s0
     blastwall_hbac_rule_name: blastwall-ssh
     blastwall_sudo_rule_name: blastwall-root-local-sudo
-    blastwall_required_policy_marker: blastwall-selinux-0.5.0-1
+    blastwall_required_policy_marker: blastwall-selinux-0.5.2-1
     blastwall_fail_on_stale_policy: true
     blastwall_target_hosts: >-
       {{ groups['blastwall_policy_current'] | default([]) }}

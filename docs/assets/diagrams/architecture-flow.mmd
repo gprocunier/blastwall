@@ -16,4 +16,4 @@ flowchart TB
     RUN --> LOGIN
     LOGIN --> DOMAIN["Confined session<br/>blastwall_t"]
     SUDO --> DOMAIN
-    DOMAIN --> DENY["SELinux denies<br/>AF_ALG, BPF, packet sockets,<br/>userns, io_uring, policy writes"]
+    DOMAIN --> DENY["SELinux denies<br/>AF_ALG, BPF, packet sockets,<br/>userns, io_uring,<br/>xfrm, RxRPC, policy writes"]

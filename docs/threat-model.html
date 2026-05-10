@@ -183,7 +183,7 @@
             <tbody>
               <tr><td><strong>Preconditions</strong></td><td>Attacker has <code>ipa host-mod</code> access.</td></tr>
               <tr><td><strong>Impact</strong></td><td>Jobs run on hosts that lack confinement policy.</td></tr>
-              <tr><td><strong>Mitigation</strong></td><td>Verification playbook checks actual SELinux context and runs AF_ALG, BPF, packet_socket, userns, and io_uring probes after deployment. But that is a point-in-time check, not continuous verification.</td></tr>
+              <tr><td><strong>Mitigation</strong></td><td>Verification playbook checks actual SELinux context and runs AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes after deployment. But that is a point-in-time check, not continuous verification.</td></tr>
               <tr><td><strong>Residual risk</strong></td><td>Moderate. String-based marker has no cryptographic binding to actual policy state.</td></tr>
             </tbody>
           </table>
@@ -211,7 +211,7 @@
           </table>
 
           <h3>AP-6: Uncovered Exploit Surfaces</h3>
-          <p>The attacker targets a kernel exploit surface not denied by current policy. The current proof covers AF_ALG, BPF, packet_socket, user namespace creation, io_uring, and direct policy self-protection. It does not imply every future kernel surface belongs in the policy; each new deny scope needs exploit signal, automation-impact review, and verification evidence.</p>
+          <p>The attacker targets a kernel exploit surface not denied by current policy. The current proof covers AF_ALG, BPF, packet_socket, user namespace creation, io_uring, xfrm, RxRPC, and direct policy self-protection. It does not imply every future kernel surface belongs in the policy; each new deny scope needs exploit signal, automation-impact review, and verification evidence.</p>
           <p>The current coverage is visible in the <a href="demo.html#evidence-map">Ansible evidence map</a>, <a href="aap-demo.html#evidence-map">AAP evidence map</a>, and <a href="architecture.html#deny-lifecycle">deny lifecycle</a>.</p>
           <table>
             <tbody>
@@ -246,7 +246,7 @@
               <tr><td>AP-3: Host marker spoofing</td><td>Partially mitigated</td><td>Verification playbook catches post-deployment; no cryptographic binding</td></tr>
               <tr><td>AP-4: SSSD cache race</td><td>Mitigated</td><td>Small window, caught by verification step</td></tr>
               <tr><td>AP-5: Controller compromise</td><td>Partially mitigated</td><td>Host-local enforcement independent; stale host selection is residual risk</td></tr>
-              <tr><td>AP-6: Uncovered surfaces</td><td>Partially mitigated</td><td>AF_ALG, BPF, packet_socket, userns, io_uring covered; policy self-protection added; future scopes require coverage-selection review</td></tr>
+              <tr><td>AP-6: Uncovered surfaces</td><td>Partially mitigated</td><td>AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC covered; policy self-protection added; future scopes require coverage-selection review</td></tr>
               <tr><td>AP-7: Policy conflicts</td><td>Low risk</td><td>Minimal surface; neverallow guards against re-grants</td></tr>
             </tbody>
           </table>

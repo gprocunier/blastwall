@@ -348,6 +348,8 @@
             -o GSSAPIAuthentication=yes
             -o GSSAPIDelegateCredentials=yes
             -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex
+            -o ControlMaster=no
+            -o ControlPath=none
             -o StrictHostKeyChecking=no
             -o UserKnownHostsFile=/dev/null
         state: present
@@ -380,6 +382,7 @@
         credentials: "{{ item.credentials }}"
         limit: "{{ item.limit | default(omit) }}"
         ask_variables_on_launch: true
+        ask_limit_on_launch: true
         verbosity: 1
         state: present
       loop: "{{ blastwall_aap_job_templates }}"
@@ -428,6 +431,8 @@
         workflow_job_template: "{{ blastwall_aap_workflow }}"
         organization: "{{ blastwall_aap_organization }}"
         unified_job_template: "{{ item.template }}"
+        limit: "{{ item.limit | default(omit) }}"
+        extra_data: "{{ item.extra_data | default(omit) }}"
         state: present
       loop:
         - identifier: credential_smoke
@@ -436,6 +441,9 @@
           template: Blastwall preflight
         - identifier: verify_managed_host
           template: Blastwall verify managed host
+          limit: blastwall_policy_current
+          extra_data:
+            blastwall_verify_target_hosts: blastwall_policy_current
 
     - name: Remove stale bootstrap workflow nodes from verification workflow
       awx.awx.workflow_job_template_node:
@@ -500,16 +508,30 @@
         workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
         organization: "{{ blastwall_aap_organization }}"
         unified_job_template: "{{ item.template }}"
+        limit: "{{ item.limit | default(omit) }}"
+        extra_data: "{{ item.extra_data | default(omit) }}"
         state: present
       loop:
         - identifier: build_policy_rpm
           template: Blastwall build policy RPM
+          limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data:
+            blastwall_policy_pipeline_build_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
+          limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data:
+            blastwall_policy_pipeline_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: verify_candidate_host
           template: Blastwall verify managed host
+          limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data:
+            blastwall_verify_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: promote_policy_marker
           template: Blastwall promote policy marker
+          limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data:
+            blastwall_policy_pipeline_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: post_promotion_preflight
           template: Blastwall preflight
 

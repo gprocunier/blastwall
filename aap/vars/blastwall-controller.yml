@@ -91,20 +91,20 @@ blastwall_aap_job_templates:
   - name: Blastwall build policy RPM
     playbook: playbooks/build-policy-rpm.yml
     credentials:
-      - "{{ blastwall_aap_idm_credential }}"
-      - "{{ blastwall_aap_machine_credential }}"
-    limit: blastwall_policy_current
+      - "{{ blastwall_aap_policy_idm_credential }}"
+      - "{{ blastwall_aap_policy_machine_credential }}"
+    limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
   - name: Blastwall install candidate policy RPM
     playbook: playbooks/install-policy-rpm.yml
     credentials:
       - "{{ blastwall_aap_policy_idm_credential }}"
       - "{{ blastwall_aap_policy_machine_credential }}"
-    limit: blastwall_policy_current
+    limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
   - name: Blastwall promote policy marker
     playbook: playbooks/promote-policy-rpm.yml
     credentials:
       - "{{ blastwall_aap_idm_admin_credential }}"
-    limit: blastwall_policy_current
+    limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
   - name: Blastwall credential smoke
     playbook: playbooks/credential-smoke.yml
     credentials:
@@ -120,7 +120,10 @@ blastwall_aap_job_templates:
     credentials:
       - "{{ blastwall_aap_idm_credential }}"
       - "{{ blastwall_aap_machine_credential }}"
-    limit: blastwall_policy_current
+    limit: ""
 
 blastwall_aap_workflow: Blastwall runtime verification
 blastwall_aap_policy_pipeline_workflow: Blastwall policy pipeline
+blastwall_aap_policy_pipeline_candidate_group: >-
+  {{ lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
+  default('blastwall_policy_stale', true) }}

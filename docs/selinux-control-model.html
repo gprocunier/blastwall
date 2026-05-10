@@ -95,7 +95,7 @@
 
         <section id="deny-scopes">
           <h2>Deny Scopes</h2>
-          <p>The current proof denies surfaces that have high exploit value and low expected value for privileged automation. The policy covers AF_ALG, BPF, packet_socket, user namespace creation, io_uring, and direct policy self-protection.</p>
+          <p>The current proof denies surfaces that have high exploit value and low expected value for privileged automation. The policy covers AF_ALG, BPF, packet_socket, user namespace creation, io_uring, xfrm, RxRPC, and direct policy self-protection.</p>
           <table class="comparison-table">
             <thead>
               <tr><th>Scope</th><th>What The Probe Shows</th><th>Why It Matters</th></tr>
@@ -106,6 +106,8 @@
               <tr><td data-label="Scope">packet_socket</td><td data-label="What The Probe Shows">AF_PACKET socket creation fails.</td><td data-label="Why It Matters">Raw packet access is a powerful local capability and a poor default for automation.</td></tr>
               <tr><td data-label="Scope">userns</td><td data-label="What The Probe Shows"><code>unshare(CLONE_NEWUSER)</code> fails.</td><td data-label="Why It Matters">User namespaces often help exploit chains turn a local bug into a practical escalation path. Blastwall treats that as a posture decision: if this automation identity does not need user namespace creation, it should not have it while waiting for the next userns-adjacent CVE.</td></tr>
               <tr><td data-label="Scope">io_uring</td><td data-label="What The Probe Shows"><code>io_uring_setup</code> is blocked, or skipped on kernels without that SELinux object class.</td><td data-label="Why It Matters">It is a recurring kernel attack surface with little value for this automation identity path.</td></tr>
+              <tr><td data-label="Scope">xfrm</td><td data-label="What The Probe Shows"><code>NETLINK_XFRM</code> socket creation fails.</td><td data-label="Why It Matters">Dirty Frag's xfrm-ESP path registers XFRM security associations before reaching ESP processing. Normal fleet automation should not need that control plane.</td></tr>
+              <tr><td data-label="Scope">RxRPC</td><td data-label="What The Probe Shows"><code>AF_RXRPC</code> socket creation fails, or skips when the kernel has no RxRPC support.</td><td data-label="Why It Matters">Dirty Frag's RxRPC path needs an AF_RXRPC client. That protocol surface has little expected value for this automation identity.</td></tr>
               <tr><td data-label="Scope">policy self-protection</td><td data-label="What The Probe Shows"><code>semodule</code> remains denied from <code>blastwall_t</code> even when sudo can see it.</td><td data-label="Why It Matters">The confined identity should not remove the policy that confines it.</td></tr>
             </tbody>
           </table>

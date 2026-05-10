@@ -24,7 +24,7 @@ the policy is deployed to the target.  The goal is to prove the primitive:
 3. build a `blastwall-selinux` RPM on `bastion-01`;
 4. install that RPM on the automation endpoint;
 5. SSH as an IdM automation user mapped to `blastwall_u`;
-6. prove that the Copy Fail AF_ALG/authencesn path and BPF entry points return permission denied;
+6. prove that the Copy Fail AF_ALG/authencesn path, BPF entry points, packet sockets, user namespaces, io_uring, and Dirty Frag xfrm/RxRPC entry points return permission denied;
 7. temporarily expose `/usr/sbin/semodule` through sudo and prove SELinux still blocks policy manipulation;
 8. show matching SELinux audit evidence from the target host.
 
@@ -105,6 +105,7 @@ The final playbook should show:
 - `sudo -n /usr/bin/id -Z` remains in the Blastwall SELinux role/type;
 - the AF_ALG/authencesn probe prints `BLOCKED`;
 - the BPF probe prints `BLOCKED` for `BPF_MAP_CREATE` and `BPF_PROG_LOAD`;
+- the Dirty Frag probe prints `BLOCKED` for `NETLINK_XFRM` and `AF_RXRPC`, or an AF_RXRPC `SKIP` when that protocol is absent;
 - the self-protection play temporarily adds `/usr/sbin/semodule` to sudo, then receives `Permission denied` from SELinux rather than a sudo policy rejection;
 - a target-side `grep` shows SELinux syscall and AVC denial evidence for `blastwall_t`.
 

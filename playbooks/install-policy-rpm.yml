@@ -1,12 +1,12 @@
 ---
 - name: Install candidate Blastwall policy RPM
-  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_current') }}"
+  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_stale') }}"
   become: true
   gather_facts: false
   vars:
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
-      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.1', true), true) }}
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
     blastwall_policy_release: >-
       {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
@@ -17,6 +17,10 @@
     blastwall_selinux_user: blastwall_u
     blastwall_selinux_role: blastwall_r
     blastwall_selinux_range: s0
+    blastwall_policy_bootstrap_modules:
+      - blastwall-role
+    blastwall_policy_support_modules:
+      - blastwall-sshd-login
     blastwall_policy_cil_modules:
       - blastwall-alg-socket-deny
       - blastwall-bpf-deny
@@ -24,7 +28,15 @@
       - blastwall-packet-socket-deny
       - blastwall-userns-deny
       - blastwall-io-uring-deny
-    blastwall_policy_modules: "{{ ['blastwall'] + blastwall_policy_cil_modules }}"
+      - blastwall-xfrm-deny
+      - blastwall-rxrpc-deny
+    blastwall_policy_modules: >-
+      {{
+        blastwall_policy_bootstrap_modules +
+        ['blastwall'] +
+        blastwall_policy_support_modules +
+        blastwall_policy_cil_modules
+      }}
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
     ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
     ipa_login_principal: >-
@@ -102,7 +114,14 @@
 
     - name: Activate candidate SELinux policy modules from RPM payload
       ansible.builtin.command: >-
-        semodule -i {{ blastwall_policy_package_dir }}/blastwall.pp
+        semodule -i
+        {% for module in blastwall_policy_bootstrap_modules %}
+        {{ blastwall_policy_package_dir }}/{{ module }}.cil
+        {% endfor %}
+        {{ blastwall_policy_package_dir }}/blastwall.pp
+        {% for module in blastwall_policy_support_modules %}
+        {{ blastwall_policy_package_dir }}/{{ module }}.cil
+        {% endfor %}
         {% for module in blastwall_policy_cil_modules %}
         {{ blastwall_policy_package_dir }}/{{ module }}.cil
         {% endfor %}
@@ -127,6 +146,18 @@
       register: blastwall_selinux_users_before
       changed_when: false
 
+    - name: Parse existing SELinux user names
+      ansible.builtin.set_fact:
+        blastwall_selinux_user_names: >-
+          {{
+            blastwall_selinux_users_before.stdout_lines
+            | map('trim')
+            | reject('equalto', '')
+            | map('split')
+            | map('first')
+            | list
+          }}
+
     - name: Update existing Blastwall SELinux user
       ansible.builtin.command:
         argv:
@@ -139,13 +170,7 @@
           - "{{ blastwall_selinux_range }}"
           - "{{ blastwall_selinux_user }}"
       changed_when: true
-      when: >-
-        blastwall_selinux_user in (
-          blastwall_selinux_users_before.stdout_lines
-          | map('split')
-          | map('first')
-          | list
-        )
+      when: blastwall_selinux_user in blastwall_selinux_user_names
 
     - name: Add Blastwall SELinux user
       ansible.builtin.command:
@@ -159,13 +184,7 @@
           - "{{ blastwall_selinux_range }}"
           - "{{ blastwall_selinux_user }}"
       changed_when: true
-      when: >-
-        blastwall_selinux_user not in (
-          blastwall_selinux_users_before.stdout_lines
-          | map('split')
-          | map('first')
-          | list
-        )
+      when: blastwall_selinux_user not in blastwall_selinux_user_names
 
     - name: Restore SELinux login context labels
       ansible.builtin.command:

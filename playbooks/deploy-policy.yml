@@ -22,7 +22,7 @@
     ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
     krb5_ccache: FILE:/tmp/blastwall_krb5cc
-    blastwall_policy_rpm: blastwall-selinux-0.5.0-1
+    blastwall_policy_rpm: blastwall-selinux-0.5.2-1
     blastwall_project_dir: /opt/blastwall
     blastwall_policy_dir: "{{ blastwall_project_dir }}/policy"
     blastwall_selinux_type: targeted
@@ -34,12 +34,15 @@
     blastwall_deploy_force_cleanup_on_failure: false
     blastwall_policy_modules:
       - blastwall
+      - blastwall-sshd-login
       - blastwall-alg-socket-deny
       - blastwall-bpf-deny
       - blastwall-policy-selfprotect
       - blastwall-packet-socket-deny
       - blastwall-userns-deny
       - blastwall-io-uring-deny
+      - blastwall-xfrm-deny
+      - blastwall-rxrpc-deny
     blastwall_policy_marker: >-
       blastwall_policy_rpm={{ blastwall_policy_rpm }};
       blastwall_policy_state=active;
@@ -48,7 +51,9 @@
       blastwall_policy_selfprotect=denied;
       blastwall_policy_packet_socket=denied;
       blastwall_policy_userns=denied;
-      blastwall_policy_io_uring=denied
+      blastwall_policy_io_uring=denied;
+      blastwall_policy_xfrm=denied;
+      blastwall_policy_rxrpc=denied
     blastwall_policy_failed_marker: >-
       blastwall_policy_rpm={{ blastwall_policy_rpm }};
       blastwall_policy_state=failed
@@ -203,6 +208,18 @@
           register: blastwall_selinux_users_before
           changed_when: false
 
+        - name: Parse existing SELinux user names
+          ansible.builtin.set_fact:
+            blastwall_selinux_user_names: >-
+              {{
+                blastwall_selinux_users_before.stdout_lines
+                | map('trim')
+                | reject('equalto', '')
+                | map('split')
+                | map('first')
+                | list
+              }}
+
         - name: Update existing Blastwall SELinux user
           ansible.builtin.command:
             argv:
@@ -215,13 +232,7 @@
               - "{{ blastwall_selinux_range }}"
               - "{{ blastwall_selinux_user }}"
           changed_when: true
-          when: >-
-            blastwall_selinux_user in (
-              blastwall_selinux_users_before.stdout_lines
-              | map('split')
-              | map('first')
-              | list
-            )
+          when: blastwall_selinux_user in blastwall_selinux_user_names
 
         - name: Add Blastwall SELinux user
           ansible.builtin.command:
@@ -235,13 +246,7 @@
               - "{{ blastwall_selinux_range }}"
               - "{{ blastwall_selinux_user }}"
           changed_when: true
-          when: >-
-            blastwall_selinux_user not in (
-              blastwall_selinux_users_before.stdout_lines
-              | map('split')
-              | map('first')
-              | list
-            )
+          when: blastwall_selinux_user not in blastwall_selinux_user_names
 
         - name: Restore SELinux user context directory labels
           ansible.builtin.command:

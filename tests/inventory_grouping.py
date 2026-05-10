@@ -10,8 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "inventory-policy-markers.json"
 
 ACCEPTED_POLICY_RPMS = [
-    "blastwall_policy_rpm=blastwall-selinux-0.5.0-1",
-    "blastwall_policy_rpm=blastwall-selinux-0.5.1-1",
+    "blastwall_policy_rpm=blastwall-selinux-0.5.2-1",
 ]
 
 REQUIRED_MARKERS = [
@@ -22,6 +21,8 @@ REQUIRED_MARKERS = [
     "blastwall_policy_packet_socket=denied",
     "blastwall_policy_userns=denied",
     "blastwall_policy_io_uring=denied",
+    "blastwall_policy_xfrm=denied",
+    "blastwall_policy_rxrpc=denied",
 ]
 
 

@@ -14,4 +14,4 @@ sequenceDiagram
     S-->>H: Launch session as blastwall_u:blastwall_r:blastwall_t
     A->>H: Run sudo for local-root task
     H->>K: Enforce blastwall_t permissions
-    K-->>H: Deny alg_socket, bpf, packet_socket, userns, and policy self-protection
+    K-->>H: Deny alg_socket, bpf, packet_socket, userns, io_uring, xfrm, RxRPC, and policy self-protection

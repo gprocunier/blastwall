@@ -6,8 +6,11 @@ unconfined local shape as a human operator. Red Hat Identity Management (IdM)
 should decide who may run, Ansible Automation Platform (AAP) should act on that
 state, and SELinux should confine the session when it reaches the host.
 
-The first concrete target is the [`copy.fail`](https://copy.fail/) exploit
-path. Anthony Green's
+The first concrete target was the [`copy.fail`](https://copy.fail/) exploit
+path. The current proof also covers
+[`Dirty Frag`](https://github.com/V4bel/dirtyfrag), which was publicly
+documented on May 7, 2026 and relies on xfrm-ESP and RxRPC page-cache write
+paths. Anthony Green's
 [`block-copyfail`](https://github.com/atgreen/block-copyfail) shows the precise
 BPF LSM answer for that vulnerability. Blastwall takes a different angle: if a
 risky kernel surface should be unavailable to privileged automation identities,
@@ -58,7 +61,8 @@ Blastwall joins four responsibilities that are usually discussed separately:
 
 The recorded demos show that an automation identity can land in
 `blastwall_u:blastwall_r:blastwall_t:s0`, use sudo without escaping that
-domain, and hit denied AF_ALG, BPF, packet_socket, userns, and io_uring probes.
+domain, and hit denied AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and
+RxRPC probes.
 The userns denial is the clearest proactive posture example: user namespaces are
 often useful in exploit chains, and this automation identity has no expected
 reason to create them.

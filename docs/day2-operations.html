@@ -37,7 +37,7 @@
 
         <section id="where-policy-comes-from">
           <h2>Where The Policy Comes From</h2>
-          <p>The policy starts in <code>policy/</code>. The base <code>blastwall.te</code> module defines the automation SELinux user, role, and domain using the RHEL targeted policy model. The standalone CIL deny files subtract high-risk surfaces from that domain, such as AF_ALG, BPF, packet sockets, user namespace creation, io_uring, and direct policy self-protection.</p>
+          <p>The policy starts in <code>policy/</code>. The base <code>blastwall.te</code> module defines the automation SELinux user, role, and domain using the RHEL targeted policy model. The standalone CIL deny files subtract high-risk surfaces from that domain, such as AF_ALG, BPF, packet sockets, user namespace creation, io_uring, xfrm, RxRPC, and direct policy self-protection.</p>
           <p>The source of authority is the versioned SELinux policy artifact installed on the managed host. IdM records which identities and hosts are in scope, <code>eigenstate.ipa</code> translates that state into inventory facts, and AAP decides whether the host is suitable before the job runs.</p>
           <figure class="diagram-card diagram-card--focus" id="day2-policy-source">
             <figcaption>
@@ -93,7 +93,7 @@
             </thead>
             <tbody>
               <tr><td data-label="Observation">Normal job fails on expected file, package, or service work.</td><td data-label="Interpretation">The baseline is too narrow for this automation class.</td><td data-label="Next Action">Add a targeted allow or split the workflow into a more specific domain.</td></tr>
-              <tr><td data-label="Observation">Job tries to create BPF, packet sockets, user namespaces, or io_uring.</td><td data-label="Interpretation">The job is crossing into a high-risk surface with little expected automation value.</td><td data-label="Next Action">Keep the deny scope and investigate why the job wanted that surface.</td></tr>
+              <tr><td data-label="Observation">Job tries to create BPF, packet sockets, user namespaces, io_uring, xfrm state, or RxRPC sockets.</td><td data-label="Interpretation">The job is crossing into a high-risk surface with little expected automation value.</td><td data-label="Next Action">Keep the deny scope and investigate why the job wanted that surface.</td></tr>
               <tr><td data-label="Observation">Only one job needs a broad capability.</td><td data-label="Interpretation">The shared automation identity may be too broad.</td><td data-label="Next Action">Consider a separate identity, host group, or policy domain for that workflow.</td></tr>
               <tr><td data-label="Observation">Probe output and audit logs agree.</td><td data-label="Interpretation">The policy is enforceable and explainable.</td><td data-label="Next Action">Promote the artifact and write verified marker state.</td></tr>
             </tbody>
@@ -113,7 +113,7 @@
             <img class="diagram-artifact" src="assets/diagrams/day2-aap-policy-pipeline.svg" alt="AAP policy pipeline from Git policy source through RPM build, candidate install, host verification, IdM marker update, inventory sync, and AAP preflight">
           </figure>
           <pre><code class="language-bash">awx workflow_job_templates launch 'Blastwall policy pipeline' \
-  --extra_vars '{"BLASTWALL_POLICY_VERSION":"0.5.1","BLASTWALL_POLICY_RELEASE":"1"}' \
+  --extra_vars '{"BLASTWALL_POLICY_VERSION":"0.5.2","BLASTWALL_POLICY_RELEASE":"1"}' \
   -f json |
   tee /tmp/blastwall-policy-pipeline-launch.json |
   jq '{workflow_job, status, launched_by: .launched_by.name}'
@@ -192,7 +192,7 @@ ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml</code></pre>
           </figure>
           <p>Launch the workflow with a candidate version. In the lab this can be done directly with <code>awx</code> from a host that can reach the Controller API, or through the <code>policy-pipeline-smoke</code> GitHub Actions workflow on the <code>blastwall-lab</code> self-hosted runner.</p>
           <pre><code class="language-bash">awx workflow_job_templates launch 'Blastwall policy pipeline' \
-  --extra_vars '{"BLASTWALL_POLICY_VERSION":"0.5.1","BLASTWALL_POLICY_RELEASE":"1"}' \
+  --extra_vars '{"BLASTWALL_POLICY_VERSION":"0.5.2","BLASTWALL_POLICY_RELEASE":"1"}' \
   -f json |
   tee /tmp/blastwall-policy-pipeline-launch.json |
   jq '{workflow_job, status, launched_by: .launched_by.name}'
@@ -210,10 +210,10 @@ install_id="$(jq -r '.results[] | select(.identifier == "install_candidate_polic
 verify_id="$(jq -r '.results[] | select(.identifier == "verify_candidate_host") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
 promote_id="$(jq -r '.results[] | select(.identifier == "promote_policy_marker") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
 
-awx jobs stdout "${build_id}" | grep -E 'policy_pipeline_build|blastwall-selinux-0.5.1-1'
-awx jobs stdout "${install_id}" | grep -E 'policy_pipeline_install|blastwall-selinux-0.5.1-1'
+awx jobs stdout "${build_id}" | grep -E 'policy_pipeline_build|blastwall-selinux-0.5.2-1'
+awx jobs stdout "${install_id}" | grep -E 'policy_pipeline_install|blastwall-selinux-0.5.2-1'
 awx jobs stdout "${verify_id}" | grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|BLOCKED:|SKIP:'
-awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|blastwall_policy_rpm=blastwall-selinux-0.5.1-1'</code></pre>
+awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|blastwall_policy_rpm=blastwall-selinux-0.5.2-1'</code></pre>
           <p>To turn this from a versioned rebuild into a real feature branch exercise, add or adjust a CIL deny scope under <code>policy/</code>, update <code>DENY_POLICIES</code> in <code>policy/Makefile</code>, add a safe probe or verification check, and use the pipeline to prove that normal automation still works. If one automation path needs the surface, split the identity or host group instead of weakening the shared baseline for every privileged job.</p>
           <table class="comparison-table">
             <thead>
@@ -257,6 +257,7 @@ awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|blastwall_p
         <section id="new-cve">
           <h2>When A New CVE Lands</h2>
           <p>A new CVE should not immediately become a permanent Blastwall rule. It should become a triage question: is this surface reachable from the automation domain, does normal automation need it, and can the denial be verified safely?</p>
+          <p>Dirty Frag is the current example. Public disclosure landed on May 7, 2026. The Blastwall response added two narrow policy files, <code>policy/blastwall-xfrm-deny.cil</code> and <code>policy/blastwall-rxrpc-deny.cil</code>, plus a safe probe that only checks whether the confined automation identity can open the xfrm and RxRPC entry points. The exploit mechanics are not part of the test path.</p>
           <figure class="diagram-card" id="day2-new-cve-loop">
             <figcaption>
               <strong>New CVEs enter as triage before baseline.</strong>

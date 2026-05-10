@@ -34,6 +34,16 @@
         path: /sys/fs/selinux/class/io_uring/perms/sqpoll
       register: io_uring_perm
 
+    - name: Check netlink_xfrm_socket class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/netlink_xfrm_socket/perms/create
+      register: xfrm_perm
+
+    - name: Check rxrpc_socket class exists
+      ansible.builtin.stat:
+        path: /sys/fs/selinux/class/rxrpc_socket/perms/create
+      register: rxrpc_perm
+
     - name: Check Blastwall SELinux user is registered
       ansible.builtin.command: semanage user -l
       register: semanage_users
@@ -47,4 +57,6 @@
           - bpf_perm.stat.exists
           - packet_socket_perm.stat.exists
           - userns_perm.stat.exists
+          - xfrm_perm.stat.exists
+          - rxrpc_perm.stat.exists
           - "'blastwall_u' in semanage_users.stdout"

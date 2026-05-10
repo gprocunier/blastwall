@@ -25,6 +25,18 @@ deny_policies = match.group(1).split()
 if not deny_policies:
     fail("DENY_POLICIES is empty")
 
+support_match = re.search(r"^SUPPORT_POLICIES\s*:=\s*(.+)$", makefile, re.MULTILINE)
+if not support_match:
+    fail("policy/Makefile does not define SUPPORT_POLICIES")
+
+support_policies = support_match.group(1).split()
+if "blastwall-sshd-login" not in support_policies:
+    fail("blastwall-sshd-login support policy is required for GSSAPI SSH login")
+
+sshd_login = (POLICY / "blastwall-sshd-login.cil").read_text(encoding="utf-8")
+if "dyntransition" not in sshd_login:
+    fail("blastwall-sshd-login.cil does not allow sshd dyntransition")
+
 for policy in deny_policies:
     cil_path = POLICY / f"{policy}.cil"
     if not cil_path.exists():
@@ -37,6 +49,88 @@ for policy in deny_policies:
         fail(f"{cil_path.relative_to(ROOT)} does not contain a neverallow rule")
 
 print(f"PASS: validated {len(deny_policies)} deny policy scopes")
+
+dirtyfrag_scopes = {
+    "blastwall-xfrm-deny": "blastwall_policy_xfrm=denied",
+    "blastwall-rxrpc-deny": "blastwall_policy_rxrpc=denied",
+}
+
+for policy, marker in dirtyfrag_scopes.items():
+    if policy not in deny_policies:
+        fail(f"{policy} is required for Dirty Frag coverage")
+    for path in [
+        ROOT / "playbooks" / "promote-policy-rpm.yml",
+        ROOT / "inventory" / "blastwall-idm.yml",
+        ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml",
+        ROOT / "tests" / "fixtures" / "inventory-policy-markers.json",
+    ]:
+        if marker not in path.read_text(encoding="utf-8"):
+            fail(f"{path.relative_to(ROOT)} does not require {marker}")
+
+if not (ROOT / "tests" / "trigger-dirtyfrag-deny.py").exists():
+    fail("tests/trigger-dirtyfrag-deny.py is missing")
+
+xfrm_policy = (POLICY / "blastwall-xfrm-deny.cil").read_text(encoding="utf-8")
+if " nlmsg " in xfrm_policy or "\nnlmsg " in xfrm_policy:
+    fail("blastwall-xfrm-deny.cil uses invalid generic nlmsg permission")
+
+print("PASS: Dirty Frag policy scopes are wired into markers and tests")
+
+aap_config = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
+controller_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")
+for required in [
+    "ask_limit_on_launch: true",
+    "blastwall_aap_policy_pipeline_candidate_group",
+    "blastwall_policy_pipeline_build_hosts:",
+    "blastwall_policy_pipeline_target_hosts:",
+    "blastwall_verify_target_hosts:",
+    "blastwall_verify_target_hosts: blastwall_policy_current",
+]:
+    if required not in aap_config:
+        fail(f"aap/configure-controller.yml does not set {required}")
+
+if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP" not in controller_vars:
+    fail("aap/vars/blastwall-controller.yml does not expose a policy pipeline candidate group")
+
+calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").read_text(encoding="utf-8")
+calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
+if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: blastwall_policy_candidate" not in calabi_config:
+    fail("Calabi AAP configuration does not use the candidate group for policy upgrades")
+if "blastwall_policy_candidate:" not in calabi_inventory:
+    fail("Calabi AAP inventory does not define blastwall_policy_candidate")
+
+for template, limit in [
+    ("Blastwall build policy RPM", "limit: \"{{ blastwall_aap_policy_pipeline_candidate_group }}\""),
+    (
+        "Blastwall install candidate policy RPM",
+        "limit: \"{{ blastwall_aap_policy_pipeline_candidate_group }}\"",
+    ),
+    ("Blastwall promote policy marker", "limit: \"{{ blastwall_aap_policy_pipeline_candidate_group }}\""),
+]:
+    template_index = controller_vars.find(f"name: {template}")
+    if template_index == -1:
+        fail(f"aap/vars/blastwall-controller.yml is missing {template}")
+    next_template_index = controller_vars.find("\n  - name:", template_index + 1)
+    template_block = controller_vars[
+        template_index: next_template_index if next_template_index != -1 else len(controller_vars)
+    ]
+    if limit not in template_block:
+        fail(f"{template} is not limited to blastwall_policy_stale for the policy pipeline")
+
+for playbook in [
+    ROOT / "playbooks" / "build-policy-rpm.yml",
+    ROOT / "playbooks" / "install-policy-rpm.yml",
+    ROOT / "playbooks" / "promote-policy-rpm.yml",
+]:
+    if "default('blastwall_policy_stale')" not in playbook.read_text(encoding="utf-8"):
+        fail(f"{playbook.relative_to(ROOT)} does not default policy pipeline hosts to stale")
+
+if "blastwall_verify_target_hosts | default('blastwall_policy_current')" not in (
+    ROOT / "playbooks" / "verify-managed-host.yml"
+).read_text(encoding="utf-8"):
+    fail("playbooks/verify-managed-host.yml does not expose a runtime/pipeline host boundary")
+
+print("PASS: AAP policy pipeline targets stale candidates before promotion")
 
 collection_backed_marker_paths = [
     ROOT / "playbooks" / "deploy-policy.yml",

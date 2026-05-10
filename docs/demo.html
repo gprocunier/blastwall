@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ansible Demo | blastwall</title>
-    <meta name="description" content="Blastwall proof recorded in the Calabi lab with IdM, eigenstate.ipa, SELinux user mapping, AF_ALG, BPF, packet_socket, userns, io_uring, self-protection denial probes, and audit evidence.">
+    <meta name="description" content="Blastwall proof recorded in the Calabi lab with IdM, eigenstate.ipa, SELinux user mapping, AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, self-protection denial probes, and audit evidence.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
@@ -44,7 +44,7 @@
             <li><code>eigenstate.ipa</code> validates the IdM SELinux user map, HBAC rule, sudo rule, and candidate host view.</li>
             <li><code>mirror-registry</code> receives the Blastwall policy RPM.</li>
             <li>The automation identity logs in with the expected SELinux context.</li>
-            <li>The AF_ALG/authencesn, BPF, packet_socket, userns, and io_uring probes are blocked for that mapped automation session.</li>
+            <li>The AF_ALG/authencesn, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes are blocked for that mapped automation session.</li>
             <li>The target audit log shows denied <code>socket</code>, <code>bpf</code>, and namespace syscall evidence for <code>blastwall_t</code>; the <code>io_uring</code> denial is visible in the probe output.</li>
             <li>A temporary sudo expansion exposes <code>/usr/sbin/semodule</code>, and SELinux still prevents the automation identity from removing a deny module.</li>
           </ul>
@@ -114,7 +114,7 @@ target: mirror-registry.workshop.lan</code></pre>
 
           <h3>4. Deploy policy and run the playbook proof</h3>
           <pre><code class="language-bash">ansible-playbook 30-deploy-and-test.yml | tee /tmp/blastwall-proof.log</code></pre>
-          <p>The target host installs the Blastwall RPM, refreshes local policy state, and runs the automated validation for AF_ALG, BPF, packet_socket, userns, and io_uring.</p>
+          <p>The target host installs the Blastwall RPM, refreshes local policy state, and runs the automated validation for AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC.</p>
 
           <h3>5. Inspect and run the probes directly</h3>
           <pre><code class="language-bash">kinit svc-ansible-runner
@@ -136,7 +136,11 @@ ssh -o GSSAPIAuthentication=yes \
 
 ssh -o GSSAPIAuthentication=yes \
   svc-ansible-runner@mirror-registry.workshop.lan \
-  /usr/local/libexec/blastwall-poc/trigger-io-uring-deny.py</code></pre>
+  /usr/local/libexec/blastwall-poc/trigger-io-uring-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-dirtyfrag-deny.py</code></pre>
           <p>The operator inspects the probe source, gets a Kerberos ticket for <code>svc-ansible-runner</code>, and runs the probes over GSSAPI SSH so the denial is visible as normal command output.</p>
           <pre><code class="language-text">blastwall_u:blastwall_r:blastwall_t:s0
 BLOCKED: AF_ALG socket creation denied with errno 13
@@ -144,7 +148,9 @@ BLOCKED: bpf(BPF_MAP_CREATE) denied with errno 13
 BLOCKED: bpf(BPF_PROG_LOAD) denied with errno 13
 BLOCKED: AF_PACKET socket creation denied with errno 13
 BLOCKED: unshare(CLONE_NEWUSER) denied with EACCES errno 13
-BLOCKED: io_uring_setup denied with EPERM  [CVE-2026-43006]</code></pre>
+BLOCKED: io_uring_setup denied with EPERM  [CVE-2026-43006]
+BLOCKED: Dirty Frag NETLINK_XFRM socket creation denied with errno 13
+BLOCKED: Dirty Frag AF_RXRPC socket creation denied with errno 13</code></pre>
 
           <h3>6. Read the target audit log</h3>
           <pre><code class="language-bash">ansible automation_endpoints -i inventory.yml -b -m shell -a '
@@ -165,7 +171,7 @@ grep -E \
 
         <section id="expected-result">
           <h2>Expected Result</h2>
-          <p>A successful bootstrap proof shows the mapped context <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving that context, blocked AF_ALG, BPF, packet_socket, userns, and io_uring probes, audit evidence on the target host, and a self-protection denial when the confined automation identity attempts policy manipulation.</p>
+          <p>A successful bootstrap proof shows the mapped context <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving that context, blocked AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes, audit evidence on the target host, and a self-protection denial when the confined automation identity attempts policy manipulation.</p>
         </section>
 
         <section id="replay-link">

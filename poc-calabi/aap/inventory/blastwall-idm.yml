@@ -25,8 +25,7 @@ groups:
   blastwall_policy_current: >-
     idm_description is defined and
     (
-      'blastwall_policy_rpm=blastwall-selinux-0.5.0-1' in idm_description or
-      'blastwall_policy_rpm=blastwall-selinux-0.5.1-1' in idm_description
+      'blastwall_policy_rpm=blastwall-selinux-0.5.2-1' in idm_description
     ) and
     'blastwall_policy_state=active' in idm_description and
     'blastwall_policy_alg_socket=denied' in idm_description and
@@ -34,12 +33,13 @@ groups:
     'blastwall_policy_selfprotect=denied' in idm_description and
     'blastwall_policy_packet_socket=denied' in idm_description and
     'blastwall_policy_userns=denied' in idm_description and
-    'blastwall_policy_io_uring=denied' in idm_description
+    'blastwall_policy_io_uring=denied' in idm_description and
+    'blastwall_policy_xfrm=denied' in idm_description and
+    'blastwall_policy_rxrpc=denied' in idm_description
   blastwall_policy_stale: >-
     idm_description is not defined or
     (
-      'blastwall_policy_rpm=blastwall-selinux-0.5.0-1' not in idm_description and
-      'blastwall_policy_rpm=blastwall-selinux-0.5.1-1' not in idm_description
+      'blastwall_policy_rpm=blastwall-selinux-0.5.2-1' not in idm_description
     ) or
     'blastwall_policy_state=active' not in idm_description or
     'blastwall_policy_alg_socket=denied' not in idm_description or
@@ -47,4 +47,21 @@ groups:
     'blastwall_policy_selfprotect=denied' not in idm_description or
     'blastwall_policy_packet_socket=denied' not in idm_description or
     'blastwall_policy_userns=denied' not in idm_description or
-    'blastwall_policy_io_uring=denied' not in idm_description
+    'blastwall_policy_io_uring=denied' not in idm_description or
+    'blastwall_policy_xfrm=denied' not in idm_description or
+    'blastwall_policy_rxrpc=denied' not in idm_description
+  blastwall_policy_candidate: >-
+    idm_fqdn == 'mirror-registry.workshop.lan' and
+    (
+      idm_description is not defined or
+      'blastwall_policy_rpm=blastwall-selinux-0.5.2-1' not in idm_description or
+      'blastwall_policy_state=active' not in idm_description or
+      'blastwall_policy_alg_socket=denied' not in idm_description or
+      'blastwall_policy_bpf=denied' not in idm_description or
+      'blastwall_policy_selfprotect=denied' not in idm_description or
+      'blastwall_policy_packet_socket=denied' not in idm_description or
+      'blastwall_policy_userns=denied' not in idm_description or
+      'blastwall_policy_io_uring=denied' not in idm_description or
+      'blastwall_policy_xfrm=denied' not in idm_description or
+      'blastwall_policy_rxrpc=denied' not in idm_description
+    )

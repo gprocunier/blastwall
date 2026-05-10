@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lab Flow | blastwall</title>
-    <meta name="description" content="End-to-end lab flow for validating Blastwall in Calabi with IdM, AAP, SELinux, and direct AF_ALG, BPF, packet_socket, userns, io_uring, and self-protection denial probes plus audit evidence.">
+    <meta name="description" content="End-to-end lab flow for validating Blastwall in Calabi with IdM, AAP, SELinux, and direct AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and self-protection denial probes plus audit evidence.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
@@ -83,6 +83,7 @@ ansible-playbook 35-test-self-protection.yml</code></pre>
             <li>The packet_socket probe prints <code>BLOCKED</code> for AF_PACKET socket creation.</li>
             <li>The userns probe prints <code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</li>
             <li>The io_uring probe prints <code>BLOCKED</code> for <code>io_uring_setup</code>, or <code>SKIP</code> on kernels without that object class.</li>
+            <li>The Dirty Frag probe prints <code>BLOCKED</code> for <code>NETLINK_XFRM</code> and <code>AF_RXRPC</code>, or a documented AF_RXRPC <code>SKIP</code> when that protocol is absent.</li>
             <li>The self-protection play temporarily exposes <code>/usr/sbin/semodule</code> through sudo, then SELinux denies execution from <code>blastwall_t</code>.</li>
             <li>A target-side audit-log query shows SELinux denial evidence for <code>blastwall_t</code>.</li>
           </ul>

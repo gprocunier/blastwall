@@ -1,0 +1,2 @@
+; Bootstrap role declaration required by generated Blastwall policy CIL.
+(role blastwall_r)

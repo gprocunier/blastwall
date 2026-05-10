@@ -1,6 +1,6 @@
 ---
 - name: Promote verified Blastwall policy marker
-  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_current') }}"
+  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_stale') }}"
   become: false
   gather_facts: false
   vars:
@@ -19,7 +19,7 @@
       default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
-      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.1', true), true) }}
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
     blastwall_policy_release: >-
       {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
@@ -32,7 +32,9 @@
       blastwall_policy_selfprotect=denied;
       blastwall_policy_packet_socket=denied;
       blastwall_policy_userns=denied;
-      blastwall_policy_io_uring=denied
+      blastwall_policy_io_uring=denied;
+      blastwall_policy_xfrm=denied;
+      blastwall_policy_rxrpc=denied
     blastwall_policy_failed_marker: >-
       blastwall_policy_rpm={{ blastwall_policy_nevra }};
       blastwall_policy_state=failed

@@ -115,6 +115,12 @@
         dest: "{{ blastwall_io_uring_probe_path }}"
         mode: "0755"
 
+    - name: Install safe Dirty Frag probe
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../tests/trigger-dirtyfrag-deny.py"
+        dest: "{{ blastwall_dirtyfrag_probe_path }}"
+        mode: "0755"
+
     - name: Clear SSSD caches after IdM policy changes
       ansible.builtin.command:
         argv:
@@ -140,11 +146,14 @@
       ansible.builtin.assert:
         that:
           - "'blastwall' in blastwall_semodule_list.stdout"
+          - "'blastwall-sshd-login' in blastwall_semodule_list.stdout"
           - "'blastwall-alg-socket-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-bpf-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-packet-socket-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-userns-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-io-uring-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-xfrm-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-rxrpc-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-policy-selfprotect' in blastwall_semodule_list.stdout"
         fail_msg: "{{ blastwall_semodule_list.stdout }}"
 
@@ -320,6 +329,12 @@
       failed_when:
         - blastwall_io_uring_probe.rc == 1
 
+    - name: Run safe Dirty Frag xfrm and RxRPC probe as mapped automation user
+      ansible.builtin.command:
+        argv: "{{ blastwall_ssh_base + [blastwall_dirtyfrag_probe_path] }}"
+      register: blastwall_dirtyfrag_probe
+      changed_when: false
+
     - name: Show Blastwall proof
       ansible.builtin.debug:
         msg:
@@ -330,6 +345,7 @@
           packet_socket_probe: "{{ blastwall_packet_socket_probe.stdout }}"
           userns_probe: "{{ blastwall_userns_probe.stdout }}"
           io_uring_probe: "{{ blastwall_io_uring_probe.stdout }}"
+          dirtyfrag_probe: "{{ blastwall_dirtyfrag_probe.stdout }}"
 
 - name: Collect audit evidence from automation endpoint
   hosts: automation_endpoints

@@ -1,0 +1,11 @@
+; Allow sshd to complete pam_selinux selected-context transitions into the
+; Blastwall automation domain. Without dyntransition, GSSAPI SSH can
+; authenticate and then reset before the confined session runs.
+
+(typeattributeset cil_gen_require sshd_t)
+(typeattributeset cil_gen_require blastwall_t)
+
+(allow sshd_t blastwall_t (process
+  (transition dyntransition sigchld noatsecure siginh rlimitinh)))
+(allow sshd_t blastwall_t (fd (use)))
+(allow blastwall_t sshd_t (fd (use)))
