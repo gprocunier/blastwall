@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parents[2]
 SPO = ROOT / "openshift" / "spo"
 DOCS = ROOT / "docs"
 WORKFLOW = ROOT / ".github" / "workflows" / "policy-pipeline-smoke.yml"
+AAP_CONFIG = ROOT / "aap" / "configure-controller.yml"
+AAP_VARS = ROOT / "aap" / "vars" / "blastwall-controller.yml"
+RENDER_PLAYBOOK = ROOT / "playbooks" / "render-spo-policy-crs.yml"
+APPLY_VALIDATE_PLAYBOOK = ROOT / "playbooks" / "apply-validate-spo-policy-crs.yml"
 RENDERED_BUNDLE = Path("/var/tmp/blastwall-policy-pipeline/artifacts/openshift-spo/blastwall-spo-crs.yaml")
 
 
@@ -157,7 +161,12 @@ workflow = WORKFLOW.read_text(encoding="utf-8")
 for expected in [
     "render_spo_policy_crs",
     "spo_policy_crs_render",
+    "apply_validate_spo_policy_crs",
     "blastwall-spo-crs.yaml",
+    "policy_nevra",
+    "blastwall_spo_bundle_yaml",
+    "blastwall_spo_bundle_path",
+    "blastwall_spo_bundle_sha256",
     "RawSelinuxProfile",
     "spo_profiles",
     "spo_profile_resources",
@@ -168,6 +177,57 @@ for expected in [
 ]:
     if expected not in workflow:
         fail(f"policy-pipeline-smoke.yml is missing {expected}")
+
+if "SPO_APPLY_VALIDATE" not in workflow:
+    fail("policy-pipeline-smoke.yml is missing the SPO apply validation toggle")
+
+if "evidence contract" not in (DOCS / "day2-operations.html").read_text(encoding="utf-8").lower():
+    fail("day2-operations.html does not mention the AAP evidence contract")
+
+aap_config = AAP_CONFIG.read_text(encoding="utf-8")
+for expected in [
+    "blastwall_aap_openshift_credential_type",
+    "blastwall_aap_openshift_credential",
+    "K8S_AUTH_KUBECONFIG",
+    "Blastwall apply and validate SPO policy CRs",
+    "apply_validate_spo_policy_crs",
+]:
+    if expected not in aap_config:
+        fail(f"aap/configure-controller.yml is missing {expected}")
+
+aap_vars = AAP_VARS.read_text(encoding="utf-8")
+for expected in [
+    "BLASTWALL_OPENSHIFT_KUBECONFIG",
+    "Blastwall apply and validate SPO policy CRs",
+    "playbooks/apply-validate-spo-policy-crs.yml",
+]:
+    if expected not in aap_vars:
+        fail(f"aap/vars/blastwall-controller.yml is missing {expected}")
+
+render_playbook = RENDER_PLAYBOOK.read_text(encoding="utf-8")
+for expected in [
+    "ansible.builtin.set_stats",
+    "blastwall_spo_bundle_yaml",
+    "blastwall_spo_bundle_path",
+    "blastwall_spo_bundle_sha256",
+    "policy_nevra",
+]:
+    if expected not in render_playbook:
+        fail(f"playbooks/render-spo-policy-crs.yml is missing {expected}")
+
+if not APPLY_VALIDATE_PLAYBOOK.exists():
+    fail("playbooks/apply-validate-spo-policy-crs.yml is missing")
+apply_validate_playbook = APPLY_VALIDATE_PLAYBOOK.read_text(encoding="utf-8")
+for expected in [
+    "kubernetes.core.k8s",
+    "kubernetes.core.k8s_info",
+    "kubernetes.core.k8s_log",
+    "standard_profile: passed",
+    "nested_profile: passed",
+    "spo_policy_apply_validate",
+]:
+    if expected not in apply_validate_playbook:
+        fail(f"playbooks/apply-validate-spo-policy-crs.yml is missing {expected}")
 
 if RENDERED_BUNDLE.exists():
     bundle_docs = read_yaml_documents(RENDERED_BUNDLE)

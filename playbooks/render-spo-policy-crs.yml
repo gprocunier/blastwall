@@ -132,11 +132,9 @@
         state: directory
         mode: "0755"
 
-    - name: Write OpenShift/SPO CR bundle
-      ansible.builtin.copy:
-        dest: "{{ blastwall_spo_bundle_path }}"
-        mode: "0644"
-        content: |
+    - name: Build OpenShift/SPO CR bundle content
+      ansible.builtin.set_fact:
+        blastwall_spo_bundle_yaml: |
           # Rendered by playbooks/render-spo-policy-crs.yml.
           # Fleet-governance objects are intentionally not included in this bundle.
           {% for object in blastwall_spo_rendered_objects %}
@@ -144,11 +142,37 @@
           {{ object | to_nice_yaml(indent=2, sort_keys=false) }}
           {% endfor %}
 
+    - name: Hash OpenShift/SPO CR bundle content
+      ansible.builtin.set_fact:
+        blastwall_spo_bundle_sha256: "{{ blastwall_spo_bundle_yaml | hash('sha256') }}"
+
+    - name: Write OpenShift/SPO CR bundle
+      ansible.builtin.copy:
+        dest: "{{ blastwall_spo_bundle_path }}"
+        mode: "0644"
+        content: "{{ blastwall_spo_bundle_yaml }}"
+
+    - name: Publish OpenShift/SPO bundle as workflow artifact
+      ansible.builtin.set_stats:
+        per_host: false
+        data:
+          blastwall_spo_bundle_yaml: "{{ blastwall_spo_bundle_yaml }}"
+          blastwall_spo_bundle_sha256: "{{ blastwall_spo_bundle_sha256 }}"
+          blastwall_spo_bundle_path: "{{ blastwall_spo_bundle_path }}"
+          policy_nevra: "{{ blastwall_policy_nevra }}"
+          spo_profiles: "{{ blastwall_spo_profiles | join(', ') }}"
+          spo_sccs: "{{ blastwall_spo_sccs | join(', ') }}"
+
     - name: Report OpenShift/SPO render evidence
       ansible.builtin.debug:
         msg:
           spo_policy_crs_render: passed
           spo_policy_bundle: "{{ blastwall_spo_bundle_path }}"
+          spo_policy_bundle_artifact: blastwall_spo_bundle_yaml
+          spo_policy_bundle_sha256: "{{ blastwall_spo_bundle_sha256 }}"
+          blastwall_spo_bundle_yaml: stored in AAP job artifacts
+          blastwall_spo_bundle_path: "{{ blastwall_spo_bundle_path }}"
+          blastwall_spo_bundle_sha256: "{{ blastwall_spo_bundle_sha256 }}"
           spo_profile_kind: RawSelinuxProfile
           spo_profiles: "{{ blastwall_spo_profiles | join(', ') }}"
           spo_profile_resources: "{{ blastwall_spo_profile_resources | join(', ') }}"

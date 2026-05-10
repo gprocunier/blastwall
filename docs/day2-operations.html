@@ -132,6 +132,7 @@ awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
               <tr><td data-label="AAP Node"><code>policy_project_sync</code></td><td data-label="Evidence It Produces">The workflow starts from the selected Git state.</td><td data-label="Why It Matters">Policy is sourced from the repository, not hand-edited on a host.</td></tr>
               <tr><td data-label="AAP Node"><code>build_policy_rpm</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_build: passed</code> and the candidate NEVRA.</td><td data-label="Why It Matters">The RPM is a versioned artifact built from checked-out <code>policy/</code> source.</td></tr>
               <tr><td data-label="AAP Node"><code>render_spo_policy_crs</code></td><td data-label="Evidence It Produces"><code>spo_policy_crs_render: passed</code> and <code>blastwall-spo-crs.yaml</code>.</td><td data-label="Why It Matters">The same policy version produces an OpenShift/SPO workload-profile bundle without requiring cluster credentials.</td></tr>
+              <tr><td data-label="AAP Node"><code>apply_validate_spo_policy_crs</code></td><td data-label="Evidence It Produces"><code>spo_policy_apply_validate: passed</code>, profile readiness, SCC presence, and both validation summaries.</td><td data-label="Why It Matters">When an OpenShift kubeconfig is configured, AAP can apply the rendered bundle and prove the UBI validation path.</td></tr>
               <tr><td data-label="AAP Node"><code>install_candidate_policy_rpm</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_install: passed</code> and installed package state.</td><td data-label="Why It Matters">The candidate artifact is on the host before verification starts.</td></tr>
               <tr><td data-label="AAP Node"><code>verify_candidate_host</code></td><td data-label="Evidence It Produces">Confined SELinux context and blocked probe output.</td><td data-label="Why It Matters">The new marker is not trusted until the host-local boundary is proven.</td></tr>
               <tr><td data-label="AAP Node"><code>promote_policy_marker</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_promotion: passed</code> and the promoted marker.</td><td data-label="Why It Matters">The marker write uses the FreeIPA collection after host verification succeeds.</td></tr>
@@ -165,7 +166,14 @@ awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
             <img class="diagram-artifact" src="assets/diagrams/day2-pipeline-engines.svg" alt="Pipeline engine options feeding a common evidence bundle, promotion decision, content repository, and AAP preflight">
           </figure>
           <p>In a live enterprise shape, I would let CI own fast build and unit feedback, then let AAP own operator-visible rollout and verification. That gives developers quick branch feedback without hiding the production gate from the automation platform that will enforce it.</p>
-          <p>The pipeline now has two governed outputs: a RHEL/IdM policy RPM for managed-host SSH automation and an <a href="openshift-spo.html">OpenShift/SPO</a> CR bundle for selected pod workloads. The OpenShift render node writes <code>/var/tmp/blastwall-policy-pipeline/artifacts/openshift-spo/blastwall-spo-crs.yaml</code>; applying and validating that bundle remains a separate cluster change-control step.</p>
+          <p>The pipeline now has two governed outputs: a RHEL/IdM policy RPM for managed-host SSH automation and an <a href="openshift-spo.html">OpenShift/SPO</a> CR bundle for selected pod workloads. The SPO source manifests stay in Git under <code>openshift/spo</code>, the render node emits a versioned <code>blastwall-spo-crs.yaml</code> bundle as a workflow artifact, and applying that artifact in OpenShift is a separate cluster change-control step.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-spo-artifact-pipeline">
+            <figcaption>
+              <strong>OpenShift/SPO artifact path.</strong>
+              <span>Policy source manifests render inside the AAP workflow, then the bundle artifact is pulled and applied as live OpenShift objects.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-spo-artifact-pipeline.svg" alt="SPO policy source manifests from Git render to AAP job artifact, then OpenShift object apply">
+          </figure>
         </section>
 
         <section id="run-policy-pipeline">
@@ -211,11 +219,28 @@ build_id="$(jq -r '.results[] | select(.identifier == "build_policy_rpm") | .sum
 install_id="$(jq -r '.results[] | select(.identifier == "install_candidate_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
 verify_id="$(jq -r '.results[] | select(.identifier == "verify_candidate_host") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
 promote_id="$(jq -r '.results[] | select(.identifier == "promote_policy_marker") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+render_id="$(jq -r '.results[] | select(.identifier == "render_spo_policy_crs") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
 
 awx jobs stdout "${build_id}" | grep -E 'policy_pipeline_build|blastwall-selinux-0.5.2-1'
 awx jobs stdout "${install_id}" | grep -E 'policy_pipeline_install|blastwall-selinux-0.5.2-1'
 awx jobs stdout "${verify_id}" | grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|BLOCKED:|SKIP:'
-awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|bw_rpm=blastwall-selinux-0.5.2-1'</code></pre>
+awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|bw_rpm=blastwall-selinux-0.5.2-1'
+awx jobs get "${render_id}" -f json \
+  | tee /tmp/blastwall-render-spo-job.json \
+  | jq '.artifacts | {
+      policy_nevra,
+      blastwall_spo_bundle_path,
+      blastwall_spo_bundle_sha256
+    }'
+
+awx jobs get "${render_id}" -f json \
+  | jq -r '.artifacts.blastwall_spo_bundle_yaml' \
+  > /tmp/blastwall-spo-crs.yaml</code></pre>
+          <p>Use the render job JSON <code>.artifacts</code> map to retrieve the versioned SPO bundle and stage it for a separate OpenShift apply.</p>
+          <pre><code class="language-bash">[[ -f /tmp/blastwall-spo-crs.yaml ]] || exit 1
+oc apply -f /tmp/blastwall-spo-crs.yaml
+</code></pre>
+          <p>If the AAP Controller has the <code>Blastwall OpenShift Admin</code> kubeconfig credential, the optional <code>apply_validate_spo_policy_crs</code> node performs that apply and waits for the standard and nested UBI validation jobs. Without that credential, the render node remains an artifact-only proof.</p>
           <p>To turn this from a versioned rebuild into a real feature branch exercise, add or adjust a CIL deny scope under <code>policy/</code>, update <code>DENY_POLICIES</code> in <code>policy/Makefile</code>, add a safe probe or verification check, and use the pipeline to prove that normal automation still works. If one automation path needs the surface, split the identity or host group instead of weakening the shared baseline for every privileged job.</p>
           <table class="comparison-table">
             <thead>

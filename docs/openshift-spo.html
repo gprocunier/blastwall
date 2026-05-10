@@ -87,9 +87,10 @@
         <section id="apply">
           <h2>Apply The Profile</h2>
           <p>Verify the installed SPO schema first. Blastwall uses <code>RawSelinuxProfile</code> because the inherited container profile and deny rules must compile in the same raw CIL block.</p>
+          <p>The governed source for the OpenShift policy is in <code>openshift/spo</code>. For normal Day 2 rollout, render that source in AAP and apply the returned bundle artifact to OpenShift.</p>
           <pre><code class="language-bash">oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2
 
-oc apply -k openshift/spo
+oc apply -f /tmp/blastwall-spo-crs.yaml
 
 oc -n blastwall-spo wait \
   --for=condition=ready rawselinuxprofile/blastwall \
@@ -157,11 +158,15 @@ openshift/spo/scripts/validate-blastwall-spo-nodes.sh --class nested --selector 
 
         <section id="day2">
           <h2>Day 2 Pipeline</h2>
-          <p>The policy pipeline now produces two governed outputs: the RHEL/IdM policy RPM and the OpenShift/SPO CR bundle. A single deny-scope decision can become <code>blastwall_t</code> policy for SSH automation and two OpenShift workload classes: <code>blastwall</code> and <code>blastwall-nested</code>.</p>
-          <pre><code class="language-bash">ansible-playbook playbooks/render-spo-policy-crs.yml \
-  -e BLASTWALL_POLICY_VERSION=0.5.2 \
-  -e BLASTWALL_POLICY_RELEASE=1</code></pre>
-          <p>The rendered bundle is written to <code>/var/tmp/blastwall-policy-pipeline/artifacts/openshift-spo/blastwall-spo-crs.yaml</code>. It contains only OpenShift/SPO resources.</p>
+          <p>The policy pipeline now has two governed outputs: the RHEL/IdM policy RPM and the OpenShift/SPO CR bundle. A single deny-scope decision can become <code>blastwall_t</code> policy for SSH automation and two OpenShift workload classes: <code>blastwall</code> and <code>blastwall-nested</code>.</p>
+          <p>In AAP, the source manifests are read from Git at <code>openshift/spo</code>. The render node generates a versioned <code>blastwall-spo-crs.yaml</code> bundle in the job <code>.artifacts</code> map, and that artifact is then applied to OpenShift as part of cluster change control.</p>
+          <pre><code class="language-bash">bundle_id="$(awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json \
+  | jq -r '.results[] | select(.identifier == "render_spo_policy_crs") | .summary_fields.job.id')"
+awx jobs get "${bundle_id}" -f json \
+  | jq -r '.artifacts.blastwall_spo_bundle_yaml' \
+  > /tmp/blastwall-spo-crs.yaml</code></pre>
+          <p>Then apply only that versioned artifact to the cluster:</p>
+          <pre><code class="language-bash">oc apply -f /tmp/blastwall-spo-crs.yaml</code></pre>
         </section>
 
         <section id="limitations">

@@ -173,3 +173,11 @@ if "ipa host-mod" in promotion and "FreeIPA CLI fallback" not in promotion:
     fail("playbooks/promote-policy-rpm.yml uses ipa host-mod without a named fallback boundary")
 
 print("PASS: IdM marker writes use FreeIPA collection modules")
+
+workflow = (ROOT / ".github" / "workflows" / "policy-pipeline-smoke.yml").read_text(encoding="utf-8")
+if "SPO_APPLY_VALIDATE" not in workflow:
+    fail("policy-pipeline-smoke.yml does not expose a SPO apply validation toggle")
+
+day2_operations = (ROOT / "docs" / "day2-operations.html").read_text(encoding="utf-8").lower()
+if "evidence contract" not in day2_operations:
+    fail("docs/day2-operations.html no longer states the AAP evidence contract")

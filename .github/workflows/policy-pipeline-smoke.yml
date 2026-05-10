@@ -15,6 +15,10 @@ on:
         description: Candidate Blastwall policy release
         required: false
         default: "1"
+      check_spo_apply_validate:
+        description: Require the apply_validate_spo_policy_crs node and evidence
+        required: false
+        default: "false"
 
 jobs:
   aap-policy-pipeline-smoke:
@@ -26,6 +30,7 @@ jobs:
       TOWER_USERNAME: ${{ secrets.BLASTWALL_AAP_USERNAME }}
       TOWER_PASSWORD: ${{ secrets.BLASTWALL_AAP_PASSWORD }}
       TOWER_VERIFY_SSL: "false"
+      SPO_APPLY_VALIDATE: ${{ inputs.check_spo_apply_validate }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -61,21 +66,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jq -e '
-            [.results[] | {identifier, status: .summary_fields.job.status}] as $nodes |
-            [
-              "policy_project_sync",
-              "policy_inventory_sync",
-              "build_policy_rpm",
-              "render_spo_policy_crs",
-              "install_candidate_policy_rpm",
-              "verify_candidate_host",
-              "promote_policy_marker",
-              "post_promotion_inventory_sync",
-              "post_promotion_preflight"
-            ] as $expected |
-            all($expected[]; . as $id | any($nodes[]; .identifier == $id and .status == "successful"))
-          ' /tmp/blastwall-policy-pipeline-nodes.json
+
+          require_apply="${SPO_APPLY_VALIDATE:-false}"
+          expected_nodes=(
+            "policy_project_sync"
+            "policy_inventory_sync"
+            "build_policy_rpm"
+            "render_spo_policy_crs"
+            "install_candidate_policy_rpm"
+            "verify_candidate_host"
+            "promote_policy_marker"
+            "post_promotion_inventory_sync"
+            "post_promotion_preflight"
+          )
+
+          if [[ "${require_apply}" == "true" ]]; then
+            expected_nodes+=("apply_validate_spo_policy_crs")
+          fi
+
+          jq -r '.results[] | select(.summary_fields.job.status == "successful") | .identifier' /tmp/blastwall-policy-pipeline-nodes.json |
+            sort -u > /tmp/blastwall-policy-pipeline-successful-nodes.txt
+
+          for expected_node in "${expected_nodes[@]}"; do
+            if ! grep -Fqx "${expected_node}" /tmp/blastwall-policy-pipeline-successful-nodes.txt; then
+              echo "Missing successful workflow node: ${expected_node}"
+              echo "Successful nodes:"
+              cat /tmp/blastwall-policy-pipeline-successful-nodes.txt
+              exit 1
+            fi
+          done
 
       - name: Assert policy pipeline evidence
         shell: bash
@@ -94,8 +113,11 @@ jobs:
 
           awx jobs stdout "${render_spo_id}" | tee /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'spo_policy_crs_render' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'policy_nevra' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'blastwall-spo-crs.yaml' /tmp/blastwall-policy-pipeline-render-spo.log
-          grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall_spo_bundle_yaml' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall_spo_bundle_path' /tmp/blastwall-policy-pipeline-render-spo.log
+          grep -F 'blastwall_spo_bundle_sha256' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'RawSelinuxProfile' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'spo_profiles' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'blastwall' /tmp/blastwall-policy-pipeline-render-spo.log
@@ -105,6 +127,32 @@ jobs:
           grep -F 'spo_sccs' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'blastwall-confined' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'blastwall-nested' /tmp/blastwall-policy-pipeline-render-spo.log
+          awx jobs get "${render_spo_id}" -f json |
+            tee /tmp/blastwall-policy-pipeline-render-spo-job.json |
+            jq -e '
+              .artifacts.blastwall_spo_bundle_yaml
+              and .artifacts.blastwall_spo_bundle_path
+              and .artifacts.blastwall_spo_bundle_sha256
+              and .artifacts.policy_nevra
+              and (.artifacts.policy_nevra == "blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}")
+            '
+
+          if [[ "${SPO_APPLY_VALIDATE:-false}" == "true" ]]; then
+            apply_spo_id="$(jq -r '.results[] | select(.identifier == "apply_validate_spo_policy_crs") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+
+            if [[ -z "${apply_spo_id}" || "${apply_spo_id}" == "null" ]]; then
+              echo "Expected apply_validate_spo_policy_crs node is missing from workflow execution"
+              exit 1
+            fi
+
+            awx jobs stdout "${apply_spo_id}" | tee /tmp/blastwall-policy-pipeline-apply-spo.log
+            grep -F 'spo_policy_apply_validate' /tmp/blastwall-policy-pipeline-apply-spo.log
+            grep -F 'spo_policy_bundle_sha256' /tmp/blastwall-policy-pipeline-apply-spo.log
+            grep -F 'standard_profile: passed' /tmp/blastwall-policy-pipeline-apply-spo.log
+            grep -F 'nested_profile: passed' /tmp/blastwall-policy-pipeline-apply-spo.log
+          else
+            echo "Skipping apply_validate_spo_policy_crs assertions: not requested"
+          fi
 
           awx jobs stdout "${install_id}" | tee /tmp/blastwall-policy-pipeline-install.log
           grep -F 'policy_pipeline_install' /tmp/blastwall-policy-pipeline-install.log

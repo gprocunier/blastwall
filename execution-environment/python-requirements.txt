@@ -3,3 +3,5 @@ ipaclient==4.12.2
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 dnspython==2.6.1
+kubernetes==34.1.0
+openshift==0.13.2

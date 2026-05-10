@@ -54,6 +54,13 @@
       when: blastwall_aap_ipa_keytab_file | length > 0
       no_log: true
 
+    - name: Read optional OpenShift kubeconfig for SPO apply validation
+      ansible.builtin.slurp:
+        src: "{{ blastwall_aap_openshift_kubeconfig_file }}"
+      register: blastwall_aap_openshift_kubeconfig
+      when: blastwall_aap_openshift_kubeconfig_file | length > 0
+      no_log: true
+
     - name: Store IdM runtime credential material
       ansible.builtin.set_fact:
         blastwall_aap_ipa_cert_content: >-
@@ -62,6 +69,8 @@
           {{ blastwall_aap_krb5_config.content | b64decode }}
         blastwall_aap_ipa_keytab_content: >-
           {{ blastwall_aap_ipa_keytab.content | default('') | b64decode }}
+        blastwall_aap_openshift_kubeconfig_content: >-
+          {{ blastwall_aap_openshift_kubeconfig.content | default('') | b64decode }}
       no_log: true
 
     - name: Ensure Blastwall organization exists
@@ -175,6 +184,23 @@
             KRB5CCNAME: FILE:/tmp/blastwall_krb5cc
             BLASTWALL_IDENTITY: !unsafe "{{ blastwall_identity }}"
 
+    - name: Define Blastwall OpenShift kubeconfig credential type contract
+      ansible.builtin.set_fact:
+        blastwall_aap_openshift_credential_type_inputs:
+          fields:
+            - id: kubeconfig
+              label: kubeconfig
+              type: string
+              multiline: true
+              secret: true
+          required:
+            - kubeconfig
+        blastwall_aap_openshift_credential_type_injectors:
+          file:
+            template.kubeconfig: !unsafe "{{ kubeconfig }}"
+          env:
+            K8S_AUTH_KUBECONFIG: !unsafe "{{ tower.filename.kubeconfig }}"
+
     - name: Look up Blastwall IdM credential type
       ansible.builtin.uri:
         url: "{{ blastwall_aap_controller_host }}/api/v2/credential_types/?name={{ blastwall_aap_idm_credential_type | urlencode }}&kind=cloud"
@@ -250,6 +276,81 @@
           blastwall_aap_idm_credential_type_lookup.json.results[0].injectors !=
           blastwall_aap_idm_credential_type_injectors
 
+    - name: Look up Blastwall OpenShift kubeconfig credential type
+      ansible.builtin.uri:
+        url: "{{ blastwall_aap_controller_host }}/api/v2/credential_types/?name={{ blastwall_aap_openshift_credential_type | urlencode }}&kind=cloud"
+        method: GET
+        url_username: "{{ blastwall_aap_controller_username }}"
+        url_password: "{{ blastwall_aap_controller_password }}"
+        force_basic_auth: true
+        validate_certs: "{{ blastwall_aap_validate_certs | bool }}"
+        status_code: 200
+      register: blastwall_aap_openshift_credential_type_lookup
+
+    - name: Assert Blastwall OpenShift kubeconfig credential type lookup is unambiguous
+      ansible.builtin.assert:
+        that:
+          - blastwall_aap_openshift_credential_type_lookup.json.count | int <= 1
+        fail_msg: >-
+          Expected at most one AAP credential type named
+          {{ blastwall_aap_openshift_credential_type }}, found
+          {{ blastwall_aap_openshift_credential_type_lookup.json.count }}.
+
+    - name: Create Blastwall OpenShift kubeconfig credential type
+      ansible.builtin.uri:
+        url: "{{ blastwall_aap_controller_host }}/api/v2/credential_types/"
+        method: POST
+        url_username: "{{ blastwall_aap_controller_username }}"
+        url_password: "{{ blastwall_aap_controller_password }}"
+        force_basic_auth: true
+        validate_certs: "{{ blastwall_aap_validate_certs | bool }}"
+        body_format: json
+        body:
+          name: "{{ blastwall_aap_openshift_credential_type }}"
+          kind: cloud
+          inputs: "{{ blastwall_aap_openshift_credential_type_inputs }}"
+          injectors: "{{ blastwall_aap_openshift_credential_type_injectors }}"
+        status_code: 201
+      register: blastwall_aap_openshift_credential_type_create
+      when: blastwall_aap_openshift_credential_type_lookup.json.count | int == 0
+
+    - name: Remove managed OpenShift credential before credential type schema update
+      awx.awx.credential:
+        name: "{{ blastwall_aap_openshift_credential }}"
+        organization: "{{ blastwall_aap_organization }}"
+        credential_type: "{{ blastwall_aap_openshift_credential_type }}"
+        state: absent
+      no_log: true
+      when:
+        - blastwall_aap_openshift_credential_type_lookup.json.count | int == 1
+        - >-
+          blastwall_aap_openshift_credential_type_lookup.json.results[0].inputs !=
+          blastwall_aap_openshift_credential_type_inputs
+
+    - name: Update Blastwall OpenShift kubeconfig credential type when drifted
+      ansible.builtin.uri:
+        url: >-
+          {{ blastwall_aap_controller_host }}{{
+          blastwall_aap_openshift_credential_type_lookup.json.results[0].url }}
+        method: PATCH
+        url_username: "{{ blastwall_aap_controller_username }}"
+        url_password: "{{ blastwall_aap_controller_password }}"
+        force_basic_auth: true
+        validate_certs: "{{ blastwall_aap_validate_certs | bool }}"
+        body_format: json
+        body:
+          inputs: "{{ blastwall_aap_openshift_credential_type_inputs }}"
+          injectors: "{{ blastwall_aap_openshift_credential_type_injectors }}"
+        status_code: 200
+      register: blastwall_aap_openshift_credential_type_update
+      when:
+        - blastwall_aap_openshift_credential_type_lookup.json.count | int == 1
+        - >-
+          blastwall_aap_openshift_credential_type_lookup.json.results[0].inputs !=
+          blastwall_aap_openshift_credential_type_inputs or
+          blastwall_aap_openshift_credential_type_lookup.json.results[0].injectors !=
+          blastwall_aap_openshift_credential_type_injectors
+
     - name: Ensure Blastwall IdM credential exists
       awx.awx.credential:
         name: "{{ blastwall_aap_idm_credential }}"
@@ -303,6 +404,17 @@
           blastwall_identity: "{{ blastwall_aap_idm_admin_principal }}"
         state: present
       no_log: true
+
+    - name: Ensure optional Blastwall OpenShift credential exists
+      awx.awx.credential:
+        name: "{{ blastwall_aap_openshift_credential }}"
+        organization: "{{ blastwall_aap_organization }}"
+        credential_type: "{{ blastwall_aap_openshift_credential_type }}"
+        inputs:
+          kubeconfig: "{{ blastwall_aap_openshift_kubeconfig_content }}"
+        state: present
+      no_log: true
+      when: blastwall_aap_openshift_kubeconfig_content | length > 0
 
     - name: Ensure GSSAPI machine credential exists
       awx.awx.credential:
@@ -386,6 +498,23 @@
         verbosity: 1
         state: present
       loop: "{{ blastwall_aap_job_templates }}"
+
+    - name: Attach OpenShift credential to SPO apply and validate job template
+      awx.awx.job_template:
+        name: Blastwall apply and validate SPO policy CRs
+        organization: "{{ blastwall_aap_organization }}"
+        job_type: run
+        inventory: "{{ blastwall_aap_inventory }}"
+        project: "{{ blastwall_aap_project }}"
+        execution_environment: "{{ blastwall_aap_ee_name }}"
+        playbook: playbooks/apply-validate-spo-policy-crs.yml
+        credentials:
+          - "{{ blastwall_aap_openshift_credential }}"
+        ask_variables_on_launch: true
+        ask_limit_on_launch: true
+        verbosity: 1
+        state: present
+      when: blastwall_aap_openshift_kubeconfig_content | length > 0
 
     - name: Remove stale policy deployment job template from AAP verification path
       awx.awx.job_template:
@@ -519,6 +648,8 @@
             blastwall_policy_pipeline_build_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: render_spo_policy_crs
           template: Blastwall render SPO policy CRs
+        - identifier: apply_validate_spo_policy_crs
+          template: Blastwall apply and validate SPO policy CRs
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
@@ -559,6 +690,9 @@
           success_nodes:
             - render_spo_policy_crs
             - install_candidate_policy_rpm
+        - identifier: apply_validate_spo_policy_crs
+          template: Blastwall apply and validate SPO policy CRs
+          success_nodes: []
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
           success_nodes:
@@ -575,6 +709,27 @@
           template: "{{ blastwall_aap_inventory_source }}"
           success_nodes:
             - post_promotion_preflight
+
+    - name: Link render SPO node to OpenShift apply validation when configured
+      awx.awx.workflow_job_template_node:
+        identifier: render_spo_policy_crs
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: Blastwall render SPO policy CRs
+        success_nodes:
+          - apply_validate_spo_policy_crs
+        state: present
+      when: blastwall_aap_openshift_kubeconfig_content | length > 0
+
+    - name: Leave render SPO node as artifact-only when OpenShift is not configured
+      awx.awx.workflow_job_template_node:
+        identifier: render_spo_policy_crs
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: Blastwall render SPO policy CRs
+        success_nodes: []
+        state: present
+      when: blastwall_aap_openshift_kubeconfig_content | length == 0
 
     - name: Grant optional launch user Blastwall organization membership
       awx.awx.role:
@@ -608,6 +763,19 @@
           - "{{ blastwall_aap_policy_pipeline_workflow }}"
         state: present
       when: blastwall_aap_launch_user | length > 0
+
+    - name: Grant optional launch user read access to OpenShift credential
+      awx.awx.role:
+        users:
+          - "{{ blastwall_aap_launch_user }}"
+        role: read
+        lookup_organization: "{{ blastwall_aap_organization }}"
+        credentials:
+          - "{{ blastwall_aap_openshift_credential }}"
+        state: present
+      when:
+        - blastwall_aap_launch_user | length > 0
+        - blastwall_aap_openshift_kubeconfig_content | length > 0
 
     - name: Grant optional launch user execute access to Blastwall workflow
       awx.awx.role:

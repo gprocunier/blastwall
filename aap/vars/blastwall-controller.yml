@@ -35,6 +35,8 @@ blastwall_aap_idm_admin_credential: Blastwall IdM Admin
 blastwall_aap_machine_credential: svc-ansible-runner
 blastwall_aap_policy_machine_credential: sysop policy maintainer ssh
 blastwall_aap_registry_credential: Blastwall EE Registry
+blastwall_aap_openshift_credential_type: Blastwall OpenShift Kubeconfig
+blastwall_aap_openshift_credential: Blastwall OpenShift Admin
 
 blastwall_aap_ipa_server: >-
   {{ lookup('env', 'IPA_SERVER') | default('', true) }}
@@ -86,6 +88,8 @@ blastwall_aap_registry_username: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_USERNAME') | default('init', true) }}
 blastwall_aap_registry_password: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_PASSWORD') | default('', true) }}
+blastwall_aap_openshift_kubeconfig_file: >-
+  {{ lookup('env', 'BLASTWALL_OPENSHIFT_KUBECONFIG') | default('', true) }}
 
 blastwall_aap_job_templates:
   - name: Blastwall build policy RPM
@@ -96,6 +100,10 @@ blastwall_aap_job_templates:
     limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
   - name: Blastwall render SPO policy CRs
     playbook: playbooks/render-spo-policy-crs.yml
+    credentials: []
+    limit: ""
+  - name: Blastwall apply and validate SPO policy CRs
+    playbook: playbooks/apply-validate-spo-policy-crs.yml
     credentials: []
     limit: ""
   - name: Blastwall install candidate policy RPM

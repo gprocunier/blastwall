@@ -1,0 +1,13 @@
+flowchart LR
+    SOURCES["Git source manifests<br/>openshift/spo/*.yaml"]
+    BUNDLE_RENDER["AAP policy job renders<br/>blastwall-spo-crs.yaml"]
+    ARTIFACT["Workflow job artifact store<br/>Job JSON .artifacts"]
+    APPLY["AAP apply/validate node<br/>or operator change window"]
+    LIVE["OpenShift objects<br/>RawSelinuxProfile + SCC"]
+    PROOF["UBI validation jobs<br/>standard + nested passed"]
+
+    SOURCES -->|checked out from project<br/>and versioned policy inputs| BUNDLE_RENDER
+    BUNDLE_RENDER -->|emitted as job artifact| ARTIFACT
+    ARTIFACT -->|downloaded from job JSON| APPLY
+    APPLY --> LIVE
+    LIVE --> PROOF
