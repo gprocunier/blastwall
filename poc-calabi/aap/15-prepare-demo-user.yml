@@ -1,0 +1,61 @@
+---
+- name: Prepare the Calabi IdM-backed Blastwall demo launcher
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all.yml
+    - vars/calabi-aap.yml
+  tasks:
+    - name: Require IdM admin and demo user passwords
+      ansible.builtin.assert:
+        that:
+          - blastwall_ipaadmin_password | length > 0
+          - calabi_blastwall_demo_password | length > 0
+        fail_msg: >-
+          Set IPA_ADMIN_PASSWORD and, optionally, BLASTWALL_DEMO_PASSWORD
+          before preparing the demo launcher.
+
+    - name: Ensure Calabi AAP demo user exists in IdM
+      freeipa.ansible_freeipa.ipauser:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: client
+        name: "{{ calabi_blastwall_demo_user }}"
+        first: Blastwall
+        last: Demo
+        email:
+          - "{{ calabi_blastwall_demo_email }}"
+        password: "{{ calabi_blastwall_demo_password }}"
+        update_password: on_create
+        state: present
+      no_log: true
+
+    - name: Ensure Calabi AAP access group exists in IdM
+      freeipa.ansible_freeipa.ipagroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: client
+        name: "{{ calabi_blastwall_demo_access_group }}"
+        description: Calabi users allowed to access AAP through Keycloak
+        state: present
+      no_log: true
+
+    - name: Add Calabi demo user to AAP access group
+      freeipa.ansible_freeipa.ipagroup:
+        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+        ipaapi_context: client
+        name: "{{ calabi_blastwall_demo_access_group }}"
+        user:
+          - "{{ calabi_blastwall_demo_user }}"
+        action: member
+        state: present
+      no_log: true
+
+    - name: Report demo launcher identity
+      ansible.builtin.debug:
+        msg:
+          user: "{{ calabi_blastwall_demo_user }}"
+          idm_group: "{{ calabi_blastwall_demo_access_group }}"
+          aap_controller_user: "{{ calabi_blastwall_demo_user }}"

@@ -1,6 +1,6 @@
 ---
 plugin: eigenstate.ipa.idm
-server: idm.example.com
+server: idm-01.workshop.lan
 ipaadmin_principal: svc-ansible-runner
 
 sources:

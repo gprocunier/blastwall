@@ -100,6 +100,7 @@
           - blastwall_auto_group in blastwall_eigen_sudo_rule.groups
           - blastwall_hostgroup in blastwall_eigen_sudo_rule.hostgroups
           - >-
+            blastwall_eigen_sudo_rule.cmdcategory == 'all' or
             blastwall_sudo_command_group in
             blastwall_eigen_sudo_rule.allow_sudocmdgroups
           - "'role=unconfined_r' not in blastwall_eigen_sudo_rule.sudooptions"

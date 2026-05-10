@@ -1,0 +1,87 @@
+---
+blastwall_aap_controller_host: >-
+  {{ lookup('env', 'CONTROLLER_HOST') | default('', true) }}
+blastwall_aap_controller_username: >-
+  {{ lookup('env', 'CONTROLLER_USERNAME') | default('admin', true) }}
+blastwall_aap_controller_password: >-
+  {{ lookup('env', 'CONTROLLER_PASSWORD') | default('', true) }}
+blastwall_aap_validate_certs: >-
+  {{ (lookup('env', 'CONTROLLER_VERIFY_SSL') | default('false', true)) | bool }}
+
+blastwall_aap_organization: Blastwall
+blastwall_aap_project: Blastwall
+blastwall_aap_project_url: >-
+  {{ lookup('env', 'BLASTWALL_PROJECT_URL') |
+  default('https://github.com/gprocunier/blastwall.git', true) }}
+blastwall_aap_project_branch: >-
+  {{ lookup('env', 'BLASTWALL_PROJECT_BRANCH') | default('main', true) }}
+
+blastwall_aap_ee_name: Blastwall EE
+blastwall_aap_ee_image: >-
+  {{ lookup('env', 'BLASTWALL_EE_IMAGE') |
+  default('registry.example.com/blastwall/blastwall-ee:0.5.0', true) }}
+blastwall_aap_ee_pull: always
+
+blastwall_aap_inventory: Blastwall IdM Inventory
+blastwall_aap_inventory_source: Blastwall IdM Inventory Source
+blastwall_aap_inventory_source_path: >-
+  {{ lookup('env', 'BLASTWALL_INVENTORY_SOURCE_PATH') |
+  default('inventory/blastwall-idm.yml', true) }}
+
+blastwall_aap_idm_credential_type: Blastwall IdM Runtime
+blastwall_aap_idm_credential: Blastwall IdM Runtime
+blastwall_aap_machine_credential: svc-ansible-runner
+blastwall_aap_registry_credential: Blastwall EE Registry
+
+blastwall_aap_ipa_server: >-
+  {{ lookup('env', 'IPA_SERVER') | default('', true) }}
+blastwall_aap_ipa_domain: >-
+  {{ lookup('env', 'IPA_DOMAIN') |
+  default((blastwall_aap_ipa_server.split('.')[1:] | join('.')), true) }}
+blastwall_aap_ipa_realm: >-
+  {{ lookup('env', 'IPA_REALM') |
+  default((blastwall_aap_ipa_domain | upper), true) }}
+blastwall_aap_ipa_principal: >-
+  {{ lookup('env', 'IPA_PRINCIPAL') | default('svc-ansible-runner', true) }}
+blastwall_aap_ipa_password: >-
+  {{ lookup('env', 'IPA_ADMIN_PASSWORD') | default('', true) }}
+blastwall_aap_ipa_cert_file: >-
+  {{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}
+blastwall_aap_krb5_config_file: >-
+  {{ lookup('env', 'KRB5_CONFIG') | default('/etc/krb5.conf', true) }}
+blastwall_aap_identity: >-
+  {{ lookup('env', 'BLASTWALL_IDENTITY') | default('svc-ansible-runner', true) }}
+blastwall_aap_machine_password: >-
+  {{ lookup('env', 'BLASTWALL_MACHINE_PASSWORD') |
+  default(blastwall_aap_ipa_password, true) }}
+
+blastwall_aap_launch_user: >-
+  {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_USER') | default('', true) }}
+blastwall_aap_launch_password: >-
+  {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_PASSWORD') | default('', true) }}
+blastwall_aap_launch_user_email: >-
+  {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_USER_EMAIL') |
+  default(blastwall_aap_launch_user ~ '@example.com', true) }}
+
+blastwall_aap_registry_host: >-
+  {{ lookup('env', 'BLASTWALL_REGISTRY_HOST') |
+  default('registry.example.com', true) }}
+blastwall_aap_registry_username: >-
+  {{ lookup('env', 'BLASTWALL_REGISTRY_USERNAME') | default('init', true) }}
+blastwall_aap_registry_password: >-
+  {{ lookup('env', 'BLASTWALL_REGISTRY_PASSWORD') | default('', true) }}
+
+blastwall_aap_job_templates:
+  - name: Blastwall preflight
+    playbook: playbooks/preflight.yml
+    credentials:
+      - "{{ blastwall_aap_idm_credential }}"
+    limit: ""
+  - name: Blastwall verify managed host
+    playbook: playbooks/verify-managed-host.yml
+    credentials:
+      - "{{ blastwall_aap_idm_credential }}"
+      - "{{ blastwall_aap_machine_credential }}"
+    limit: blastwall_policy_current
+
+blastwall_aap_workflow: Blastwall policy rollout

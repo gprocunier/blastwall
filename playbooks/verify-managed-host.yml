@@ -3,6 +3,13 @@
   hosts: blastwall_policy_current
   gather_facts: false
   vars:
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
+    ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
+    ipa_password: "{{ lookup('env', 'IPA_ADMIN_PASSWORD') }}"
+    krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
+    krb5_ccache: FILE:/tmp/blastwall_krb5cc
     blastwall_expected_contexts:
       - blastwall_u:blastwall_r:blastwall_root_local_t:s0
       - blastwall_u:blastwall_r:blastwall_t:s0
@@ -17,6 +24,34 @@
     blastwall_userns_trigger_path: >-
       {{ playbook_dir }}/../tests/trigger-userns-deny.py
   tasks:
+    - name: Require Kerberos inputs for target SSH
+      ansible.builtin.assert:
+        that:
+          - ipa_principal | length > 0
+          - ipa_realm | length > 0 or '@' in ipa_principal
+          - ipa_password | length > 0
+        fail_msg: >-
+          Set IPA_PRINCIPAL, IPA_REALM, and IPA_ADMIN_PASSWORD for GSSAPI
+          target SSH.
+      run_once: true
+      delegate_to: localhost
+
+    - name: Authenticate automation identity for GSSAPI target SSH
+      ansible.builtin.shell: |
+        set -euo pipefail
+        printf '%s\n' "${IPA_ADMIN_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+        IPA_ADMIN_PASSWORD: "{{ ipa_password }}"
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      changed_when: false
+      no_log: true
+      run_once: true
+      delegate_to: localhost
+
     - name: Capture login SELinux context
       ansible.builtin.command: id -Z
       register: blastwall_idz
@@ -54,6 +89,8 @@
       ansible.builtin.command: /tmp/trigger-copyfail-afalg.py
       register: blastwall_trigger
       changed_when: false
+      failed_when:
+        - blastwall_trigger.rc not in [0, 77]
 
     - name: Show AF_ALG trigger result
       ansible.builtin.debug:

@@ -1,0 +1,105 @@
+---
+- name: Verify and prepare the Blastwall EE repository path in mirror registry
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - vars/calabi-aap.yml
+  tasks:
+    - name: Register mirror registry host for delegated configuration
+      ansible.builtin.add_host:
+        name: "{{ calabi_registry_host }}"
+        ansible_host: "{{ calabi_registry_host }}"
+        ansible_connection: ssh
+        ansible_user: cloud-user
+        ansible_ssh_private_key_file: "{{ ansible_env.HOME }}/.ssh/id_ed25519"
+        ansible_password: "{{ calabi_lab_default_password | default(omit, true) }}"
+        ansible_become_password: "{{ calabi_lab_default_password | default(omit, true) }}"
+        ansible_become: true
+        ansible_ssh_common_args: >-
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+
+    - name: Verify mirror registry authfile is present on the registry host
+      ansible.builtin.stat:
+        path: "{{ calabi_registry_authfile }}"
+      register: calabi_registry_authfile_stat
+      become: true
+      delegate_to: "{{ calabi_registry_host }}"
+
+    - name: Assert mirror registry authfile exists
+      ansible.builtin.assert:
+        that:
+          - calabi_registry_authfile_stat.stat.exists
+        fail_msg: >-
+          {{ calabi_registry_authfile }} is missing on {{ calabi_registry_host }}.
+
+    - name: Ensure Blastwall organization and EE repository exist in Quay
+      ansible.builtin.shell: |
+        set -euo pipefail
+        podman exec quay-app /bin/bash -lc 'cd /quay-registry && python - <<PY
+        import app as quay_app
+        from data.model.organization import (
+            InvalidOrganizationException,
+            create_organization,
+            get_organization,
+        )
+        from data.model.repository import create_repository, get_repository
+        from data.model.user import get_user
+
+        changed = False
+        with quay_app.app.app_context():
+            init_user = get_user("init")
+            try:
+                get_organization("blastwall")
+                print("organization=exists")
+            except InvalidOrganizationException:
+                create_organization("blastwall", "blastwall@workshop.lan", init_user)
+                changed = True
+                print("organization=created")
+
+            if get_repository("blastwall", "blastwall-ee") is None:
+                create_repository("blastwall", "blastwall-ee", init_user, visibility="private")
+                changed = True
+                print("repository=created")
+            else:
+                print("repository=exists")
+
+        print("changed=%s" % str(changed).lower())
+        PY'
+      args:
+        executable: /bin/bash
+      register: calabi_registry_quay_config
+      changed_when: "'changed=true' in calabi_registry_quay_config.stdout"
+      become: true
+      delegate_to: "{{ calabi_registry_host }}"
+
+    - name: Check whether Blastwall EE repository tags are already visible
+      ansible.builtin.shell: |
+        set -euo pipefail
+        work="$(mktemp -d)"
+        trap 'rm -rf "${work}"' EXIT
+        mkdir -p "${work}/certs.d/{{ calabi_registry_endpoint }}"
+        cp "$HOME/etc/idm-ca.crt" "${work}/certs.d/{{ calabi_registry_endpoint }}/ca.crt"
+        "{{ calabi_oc_bin }}" get secret/pull-secret -n openshift-config \
+          -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d > "${work}/auth.json"
+        skopeo list-tags \
+          --authfile "${work}/auth.json" \
+          --cert-dir "${work}/certs.d/{{ calabi_registry_endpoint }}" \
+          "docker://{{ calabi_registry_image }}"
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_registry_existing_repo
+      changed_when: false
+      failed_when: false
+
+    - name: Report registry repository state
+      ansible.builtin.debug:
+        msg:
+          image: "{{ calabi_registry_image }}"
+          configured: "{{ calabi_registry_existing_repo.rc == 0 }}"
+          note: >-
+            If this is false, 10-build-and-push-ee.yml will attempt the first
+            push. Calabi Quay has CREATE_NAMESPACE_ON_PUSH enabled, but the
+            push credential must be authorized for the blastwall namespace.

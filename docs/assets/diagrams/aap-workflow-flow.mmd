@@ -1,0 +1,12 @@
+flowchart TD
+  launch["IdM-backed AAP user launches workflow"]
+  project["Project sync"]
+  inventory["IdM inventory sync<br/>eigenstate.ipa"]
+  preflight["Preflight<br/>SELinux map, HBAC, sudo, marker"]
+  fail["Fail closed"]
+  verify["Verify confinement and denials"]
+  evidence["Collect evidence outside workflow"]
+
+  launch --> project --> inventory --> preflight
+  preflight -- unsuitable --> fail
+  preflight -- suitable --> verify --> evidence

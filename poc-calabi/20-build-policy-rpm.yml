@@ -262,15 +262,15 @@
           %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
           %changelog
-          * Sun May 03 2026 Blastwall PoC <root@localhost> - 0.3.0-1
-          - Add policy self-protection deny scope
-
           * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.5.0-1
           - Add io_uring deny scope with optional block for kernel compat (CVE-2026-43006)
 
           * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.4.0-1
           - Add packet_socket deny scope (CVE-2025-38617, CVE-2026-31504)
           - Add user namespace creation deny scope (exploit chain enabler)
+
+          * Sun May 03 2026 Blastwall PoC <root@localhost> - 0.3.0-1
+          - Add policy self-protection deny scope
 
           * Fri May 02 2026 Blastwall PoC <root@localhost> - 0.2.0-1
           - Add BPF deny scope (CVE-2026-31525, CVE-2026-31429, CVE-2025-38154)

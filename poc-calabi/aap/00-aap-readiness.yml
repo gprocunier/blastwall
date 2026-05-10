@@ -1,0 +1,128 @@
+---
+- name: Verify Calabi AAP and registry readiness for Blastwall
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - vars/calabi-aap.yml
+  tasks:
+    - name: Require oc on bastion
+      ansible.builtin.command:
+        argv:
+          - "{{ calabi_oc_bin }}"
+          - version
+          - --client=true
+      changed_when: false
+
+    - name: Require container tools on bastion
+      ansible.builtin.command:
+        argv:
+          - "{{ item }}"
+          - --version
+      loop:
+        - podman
+        - skopeo
+      changed_when: false
+
+    - name: Verify OpenShift admin access
+      ansible.builtin.command:
+        argv:
+          - "{{ calabi_oc_bin }}"
+          - auth
+          - can-i
+          - "*"
+          - "*"
+          - --all-namespaces
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_aap_can_i
+      changed_when: false
+      failed_when: calabi_aap_can_i.stdout | trim != "yes"
+
+    - name: Verify AAP namespace and route
+      ansible.builtin.command:
+        argv:
+          - "{{ calabi_oc_bin }}"
+          - get
+          - route
+          - -n
+          - "{{ calabi_aap_namespace }}"
+          - workshop-aap
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      changed_when: false
+
+    - name: Verify AAP gateway API readiness
+      ansible.builtin.uri:
+        url: "{{ calabi_aap_gateway_url }}/api/gateway/v1/ui_auth/"
+        method: GET
+        validate_certs: false
+        status_code: 200
+
+    - name: Verify mirror registry API readiness with IdM CA
+      ansible.builtin.uri:
+        url: "https://{{ calabi_registry_endpoint }}/v2/"
+        method: GET
+        ca_path: "{{ calabi_registry_ca }}"
+        status_code:
+          - 200
+          - 401
+
+    - name: Read OpenShift global pull secret
+      ansible.builtin.shell: |
+        set -euo pipefail
+        "{{ calabi_oc_bin }}" get secret/pull-secret -n openshift-config \
+          -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_aap_pull_secret
+      changed_when: false
+      no_log: true
+
+    - name: Assert mirror registry is in global pull secret
+      ansible.builtin.assert:
+        that:
+          - calabi_registry_endpoint in ((calabi_aap_pull_secret.stdout | from_json).auths.keys() | list)
+        fail_msg: >-
+          {{ calabi_registry_endpoint }} is missing from the OpenShift global
+          pull secret.
+
+    - name: Pull-test mirror registry from AAP namespace
+      ansible.builtin.shell: |
+        set -euo pipefail
+        name=blastwall-registry-pull-preflight
+        image="{{ calabi_registry_probe_image }}"
+        "{{ calabi_oc_bin }}" delete pod "${name}" -n "{{ calabi_aap_namespace }}" \
+          --ignore-not-found --wait=true >/dev/null
+        "{{ calabi_oc_bin }}" run "${name}" -n "{{ calabi_aap_namespace }}" \
+          --image="${image}" --restart=Never --command -- /bin/sh -c 'sleep 30' >/dev/null
+        trap '"{{ calabi_oc_bin }}" delete pod "${name}" -n "{{ calabi_aap_namespace }}" --ignore-not-found --wait=false >/dev/null' EXIT
+        for _ in $(seq 1 36); do
+          phase="$("{{ calabi_oc_bin }}" get pod "${name}" -n "{{ calabi_aap_namespace }}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+          waiting="$("{{ calabi_oc_bin }}" get pod "${name}" -n "{{ calabi_aap_namespace }}" -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null || true)"
+          if [ "${phase}" = Running ] || [ "${phase}" = Succeeded ]; then
+            exit 0
+          fi
+          if [ "${waiting}" = ImagePullBackOff ] || [ "${waiting}" = ErrImagePull ]; then
+            "{{ calabi_oc_bin }}" describe pod "${name}" -n "{{ calabi_aap_namespace }}"
+            exit 1
+          fi
+          sleep 5
+        done
+        "{{ calabi_oc_bin }}" describe pod "${name}" -n "{{ calabi_aap_namespace }}"
+        exit 1
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      changed_when: false
+
+    - name: Report readiness
+      ansible.builtin.debug:
+        msg:
+          aap_gateway: "{{ calabi_aap_gateway_url }}"
+          aap_controller: "{{ calabi_aap_controller_url }}"
+          registry: "{{ calabi_registry_endpoint }}"
+          registry_probe_image: "{{ calabi_registry_probe_image }}"

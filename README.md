@@ -63,8 +63,9 @@ mock topology.
 The demo shows the PoC from `bastion-01`: IdM creates and proves
 `svc-ansible-runner`, `eigenstate.ipa` validates the read-side gate, direct
 GSSAPI SSH probes land in `blastwall_u:blastwall_r:blastwall_t:s0`, the target
-audit log shows denied AF_ALG, BPF, packet_socket, userns, and io_uring activity, and the
-final self-protection step proves SELinux blocks a sudo-expanded `semodule`
+audit log shows denied AF_ALG, BPF, packet_socket, and userns activity, the
+io_uring probe shows `io_uring_setup` blocked, and the final self-protection
+step proves SELinux blocks a sudo-expanded `semodule`
 breakout.
 
 ## The Argument
@@ -222,10 +223,117 @@ installed afterwards.
 - `policy/` - SELinux reference-policy module and login context template.
 - `idm/` - IdM object creation example for group, HBAC, sudo, and user map.
 - `inventory/` - [`eigenstate.ipa.idm`](https://gprocunier.github.io/eigenstate-ipa/) inventory source for AAP.
-- `playbooks/` - AAP/controller preflight, policy deployment, and host checks.
+- `playbooks/` - AAP/controller preflight and managed-host verification. The
+  policy deployment playbook is bootstrap/operator material, not part of the
+  confined AAP verification workflow.
+- `aap/` - Controller configuration-as-code for the Blastwall AAP path.
+- `execution-environment/` - Blastwall AAP execution environment definition.
 - `tests/` - safe AF_ALG, BPF, packet_socket, userns, and io_uring probes used to verify denial.
 - `poc-calabi/` - Calabi lab exercise for replaying the proof path after
   watching the demo.
+
+## AAP Setup
+
+The AAP path turns Blastwall into a Controller-launched workflow instead of a
+manual bastion sequence. The Controller configuration lives under `aap/`, and
+the execution environment definition lives under `execution-environment/`.
+The full recorded demo path, including the separate AAP landing-zone guidance,
+is documented in [`AAP-DEMO.md`](AAP-DEMO.md).
+
+The intended Controller objects are:
+
+- Organization: `Blastwall`
+- Project: `Blastwall`, SCM URL `https://github.com/gprocunier/blastwall.git`, branch `main`
+- Execution Environment: `Blastwall EE`
+- EE image: `registry.example.com/blastwall/blastwall-ee:0.5.0`
+- Inventory: `Blastwall IdM Inventory`
+- Inventory source: `inventory/blastwall-idm.yml`
+- Credential type: `Blastwall IdM Runtime`
+- Machine credential: `svc-ansible-runner`
+- Workflow template: `Blastwall policy rollout`
+
+The IdM runtime credential injects `IPA_SERVER`, `IPA_DOMAIN`, `IPA_REALM`,
+`IPA_PRINCIPAL`, `IPA_ADMIN_PASSWORD`, `IPA_CERT`, `KRB5_CONFIG`, and
+`BLASTWALL_IDENTITY`. The certificate and Kerberos configuration are injected
+as runtime files; secret values are not stored in this repository. The
+preflight play writes a minimal FreeIPA client config inside the execution
+environment before using `ipalib`-backed lookups.
+
+Build the EE with:
+
+```bash
+ansible-builder build \
+  -f execution-environment/execution-environment.yml \
+  --build-arg PKGMGR=/usr/bin/microdnf \
+  --build-arg PYCMD=/usr/bin/python3.12 \
+  -t blastwall-ee:0.5.0
+```
+
+In Calabi, the recorded path pushes the EE to the lab's IdM-certified mirror
+registry and points the AAP inventory source at the Calabi adapter inventory:
+
+```text
+mirror-registry.workshop.lan:8443/blastwall/blastwall-ee:0.5.0
+mirror-registry.workshop.lan:8443/blastwall/blastwall-ee:latest
+poc-calabi/aap/inventory/blastwall-idm.yml
+```
+
+The Calabi overlay under `poc-calabi/aap/` runs from `bastion-01`, prepares an
+IdM demo launcher named `blastwall-demo`, and performs:
+
+```bash
+ansible-playbook poc-calabi/aap/00-aap-readiness.yml
+ansible-playbook poc-calabi/aap/05-configure-ee-registry.yml
+ansible-playbook poc-calabi/aap/10-build-and-push-ee.yml
+ansible-playbook poc-calabi/aap/15-prepare-demo-user.yml
+ansible-playbook poc-calabi/aap/20-configure-controller.yml
+ansible-playbook poc-calabi/aap/30-launch-workflow.yml
+ansible-playbook poc-calabi/aap/40-collect-evidence.yml
+```
+
+Admin access is used for setup and troubleshooting. The workflow itself is
+launched by the demo user, while target automation obtains a Kerberos ticket
+and connects over SSH as `svc-ansible-runner`.
+
+The AAP workflow is deliberately a current-host verification path. Policy RPM
+installation, SELinux policy mutation, and IdM marker publication happen in the
+bootstrap or content-delivery path before this workflow runs. That separation is
+part of the design: Blastwall self-protection should stop a confined
+`blastwall_t` session from changing the policy that confines it.
+
+```mermaid
+flowchart LR
+  org["Organization: Blastwall"]
+  project["Project: Blastwall"]
+  ee["Blastwall EE"]
+  inventory["Blastwall IdM Inventory"]
+  source["inventory/blastwall-idm.yml"]
+  idmcred["Blastwall IdM Runtime"]
+  machine["svc-ansible-runner"]
+  workflow["Blastwall policy rollout"]
+  org --> project
+  org --> ee
+  org --> inventory
+  project --> source --> inventory
+  ee --> source
+  idmcred --> source
+  idmcred --> workflow
+  machine --> workflow
+```
+
+```mermaid
+flowchart TD
+  launch["IdM-backed AAP user launches workflow"]
+  project["Project sync"]
+  inventory["IdM inventory sync"]
+  preflight["Preflight"]
+  fail["Fail closed"]
+  verify["Verify managed host"]
+  evidence["Collect evidence"]
+  launch --> project --> inventory --> preflight
+  preflight -- unsuitable --> fail
+  preflight -- suitable --> verify --> evidence
+```
 
 ## IdM Relationship Model
 
@@ -248,7 +356,7 @@ AAP execution environments that run the preflight need:
 - `python3-ipalib`
 - `python3-ipaclient`
 - `krb5-workstation`
-- a mounted IdM keytab and CA certificate
+- an IdM principal password and CA certificate
 
 Install Ansible collection dependencies with:
 
@@ -308,7 +416,8 @@ export IdM host attributes into inventory hostvars.
 This PoC uses `idm_description` as a simple marker carrier because it is already
 available from normal host records.
 
-The policy deployment play writes one marker per verified coverage claim:
+The bootstrap or policy deployment path writes one marker per verified coverage
+claim:
 
 ```text
 blastwall_policy_rpm=blastwall-selinux-0.5.0-1

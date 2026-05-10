@@ -1,0 +1,44 @@
+---
+calabi_aap_namespace: aap
+calabi_aap_gateway_url: https://aap.apps.ocp.workshop.lan
+calabi_aap_controller_url: https://workshop-aap-controller-aap.apps.ocp.workshop.lan
+calabi_aap_controller_secret: workshop-aap-controller-admin-password
+calabi_aap_gateway_secret: workshop-aap-admin-password
+
+calabi_oc_bin: >-
+  {{ lookup('env', 'OC') |
+  default('/opt/openshift/aws-metal-openshift-demo/generated/tools/4.20.15/bin/oc', true) }}
+calabi_kubeconfig: >-
+  {{ lookup('env', 'KUBECONFIG') | default(ansible_env.HOME + '/etc/kubeconfig.local', true) }}
+
+calabi_registry_host: mirror-registry.workshop.lan
+calabi_registry_port: 8443
+calabi_registry_endpoint: "{{ calabi_registry_host }}:{{ calabi_registry_port }}"
+calabi_registry_ca: /etc/ipa/ca.crt
+calabi_registry_authfile: /root/.config/containers/auth.json
+calabi_registry_user: init
+calabi_lab_default_password: >-
+  {{ lookup('env', 'LAB_DEFAULT_PASSWORD') | default('', true) }}
+calabi_registry_image_repo: blastwall/blastwall-ee
+calabi_registry_image: >-
+  {{ calabi_registry_endpoint }}/{{ calabi_registry_image_repo }}
+calabi_registry_probe_image: >-
+  {{ calabi_registry_endpoint }}/init/bootstrap-toolbox:latest
+
+calabi_blastwall_root: >-
+  {{ lookup('env', 'BLASTWALL_ROOT') |
+  default('/opt/openshift/aws-metal-openshift-demo/blastwall', true) }}
+calabi_blastwall_ee_version: >-
+  {{ lookup('env', 'BLASTWALL_EE_VERSION') | default('0.5.0', true) }}
+calabi_blastwall_ee_tags:
+  - "{{ calabi_blastwall_ee_version }}"
+  - latest
+
+calabi_blastwall_demo_user: >-
+  {{ lookup('env', 'BLASTWALL_DEMO_USER') | default('blastwall-demo', true) }}
+calabi_blastwall_demo_password: >-
+  {{ lookup('env', 'BLASTWALL_DEMO_PASSWORD') |
+  default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+calabi_blastwall_demo_email: >-
+  {{ calabi_blastwall_demo_user }}@{{ blastwall_lab_domain | default('workshop.lan') }}
+calabi_blastwall_demo_access_group: access-openshift-admin

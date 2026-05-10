@@ -8,7 +8,7 @@ flowchart TB
     end
 
     subgraph ROLLOUT["3. Roll out and prove host-local enforcement"]
-        AAP["AAP rollout workflow"] --> VERIFY["Local verification<br/>expected denial works"]
+        DELIVERY["Satellite/AAP content delivery<br/>outside confined runtime"] --> VERIFY["Local verification<br/>expected denial works"]
     end
 
     subgraph INVENTORY["4. Feed verified state back into automation"]
@@ -17,5 +17,5 @@ flowchart TB
     end
 
     POLICY --> RPM
-    SAT --> AAP
+    SAT --> DELIVERY
     VERIFY --> IDM

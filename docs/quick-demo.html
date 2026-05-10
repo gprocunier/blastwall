@@ -60,7 +60,7 @@ playbooks/preflight.yml</code></pre>
 
         <section>
           <h2>Verification</h2>
-          <p>Run the managed-host verification playbook. The expected result is a confined SELinux context and blocked AF_ALG/authencesn, BPF, packet_socket, and userns probes on the automation endpoint.</p>
+          <p>Run the managed-host verification playbook. The expected result is a confined SELinux context and blocked AF_ALG/authencesn, BPF, packet_socket, userns, and io_uring probes on the automation endpoint. The io_uring probe can report <code>SKIP</code> on older kernels where the SELinux object class does not exist.</p>
           <pre><code>playbooks/verify-managed-host.yml</code></pre>
         </section>
       </article>

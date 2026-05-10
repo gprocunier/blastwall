@@ -1,0 +1,74 @@
+---
+- name: Configure AAP Controller for Blastwall in Calabi
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+    - vars/calabi-aap.yml
+  tasks:
+    - name: Read AAP Controller admin password from OpenShift
+      ansible.builtin.shell: |
+        set -euo pipefail
+        "{{ calabi_oc_bin }}" get secret -n "{{ calabi_aap_namespace }}" \
+          "{{ calabi_aap_controller_secret }}" \
+          -o jsonpath='{.data.password}' | base64 -d
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_aap_controller_password
+      changed_when: false
+      no_log: true
+
+    - name: Read Calabi lab runtime password from OpenShift
+      ansible.builtin.shell: |
+        set -euo pipefail
+        "{{ calabi_oc_bin }}" get secret -n "{{ calabi_aap_namespace }}" \
+          "{{ calabi_aap_gateway_secret }}" \
+          -o jsonpath='{.data.password}' | base64 -d
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_aap_runtime_password
+      changed_when: false
+      no_log: true
+
+    - name: Apply Blastwall Controller configuration
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - aap/configure-controller.yml
+      args:
+        chdir: "{{ calabi_blastwall_root }}"
+      environment:
+        CONTROLLER_HOST: "{{ calabi_aap_controller_url }}"
+        CONTROLLER_USERNAME: admin
+        CONTROLLER_PASSWORD: "{{ calabi_aap_controller_password.stdout }}"
+        CONTROLLER_VERIFY_SSL: "false"
+        IPA_SERVER: idm-01.workshop.lan
+        IPA_PRINCIPAL: svc-ansible-runner
+        IPA_ADMIN_PASSWORD: >-
+          {{ lookup('env', 'BLASTWALL_AUTO_PASSWORD') |
+          default(calabi_aap_runtime_password.stdout, true) }}
+        IPA_CERT: /etc/ipa/ca.crt
+        KRB5_CONFIG: /etc/krb5.conf
+        BLASTWALL_IDENTITY: svc-ansible-runner
+        BLASTWALL_MACHINE_PASSWORD: >-
+          {{ lookup('env', 'BLASTWALL_AUTO_PASSWORD') |
+          default(calabi_aap_runtime_password.stdout, true) }}
+        BLASTWALL_EE_IMAGE: "{{ calabi_registry_image }}:{{ calabi_blastwall_ee_version }}"
+        BLASTWALL_INVENTORY_SOURCE_PATH: poc-calabi/aap/inventory/blastwall-idm.yml
+        BLASTWALL_REGISTRY_HOST: "{{ calabi_registry_endpoint }}"
+        BLASTWALL_AAP_LAUNCH_USER: "{{ calabi_blastwall_demo_user }}"
+        BLASTWALL_AAP_LAUNCH_PASSWORD: >-
+          {{ lookup('env', 'BLASTWALL_DEMO_PASSWORD') |
+          default(calabi_aap_runtime_password.stdout, true) }}
+        BLASTWALL_AAP_LAUNCH_USER_EMAIL: "{{ calabi_blastwall_demo_email }}"
+        BLASTWALL_REGISTRY_USERNAME: "{{ lookup('env', 'BLASTWALL_REGISTRY_USERNAME') | default(calabi_registry_user, true) }}"
+        BLASTWALL_REGISTRY_PASSWORD: "{{ lookup('env', 'BLASTWALL_REGISTRY_PASSWORD') }}"
+      no_log: >-
+        {{ not (lookup('env', 'BLASTWALL_AAP_DEBUG') |
+        default('false', true) | bool) }}
+      changed_when: true

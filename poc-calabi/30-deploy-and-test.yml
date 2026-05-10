@@ -144,6 +144,7 @@
           - "'blastwall-bpf-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-packet-socket-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-userns-deny' in blastwall_semodule_list.stdout"
+          - "'blastwall-io-uring-deny' in blastwall_semodule_list.stdout"
           - "'blastwall-policy-selfprotect' in blastwall_semodule_list.stdout"
         fail_msg: "{{ blastwall_semodule_list.stdout }}"
 

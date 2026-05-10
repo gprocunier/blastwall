@@ -1,0 +1,15 @@
+---
+version: 3
+
+images:
+  base_image:
+    name: registry.redhat.io/ansible-automation-platform-26/ee-minimal-rhel9:latest
+
+dependencies:
+  galaxy: requirements.yml
+  system: bindep.txt
+  python: python-requirements.txt
+
+additional_build_steps:
+  append_final:
+    - RUN mkdir -p /etc/ipa && chgrp -R 0 /etc/ipa && chmod -R g+rwX /etc/ipa

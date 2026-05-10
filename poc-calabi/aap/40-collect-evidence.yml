@@ -1,0 +1,46 @@
+---
+- name: Collect Blastwall AAP demo evidence
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - vars/calabi-aap.yml
+  tasks:
+    - name: Show AAP routes
+      ansible.builtin.command:
+        argv:
+          - "{{ calabi_oc_bin }}"
+          - get
+          - route
+          - -n
+          - "{{ calabi_aap_namespace }}"
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_aap_routes
+      changed_when: false
+
+    - name: Show Blastwall EE tags
+      ansible.builtin.shell: |
+        set -euo pipefail
+        work="$(mktemp -d)"
+        trap 'rm -rf "${work}"' EXIT
+        mkdir -p "${work}/certs.d/{{ calabi_registry_endpoint }}"
+        cp "$HOME/etc/idm-ca.crt" "${work}/certs.d/{{ calabi_registry_endpoint }}/ca.crt"
+        "{{ calabi_oc_bin }}" get secret/pull-secret -n openshift-config \
+          -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d > "${work}/auth.json"
+        skopeo list-tags \
+          --authfile "${work}/auth.json" \
+          --cert-dir "${work}/certs.d/{{ calabi_registry_endpoint }}" \
+          "docker://{{ calabi_registry_image }}"
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_blastwall_ee_tags_result
+      changed_when: false
+
+    - name: Report evidence summary
+      ansible.builtin.debug:
+        msg:
+          aap_routes: "{{ calabi_aap_routes.stdout_lines }}"
+          ee_tags: "{{ (calabi_blastwall_ee_tags_result.stdout | from_json).Tags | default([]) }}"

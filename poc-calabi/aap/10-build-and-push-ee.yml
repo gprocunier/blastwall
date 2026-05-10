@@ -1,0 +1,84 @@
+---
+- name: Build and push the Blastwall execution environment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - vars/calabi-aap.yml
+  tasks:
+    - name: Require ansible-builder
+      ansible.builtin.command:
+        argv:
+          - ansible-builder
+          - --version
+      changed_when: false
+
+    - name: Create temporary registry auth material from OpenShift pull secret
+      ansible.builtin.shell: |
+        set -euo pipefail
+        work="$(mktemp -d)"
+        mkdir -p "${work}/certs.d/{{ calabi_registry_endpoint }}"
+        cp "$HOME/etc/idm-ca.crt" "${work}/certs.d/{{ calabi_registry_endpoint }}/ca.crt"
+        "{{ calabi_oc_bin }}" get secret/pull-secret -n openshift-config \
+          -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d > "${work}/auth.json"
+        printf '%s\n' "${work}"
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_registry_push_workdir
+      no_log: true
+      changed_when: true
+
+    - name: Build Blastwall execution environment image
+      ansible.builtin.command:
+        argv:
+          - ansible-builder
+          - build
+          - -f
+          - "{{ calabi_blastwall_root }}/execution-environment/execution-environment.yml"
+          - --build-arg
+          - PKGMGR=/usr/bin/microdnf
+          - --build-arg
+          - PYCMD=/usr/bin/python3.12
+          - -t
+          - "blastwall-ee:{{ calabi_blastwall_ee_version }}"
+      args:
+        chdir: "{{ calabi_blastwall_root }}"
+      environment:
+        REGISTRY_AUTH_FILE: "{{ calabi_registry_push_workdir.stdout }}/auth.json"
+      changed_when: true
+
+    - name: Tag Blastwall EE image
+      ansible.builtin.command:
+        argv:
+          - podman
+          - tag
+          - "blastwall-ee:{{ calabi_blastwall_ee_version }}"
+          - "{{ calabi_registry_image }}:{{ item }}"
+      loop: "{{ calabi_blastwall_ee_tags }}"
+      changed_when: true
+
+    - name: Push Blastwall EE image tags
+      ansible.builtin.command:
+        argv:
+          - podman
+          - push
+          - "--authfile={{ calabi_registry_push_workdir.stdout }}/auth.json"
+          - "--cert-dir={{ calabi_registry_push_workdir.stdout }}/certs.d/{{ calabi_registry_endpoint }}"
+          - "{{ calabi_registry_image }}:{{ item }}"
+      loop: "{{ calabi_blastwall_ee_tags }}"
+      changed_when: true
+
+    - name: Remove temporary registry auth material
+      ansible.builtin.file:
+        path: "{{ calabi_registry_push_workdir.stdout }}"
+        state: absent
+      no_log: true
+      when: calabi_registry_push_workdir.stdout | length > 0
+
+    - name: Report pushed EE tags
+      ansible.builtin.debug:
+        msg:
+          image: "{{ calabi_registry_image }}"
+          tags: "{{ calabi_blastwall_ee_tags }}"

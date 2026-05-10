@@ -1,37 +1,69 @@
 ---
 - name: Blastwall controller-side suitability gate
-  hosts: localhost
+  hosts: all
+  connection: local
   gather_facts: false
+  run_once: true
   vars:
     ipa_server: "{{ lookup('env', 'IPA_SERVER') }}"
-    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') }}"
+    ipa_domain: >-
+      {{ lookup('env', 'IPA_DOMAIN') |
+      default((ipa_server.split('.')[1:] | join('.')), true) }}
+    ipa_realm: >-
+      {{ lookup('env', 'IPA_REALM') |
+      default((ipa_domain | upper), true) }}
+    ipa_basedn: >-
+      dc={{ ipa_domain | replace('.', ',dc=') }}
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') | default('admin', true) }}"
+    ipa_password: "{{ lookup('env', 'IPA_ADMIN_PASSWORD') }}"
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
     blastwall_identity: "{{ lookup('env', 'BLASTWALL_IDENTITY') }}"
     blastwall_selinux_map_name: blastwall-root-local-map
     blastwall_expected_selinux_user: blastwall_u:s0
+    blastwall_hbac_rule_name: blastwall-ssh
     blastwall_sudo_rule_name: blastwall-root-local-sudo
-    blastwall_required_policy_marker: blastwall-selinux-0.3.0-1
+    blastwall_required_policy_marker: blastwall-selinux-0.5.0-1
     blastwall_fail_on_stale_policy: true
     blastwall_target_hosts: >-
       {{ groups['blastwall_policy_current'] | default([]) }}
     blastwall_stale_hosts: >-
       {{ groups['blastwall_policy_stale'] | default([]) }}
+    blastwall_candidate_hosts: >-
+      {{ (blastwall_target_hosts + blastwall_stale_hosts) | unique | list }}
   tasks:
     - name: Require preflight inputs
       ansible.builtin.assert:
         that:
           - ipa_server | length > 0
-          - ipa_keytab | length > 0
+          - ipa_domain | length > 0
+          - ipa_realm | length > 0
+          - ipa_keytab | length > 0 or ipa_password | length > 0
           - blastwall_identity | length > 0
         fail_msg: >-
-          Set IPA_SERVER, IPA_KEYTAB, and BLASTWALL_IDENTITY for preflight.
+          Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, BLASTWALL_IDENTITY, and
+          either IPA_KEYTAB or IPA_ADMIN_PASSWORD for preflight.
+
+    - name: Write FreeIPA client config for controller-side lookups
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ ipa_server }}
+          domain = {{ ipa_domain }}
+          realm = {{ ipa_realm }}
+          basedn = {{ ipa_basedn }}
+          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
 
     - name: Read Blastwall SELinux user map
       ansible.builtin.set_fact:
         blastwall_selinux_map: >-
           {{ lookup('eigenstate.ipa.selinuxmap',
-                    blastwall_selinux_map_name,
+                    '%s' | format(blastwall_selinux_map_name),
                     server=ipa_server,
+                    ipaadmin_principal=ipa_principal,
+                    ipaadmin_password=ipa_password,
                     kerberos_keytab=ipa_keytab,
                     verify=ipa_ca) }}
 
@@ -41,7 +73,7 @@
           - blastwall_selinux_map.exists
           - blastwall_selinux_map.enabled
           - blastwall_selinux_map.selinuxuser == blastwall_expected_selinux_user
-          - blastwall_selinux_map.hbacrule is not none
+          - blastwall_selinux_map.hbacrule == blastwall_hbac_rule_name
         fail_msg: >-
           Blastwall SELinux map is not suitable:
           exists={{ blastwall_selinux_map.exists }},
@@ -53,8 +85,10 @@
       ansible.builtin.set_fact:
         blastwall_hbac_rule: >-
           {{ lookup('eigenstate.ipa.hbacrule',
-                    blastwall_selinux_map.hbacrule,
+                    '%s' | format(blastwall_hbac_rule_name),
                     server=ipa_server,
+                    ipaadmin_principal=ipa_principal,
+                    ipaadmin_password=ipa_password,
                     kerberos_keytab=ipa_keytab,
                     verify=ipa_ca) }}
 
@@ -73,9 +107,11 @@
       ansible.builtin.set_fact:
         blastwall_sudo_rule: >-
           {{ lookup('eigenstate.ipa.sudo',
-                    blastwall_sudo_rule_name,
+                    '%s' | format(blastwall_sudo_rule_name),
                     sudo_object='rule',
                     server=ipa_server,
+                    ipaadmin_principal=ipa_principal,
+                    ipaadmin_password=ipa_password,
                     kerberos_keytab=ipa_keytab,
                     verify=ipa_ca) }}
 
@@ -94,47 +130,21 @@
           Blastwall sudo rule is missing, disabled, unconfined, or cannot run
           as root.
 
-    - name: Fail closed when no current-policy hosts exist
+    - name: Fail closed when no eligible Blastwall hosts exist
       ansible.builtin.assert:
         that:
-          - blastwall_target_hosts | length > 0
+          - blastwall_candidate_hosts | length > 0
         fail_msg: >-
-          No hosts have the current Blastwall marker
-          ({{ blastwall_required_policy_marker }}). Stale hosts:
-          {{ blastwall_stale_hosts | join(', ') }}.
+          No hosts are eligible for Blastwall managed-host verification.
+          Current hosts: {{ blastwall_target_hosts | join(', ') }}.
+          Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_stale_policy | bool
-
-    - name: Run HBAC access tests for candidate hosts
-      ansible.builtin.set_fact:
-        blastwall_hbac_tests: >-
-          {{ (blastwall_hbac_tests | default([])) + [access_result] }}
-      vars:
-        access_result: >-
-          {{ lookup('eigenstate.ipa.hbacrule',
-                    blastwall_identity,
-                    operation='test',
-                    targethost=item,
-                    service='sshd',
-                    server=ipa_server,
-                    kerberos_keytab=ipa_keytab,
-                    verify=ipa_ca) }}
-      loop: "{{ blastwall_target_hosts }}"
-
-    - name: Assert HBAC allows each candidate host
-      ansible.builtin.assert:
-        that:
-          - >-
-            blastwall_hbac_tests |
-            selectattr('denied', 'equalto', true) |
-            list |
-            length == 0
-        fail_msg: >-
-          At least one Blastwall candidate host failed HBAC access testing.
 
     - name: Report selected candidates
       ansible.builtin.debug:
         msg:
           selected_hosts: "{{ blastwall_target_hosts }}"
           stale_hosts: "{{ blastwall_stale_hosts }}"
-          hbac_rule: "{{ blastwall_selinux_map.hbacrule }}"
+          candidate_hosts: "{{ blastwall_candidate_hosts }}"
+          hbac_rule: "{{ blastwall_hbac_rule_name }}"
           selinux_user: "{{ blastwall_selinux_map.selinuxuser }}"

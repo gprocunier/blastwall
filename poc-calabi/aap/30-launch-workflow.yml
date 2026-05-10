@@ -1,0 +1,50 @@
+---
+- name: Launch the Blastwall AAP workflow
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+    - vars/calabi-aap.yml
+  vars:
+    calabi_blastwall_workflow: Blastwall policy rollout
+  tasks:
+    - name: Read Calabi demo password fallback from OpenShift
+      ansible.builtin.shell: |
+        set -euo pipefail
+        "{{ calabi_oc_bin }}" get secret -n "{{ calabi_aap_namespace }}" \
+          "{{ calabi_aap_gateway_secret }}" \
+          -o jsonpath='{.data.password}' | base64 -d
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ calabi_kubeconfig }}"
+      register: calabi_aap_demo_password_fallback
+      changed_when: false
+      no_log: true
+
+    - name: Select demo launcher password
+      ansible.builtin.set_fact:
+        calabi_aap_demo_launch_password: >-
+          {{ lookup('env', 'BLASTWALL_DEMO_PASSWORD') |
+          default(calabi_aap_demo_password_fallback.stdout, true) }}
+      no_log: true
+
+    - name: Launch Blastwall workflow
+      awx.awx.workflow_launch:
+        name: "{{ calabi_blastwall_workflow }}"
+        organization: Blastwall
+        controller_host: "{{ calabi_aap_controller_url }}"
+        controller_username: "{{ calabi_blastwall_demo_user }}"
+        controller_password: "{{ calabi_aap_demo_launch_password }}"
+        validate_certs: false
+      register: calabi_blastwall_workflow_launch
+      no_log: >-
+        {{ not (lookup('env', 'BLASTWALL_AAP_DEBUG') |
+        default('false', true) | bool) }}
+
+    - name: Report launched workflow
+      ansible.builtin.debug:
+        msg:
+          workflow: "{{ calabi_blastwall_workflow }}"
+          id: "{{ calabi_blastwall_workflow_launch.id | default(calabi_blastwall_workflow_launch.workflow_job | default('unknown')) }}"
