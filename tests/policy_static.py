@@ -51,9 +51,28 @@ for policy in deny_policies:
 print(f"PASS: validated {len(deny_policies)} deny policy scopes")
 
 dirtyfrag_scopes = {
-    "blastwall-xfrm-deny": "blastwall_policy_xfrm=denied",
-    "blastwall-rxrpc-deny": "blastwall_policy_rxrpc=denied",
+    "blastwall-xfrm-deny": "bw_xfrm=deny",
+    "blastwall-rxrpc-deny": "bw_rxrpc=deny",
 }
+
+active_policy_marker = (
+    "bw_rpm=blastwall-selinux-0.5.2-1; "
+    "bw_state=active; "
+    "bw_alg=deny; "
+    "bw_bpf=deny; "
+    "bw_self=deny; "
+    "bw_pkt=deny; "
+    "bw_userns=deny; "
+    "bw_iou=deny; "
+    "bw_xfrm=deny; "
+    "bw_rxrpc=deny"
+)
+
+if len(active_policy_marker) > 240:
+    fail(
+        "active IdM policy marker is too long for the host description field "
+        f"({len(active_policy_marker)} characters)"
+    )
 
 for policy, marker in dirtyfrag_scopes.items():
     if policy not in deny_policies:
@@ -96,6 +115,10 @@ calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").re
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
 if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: blastwall_policy_candidate" not in calabi_config:
     fail("Calabi AAP configuration does not use the candidate group for policy upgrades")
+if "BLASTWALL_IDM_ADMIN_PRINCIPAL" not in calabi_config or "BLASTWALL_IDM_ADMIN_PASSWORD" not in calabi_config:
+    fail("Calabi AAP configuration does not pass the IdM admin credential for marker promotion")
+if "default(calabi_aap_runtime_password.stdout, true)" not in calabi_config:
+    fail("Calabi IdM admin credential does not default to the AAP runtime secret")
 if "blastwall_policy_candidate:" not in calabi_inventory:
     fail("Calabi AAP inventory does not define blastwall_policy_candidate")
 
@@ -134,7 +157,6 @@ print("PASS: AAP policy pipeline targets stale candidates before promotion")
 
 collection_backed_marker_paths = [
     ROOT / "playbooks" / "deploy-policy.yml",
-    ROOT / "playbooks" / "promote-policy-rpm.yml",
     ROOT / "poc-calabi" / "aap" / "25-seed-selection-fixture.yml",
 ]
 
@@ -147,5 +169,7 @@ for path in collection_backed_marker_paths:
 promotion = (PLAYBOOKS / "promote-policy-rpm.yml").read_text(encoding="utf-8")
 if "freeipa.ansible_freeipa.ipahost" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not use freeipa.ansible_freeipa.ipahost for marker writes")
+if "ipa host-mod" in promotion and "FreeIPA CLI fallback" not in promotion:
+    fail("playbooks/promote-policy-rpm.yml uses ipa host-mod without a named fallback boundary")
 
 print("PASS: IdM marker writes use FreeIPA collection modules")

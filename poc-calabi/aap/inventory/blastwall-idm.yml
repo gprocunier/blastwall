@@ -25,43 +25,43 @@ groups:
   blastwall_policy_current: >-
     idm_description is defined and
     (
-      'blastwall_policy_rpm=blastwall-selinux-0.5.2-1' in idm_description
+      'bw_rpm=blastwall-selinux-0.5.2-1' in idm_description
     ) and
-    'blastwall_policy_state=active' in idm_description and
-    'blastwall_policy_alg_socket=denied' in idm_description and
-    'blastwall_policy_bpf=denied' in idm_description and
-    'blastwall_policy_selfprotect=denied' in idm_description and
-    'blastwall_policy_packet_socket=denied' in idm_description and
-    'blastwall_policy_userns=denied' in idm_description and
-    'blastwall_policy_io_uring=denied' in idm_description and
-    'blastwall_policy_xfrm=denied' in idm_description and
-    'blastwall_policy_rxrpc=denied' in idm_description
+    'bw_state=active' in idm_description and
+    'bw_alg=deny' in idm_description and
+    'bw_bpf=deny' in idm_description and
+    'bw_self=deny' in idm_description and
+    'bw_pkt=deny' in idm_description and
+    'bw_userns=deny' in idm_description and
+    'bw_iou=deny' in idm_description and
+    'bw_xfrm=deny' in idm_description and
+    'bw_rxrpc=deny' in idm_description
   blastwall_policy_stale: >-
     idm_description is not defined or
     (
-      'blastwall_policy_rpm=blastwall-selinux-0.5.2-1' not in idm_description
+      'bw_rpm=blastwall-selinux-0.5.2-1' not in idm_description
     ) or
-    'blastwall_policy_state=active' not in idm_description or
-    'blastwall_policy_alg_socket=denied' not in idm_description or
-    'blastwall_policy_bpf=denied' not in idm_description or
-    'blastwall_policy_selfprotect=denied' not in idm_description or
-    'blastwall_policy_packet_socket=denied' not in idm_description or
-    'blastwall_policy_userns=denied' not in idm_description or
-    'blastwall_policy_io_uring=denied' not in idm_description or
-    'blastwall_policy_xfrm=denied' not in idm_description or
-    'blastwall_policy_rxrpc=denied' not in idm_description
+    'bw_state=active' not in idm_description or
+    'bw_alg=deny' not in idm_description or
+    'bw_bpf=deny' not in idm_description or
+    'bw_self=deny' not in idm_description or
+    'bw_pkt=deny' not in idm_description or
+    'bw_userns=deny' not in idm_description or
+    'bw_iou=deny' not in idm_description or
+    'bw_xfrm=deny' not in idm_description or
+    'bw_rxrpc=deny' not in idm_description
   blastwall_policy_candidate: >-
     idm_fqdn == 'mirror-registry.workshop.lan' and
     (
       idm_description is not defined or
-      'blastwall_policy_rpm=blastwall-selinux-0.5.2-1' not in idm_description or
-      'blastwall_policy_state=active' not in idm_description or
-      'blastwall_policy_alg_socket=denied' not in idm_description or
-      'blastwall_policy_bpf=denied' not in idm_description or
-      'blastwall_policy_selfprotect=denied' not in idm_description or
-      'blastwall_policy_packet_socket=denied' not in idm_description or
-      'blastwall_policy_userns=denied' not in idm_description or
-      'blastwall_policy_io_uring=denied' not in idm_description or
-      'blastwall_policy_xfrm=denied' not in idm_description or
-      'blastwall_policy_rxrpc=denied' not in idm_description
+      'bw_rpm=blastwall-selinux-0.5.2-1' not in idm_description or
+      'bw_state=active' not in idm_description or
+      'bw_alg=deny' not in idm_description or
+      'bw_bpf=deny' not in idm_description or
+      'bw_self=deny' not in idm_description or
+      'bw_pkt=deny' not in idm_description or
+      'bw_userns=deny' not in idm_description or
+      'bw_iou=deny' not in idm_description or
+      'bw_xfrm=deny' not in idm_description or
+      'bw_rxrpc=deny' not in idm_description
     )

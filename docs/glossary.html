@@ -90,7 +90,7 @@
             <dt id="host-marker">host marker</dt>
             <dd>An IdM-visible claim written after local verification succeeds. AAP can read host markers during inventory sync, but markers are not proof by themselves.</dd>
             <dt id="coverage-marker">coverage marker</dt>
-            <dd>A host marker for a specific policy coverage claim, such as <code>blastwall_policy_bpf=denied</code>. It helps AAP select hosts that match the job's required deny scopes.</dd>
+            <dd>A compact host marker for a specific policy coverage claim, such as <code>bw_bpf=deny</code>. It helps AAP select hosts that match the job's required deny scopes without turning the IdM host description into a large payload.</dd>
             <dt id="current-host">current eligible host</dt>
             <dd>A host that preflight can target because its identity access, login mapping, and required policy coverage are current for the job.</dd>
             <dt id="stale-host">stale host</dt>

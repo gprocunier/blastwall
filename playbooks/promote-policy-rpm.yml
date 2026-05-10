@@ -11,12 +11,17 @@
     ipa_realm: >-
       {{ lookup('env', 'IPA_REALM') |
       default((ipa_domain | upper), true) }}
+    ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
     ipa_basedn: >-
       dc={{ ipa_domain | replace('.', ',dc=') }}
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
     ipa_password: >-
       {{ lookup('env', 'IPA_PASSWORD') |
       default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
+    krb5_ccache: FILE:/tmp/blastwall_krb5cc
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
       {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
@@ -25,19 +30,19 @@
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
     blastwall_update_idm_marker: true
     blastwall_policy_marker: >-
-      blastwall_policy_rpm={{ blastwall_policy_nevra }};
-      blastwall_policy_state=active;
-      blastwall_policy_alg_socket=denied;
-      blastwall_policy_bpf=denied;
-      blastwall_policy_selfprotect=denied;
-      blastwall_policy_packet_socket=denied;
-      blastwall_policy_userns=denied;
-      blastwall_policy_io_uring=denied;
-      blastwall_policy_xfrm=denied;
-      blastwall_policy_rxrpc=denied
+      bw_rpm={{ blastwall_policy_nevra }};
+      bw_state=active;
+      bw_alg=deny;
+      bw_bpf=deny;
+      bw_self=deny;
+      bw_pkt=deny;
+      bw_userns=deny;
+      bw_iou=deny;
+      bw_xfrm=deny;
+      bw_rxrpc=deny
     blastwall_policy_failed_marker: >-
-      blastwall_policy_rpm={{ blastwall_policy_nevra }};
-      blastwall_policy_state=failed
+      bw_rpm={{ blastwall_policy_nevra }};
+      bw_state=failed
   tasks:
     - name: Require IdM marker write inputs
       ansible.builtin.assert:
@@ -67,17 +72,49 @@
       run_once: true
       delegate_to: localhost
 
+    - name: Install injected FreeIPA CA for marker update
+      ansible.builtin.copy:
+        src: "{{ ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - ipa_ca | length > 0
+        - ipa_ca != "/etc/ipa/ca.crt"
+      run_once: true
+      delegate_to: localhost
+
     - name: Publish verified Blastwall host marker to IdM
       block:
-        - name: Publish promoted Blastwall host marker to IdM
-          freeipa.ansible_freeipa.ipahost:
-            ipaadmin_principal: "{{ ipa_principal }}"
-            ipaadmin_password: "{{ ipa_password }}"
-            name: "{{ inventory_hostname }}"
-            description: "{{ blastwall_policy_marker }}"
-            state: present
-          no_log: true
-          delegate_to: localhost
+        - name: Publish promoted Blastwall host marker through FreeIPA
+          block:
+            - name: Publish promoted Blastwall host marker with collection
+              freeipa.ansible_freeipa.ipahost:
+                ipaadmin_principal: "{{ ipa_principal }}"
+                ipaadmin_password: "{{ ipa_password }}"
+                name: "{{ inventory_hostname }}"
+                description: "{{ blastwall_policy_marker }}"
+                state: present
+              no_log: true
+              delegate_to: localhost
+          rescue:
+            - name: Publish promoted Blastwall host marker with FreeIPA CLI fallback
+              ansible.builtin.shell: |
+                set -euo pipefail
+                printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+                ipa host-mod "${BLASTWALL_HOST}" --desc="${BLASTWALL_MARKER}" >/dev/null
+              args:
+                executable: /bin/bash
+              environment:
+                IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+                IPA_PASSWORD: "{{ ipa_password }}"
+                KRB5_CONFIG: "{{ krb5_config }}"
+                KRB5CCNAME: "{{ krb5_ccache }}"
+                BLASTWALL_HOST: "{{ inventory_hostname }}"
+                BLASTWALL_MARKER: "{{ blastwall_policy_marker }}"
+              changed_when: true
+              no_log: true
+              delegate_to: localhost
           when: blastwall_update_idm_marker | bool
 
         - name: Report policy promotion evidence
@@ -88,16 +125,36 @@
               marker: "{{ blastwall_policy_marker }}"
 
       rescue:
-        - name: Publish failed Blastwall host marker to IdM
-          freeipa.ansible_freeipa.ipahost:
-            ipaadmin_principal: "{{ ipa_principal }}"
-            ipaadmin_password: "{{ ipa_password }}"
-            name: "{{ inventory_hostname }}"
-            description: "{{ blastwall_policy_failed_marker }}"
-            state: present
-          no_log: true
-          delegate_to: localhost
-          failed_when: false
+        - name: Publish failed Blastwall host marker through FreeIPA
+          block:
+            - name: Publish failed Blastwall host marker with collection
+              freeipa.ansible_freeipa.ipahost:
+                ipaadmin_principal: "{{ ipa_principal }}"
+                ipaadmin_password: "{{ ipa_password }}"
+                name: "{{ inventory_hostname }}"
+                description: "{{ blastwall_policy_failed_marker }}"
+                state: present
+              no_log: true
+              delegate_to: localhost
+          rescue:
+            - name: Publish failed Blastwall host marker with FreeIPA CLI fallback
+              ansible.builtin.shell: |
+                set -euo pipefail
+                printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+                ipa host-mod "${BLASTWALL_HOST}" --desc="${BLASTWALL_MARKER}" >/dev/null
+              args:
+                executable: /bin/bash
+              environment:
+                IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+                IPA_PASSWORD: "{{ ipa_password }}"
+                KRB5_CONFIG: "{{ krb5_config }}"
+                KRB5CCNAME: "{{ krb5_ccache }}"
+                BLASTWALL_HOST: "{{ inventory_hostname }}"
+                BLASTWALL_MARKER: "{{ blastwall_policy_failed_marker }}"
+              changed_when: false
+              no_log: true
+              delegate_to: localhost
+          ignore_errors: true
           when: blastwall_update_idm_marker | bool
 
         - name: Stop after failed policy promotion

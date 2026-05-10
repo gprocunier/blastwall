@@ -246,7 +246,7 @@ through an indirect route.
 ### AP-3: IdM Host Marker Spoofing
 
 An attacker (or misconfigured automation) writes a false
-`blastwall_policy_state=active` marker to a host's IdM description.  The
+`bw_state=active` marker to a host's IdM description.  The
 preflight gate selects that host as a valid candidate even though no policy
 is installed.
 

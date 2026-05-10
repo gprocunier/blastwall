@@ -213,7 +213,7 @@ promote_id="$(jq -r '.results[] | select(.identifier == "promote_policy_marker")
 awx jobs stdout "${build_id}" | grep -E 'policy_pipeline_build|blastwall-selinux-0.5.2-1'
 awx jobs stdout "${install_id}" | grep -E 'policy_pipeline_install|blastwall-selinux-0.5.2-1'
 awx jobs stdout "${verify_id}" | grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|BLOCKED:|SKIP:'
-awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|blastwall_policy_rpm=blastwall-selinux-0.5.2-1'</code></pre>
+awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|bw_rpm=blastwall-selinux-0.5.2-1'</code></pre>
           <p>To turn this from a versioned rebuild into a real feature branch exercise, add or adjust a CIL deny scope under <code>policy/</code>, update <code>DENY_POLICIES</code> in <code>policy/Makefile</code>, add a safe probe or verification check, and use the pipeline to prove that normal automation still works. If one automation path needs the surface, split the identity or host group instead of weakening the shared baseline for every privileged job.</p>
           <table class="comparison-table">
             <thead>
@@ -247,7 +247,7 @@ awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|blastwall_p
               <tr><td data-label="Stage">Source</td><td data-label="Policy Shape">A CIL deny scope with a matching neverallow guard and a place in <code>DENY_POLICIES</code>.</td><td data-label="Evidence Shape">The policy source says exactly what is being removed from <code>blastwall_t</code>.</td></tr>
               <tr><td data-label="Stage">Probe</td><td data-label="Policy Shape">A safe test that exercises the surface without exploiting a vulnerability.</td><td data-label="Evidence Shape"><code>BLOCKED</code>, <code>FAIL</code>, or <code>SKIP</code> output that an operator can read.</td></tr>
               <tr><td data-label="Stage">Verification</td><td data-label="Policy Shape">A managed-host check that confirms the session is in <code>blastwall_t</code> and the denial applies there.</td><td data-label="Evidence Shape">Command output and audit evidence agree.</td></tr>
-              <tr><td data-label="Stage">Marker</td><td data-label="Policy Shape">A verified host claim such as <code>blastwall_policy_userns=denied</code>.</td><td data-label="Evidence Shape">AAP inventory can distinguish current hosts from stale hosts.</td></tr>
+              <tr><td data-label="Stage">Marker</td><td data-label="Policy Shape">A verified host claim such as <code>bw_userns=deny</code>.</td><td data-label="Evidence Shape">AAP inventory can distinguish current hosts from stale hosts.</td></tr>
               <tr><td data-label="Stage">Promotion</td><td data-label="Policy Shape">A versioned policy RPM in the normal content path.</td><td data-label="Evidence Shape">The baseline is reviewable, reversible, and tied to a specific policy version.</td></tr>
             </tbody>
           </table>

@@ -44,19 +44,19 @@
       - blastwall-xfrm-deny
       - blastwall-rxrpc-deny
     blastwall_policy_marker: >-
-      blastwall_policy_rpm={{ blastwall_policy_rpm }};
-      blastwall_policy_state=active;
-      blastwall_policy_alg_socket=denied;
-      blastwall_policy_bpf=denied;
-      blastwall_policy_selfprotect=denied;
-      blastwall_policy_packet_socket=denied;
-      blastwall_policy_userns=denied;
-      blastwall_policy_io_uring=denied;
-      blastwall_policy_xfrm=denied;
-      blastwall_policy_rxrpc=denied
+      bw_rpm={{ blastwall_policy_rpm }};
+      bw_state=active;
+      bw_alg=deny;
+      bw_bpf=deny;
+      bw_self=deny;
+      bw_pkt=deny;
+      bw_userns=deny;
+      bw_iou=deny;
+      bw_xfrm=deny;
+      bw_rxrpc=deny
     blastwall_policy_failed_marker: >-
-      blastwall_policy_rpm={{ blastwall_policy_rpm }};
-      blastwall_policy_state=failed
+      bw_rpm={{ blastwall_policy_rpm }};
+      bw_state=failed
   tasks:
     - name: Require Kerberos inputs for target SSH
       ansible.builtin.assert:

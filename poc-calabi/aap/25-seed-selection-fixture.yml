@@ -11,11 +11,11 @@
       {{ lookup('env', 'BLASTWALL_STALE_HOST') |
       default('stale-blastwall-01.workshop.lan', true) }}
     calabi_blastwall_stale_marker: >-
-      blastwall_policy_rpm=blastwall-selinux-0.4.0-1;
-      blastwall_policy_state=active;
-      blastwall_policy_alg_socket=denied;
-      blastwall_policy_bpf=denied;
-      blastwall_policy_selfprotect=denied
+      bw_rpm=blastwall-selinux-0.4.0-1;
+      bw_state=active;
+      bw_alg=deny;
+      bw_bpf=deny;
+      bw_self=deny
   tasks:
     - name: Require IdM admin password
       ansible.builtin.assert:

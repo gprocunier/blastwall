@@ -61,6 +61,10 @@
         BLASTWALL_EE_IMAGE: "{{ calabi_registry_image }}:{{ calabi_blastwall_ee_version }}"
         BLASTWALL_INVENTORY_SOURCE_PATH: poc-calabi/aap/inventory/blastwall-idm.yml
         BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: blastwall_policy_candidate
+        BLASTWALL_IDM_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+        BLASTWALL_IDM_ADMIN_PASSWORD: >-
+          {{ lookup('env', 'IPA_ADMIN_PASSWORD') |
+          default(calabi_aap_runtime_password.stdout, true) }}
         BLASTWALL_REGISTRY_HOST: "{{ calabi_registry_endpoint }}"
         BLASTWALL_AAP_LAUNCH_USER: "{{ calabi_blastwall_demo_user }}"
         BLASTWALL_AAP_LAUNCH_PASSWORD: >-

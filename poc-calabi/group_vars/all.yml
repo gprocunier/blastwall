@@ -70,18 +70,18 @@ blastwall_dirtyfrag_probe_path: >-
   {{ blastwall_probe_install_dir }}/trigger-dirtyfrag-deny.py
 blastwall_deny_scopes:
   - name: alg_socket
-    marker: blastwall_policy_alg_socket=denied
+    marker: bw_alg=deny
   - name: bpf
-    marker: blastwall_policy_bpf=denied
+    marker: bw_bpf=deny
   - name: policy_selfprotect
-    marker: blastwall_policy_selfprotect=denied
+    marker: bw_self=deny
   - name: packet_socket
-    marker: blastwall_policy_packet_socket=denied
+    marker: bw_pkt=deny
   - name: userns
-    marker: blastwall_policy_userns=denied
+    marker: bw_userns=deny
   - name: io_uring
-    marker: blastwall_policy_io_uring=denied
+    marker: bw_iou=deny
   - name: xfrm
-    marker: blastwall_policy_xfrm=denied
+    marker: bw_xfrm=deny
   - name: rxrpc
-    marker: blastwall_policy_rxrpc=denied
+    marker: bw_rxrpc=deny

@@ -159,14 +159,16 @@ managed VM. Verification still targets only `blastwall_policy_current`.
 The marker set currently expected by preflight is:
 
 ```text
-blastwall_policy_rpm=blastwall-selinux-0.5.0-1
-blastwall_policy_state=active
-blastwall_policy_alg_socket=denied
-blastwall_policy_bpf=denied
-blastwall_policy_selfprotect=denied
-blastwall_policy_packet_socket=denied
-blastwall_policy_userns=denied
-blastwall_policy_io_uring=denied
+bw_rpm=blastwall-selinux-0.5.2-1
+bw_state=active
+bw_alg=deny
+bw_bpf=deny
+bw_self=deny
+bw_pkt=deny
+bw_userns=deny
+bw_iou=deny
+bw_xfrm=deny
+bw_rxrpc=deny
 ```
 
 Markers are selection hints, not proof. The workflow still verifies SELinux

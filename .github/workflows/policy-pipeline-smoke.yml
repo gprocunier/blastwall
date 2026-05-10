@@ -102,7 +102,7 @@ jobs:
 
           awx jobs stdout "${promote_id}" | tee /tmp/blastwall-policy-pipeline-promote.log
           grep -F 'policy_pipeline_promotion' /tmp/blastwall-policy-pipeline-promote.log
-          grep -F 'blastwall_policy_rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'bw_rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
 
           awx jobs stdout "${preflight_id}" | tee /tmp/blastwall-policy-pipeline-preflight.log
           grep -E 'All assertions passed|selected_hosts|candidate_hosts' /tmp/blastwall-policy-pipeline-preflight.log
