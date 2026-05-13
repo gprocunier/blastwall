@@ -45,6 +45,17 @@ const markdownHeadingAnchor = (heading) => heading
 
 const readText = (filePath) => fs.readFileSync(filePath, "utf8");
 
+const castOutput = (filePath) => readText(filePath)
+  .split(/\n/)
+  .slice(1)
+  .filter(Boolean)
+  .map((line) => {
+    const event = JSON.parse(line);
+    return event[1] === "o" ? event[2] : "";
+  })
+  .join("")
+  .replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
+
 const htmlIds = (filePath) => {
   const html = readText(filePath);
   return new Set(Array.from(html.matchAll(/\sid="([^"]+)"/g), (match) => match[1]));
@@ -166,8 +177,11 @@ test.describe("GitHub Pages rendering", () => {
   test("Ansible demo cast carries Dirty Frag / Fragnesia evidence", () => {
     const demoHtml = readText(path.join(docsRoot, "demo.html"));
     const cast = readText(path.join(docsRoot, "blastwall-poc.cast"));
+    const output = castOutput(path.join(docsRoot, "blastwall-poc.cast"));
 
     expect(demoHtml).toContain("Dirty Frag / Fragnesia response marker");
+    expect(output).toContain("$ ansible-playbook 30-deploy-and-test.yml | tee /tmp/blastwall-proof.log");
+    expect(output).toContain("$ ssh -o GSSAPIAuthentication=yes svc-ansible-runner@mirror-registry.workshop.lan /usr/local/libexec/blastwall-poc/trigger-dirtyfrag-deny.py");
     expect(cast).toContain("Dirty Frag");
     expect(cast).toContain("NETLINK_XFRM");
     expect(cast).toContain("AF_RXRPC");
@@ -178,8 +192,12 @@ test.describe("GitHub Pages rendering", () => {
   test("AAP demo cast carries Dirty Frag / Fragnesia evidence", () => {
     const demoHtml = readText(path.join(docsRoot, "aap-demo.html"));
     const cast = readText(path.join(docsRoot, "blastwall-aap.cast"));
+    const output = castOutput(path.join(docsRoot, "blastwall-aap.cast"));
 
     expect(demoHtml).toContain("Dirty Frag / Fragnesia response marker");
+    expect(output).toContain("launcher: blastwall-demo");
+    expect(output).toContain("$ awx workflow_job_templates launch \"${workflow_template_id}\" -f json");
+    expect(output).toContain("$ awx jobs stdout \"${verify_id}\" | grep -E");
     expect(cast).toContain("Dirty Frag");
     expect(cast).toContain("NETLINK_XFRM");
     expect(cast).toContain("AF_RXRPC");
@@ -189,8 +207,12 @@ test.describe("GitHub Pages rendering", () => {
   test("OpenShift SPO demo cast carries dual workload evidence", () => {
     const demoHtml = readText(path.join(docsRoot, "openshift-spo-demo.html"));
     const cast = readText(path.join(docsRoot, "blastwall-openshift-spo.cast"));
+    const output = castOutput(path.join(docsRoot, "blastwall-openshift-spo.cast"));
 
     expect(demoHtml).toContain("UBI workload proof");
+    expect(output).toContain("$ oc apply -k openshift/spo");
+    expect(output).toContain("$ oc -n blastwall-workloads exec deploy/blastwall-demo");
+    expect(output).toContain("$ openshift/spo/scripts/validate-blastwall-spo-nodes.sh --class both --all");
     expect(cast).toContain("blastwallnested");
     expect(cast).toContain("blastwall-confined");
     expect(cast).toContain("blastwall-nested");

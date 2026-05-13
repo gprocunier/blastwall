@@ -201,6 +201,7 @@ BLOCKED: Fragnesia AF_ALG socket creation denied with errno 13</code></pre>
 
         <section id="recording-guide">
           <h2>Recording Guide</h2>
+          <p>The public cast uses <code>scripts/blastwall-aap-demo/run-demo.sh</code>. The runner types the AAP commands before executing them, then leaves Controller health, object lookup, workflow launch, node status, and verification stdout visible without replaying every low-value line.</p>
           <h3>1. Separate setup from verification</h3>
           <p>The cast starts by keeping the boundary honest. AAP is here to select a current host and verify runtime confinement. It is not the path that lets the confined automation identity mutate SELinux policy, install policy RPMs, or publish host markers.</p>
           <p>That split makes the demo stronger. Controller shows the project, inventory, workflow, launch user, node status, and job stdout. SELinux still owns enforcement on the managed host.</p>

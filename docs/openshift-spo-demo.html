@@ -61,6 +61,7 @@
 
         <section id="sequence">
           <h2>Execution Sequence</h2>
+          <p>The public cast uses <code>scripts/blastwall-openshift-spo-demo/run-demo.sh</code>. It keeps the CLI proof watchable by typing each important <code>oc</code> command before execution while preserving the readiness, SCC, workload, and probe output.</p>
           <pre><code class="language-bash">oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2
 
 oc apply -k openshift/spo
@@ -218,7 +219,7 @@ nested_profile: passed</code></pre>
         <section class="context-block context-block--meta">
           <h2>Demo</h2>
           <p class="context-kicker">CLI proof path</p>
-          <p class="context-copy">Record from an SPO-enabled OpenShift cluster with <code>openshift/spo/scripts/record-openshift-spo-demo.sh</code>.</p>
+          <p class="context-copy">Record from an SPO-enabled OpenShift cluster with <code>openshift/spo/scripts/record-openshift-spo-demo.sh</code>; it delegates to the operator-paced runner under <code>scripts/blastwall-openshift-spo-demo/</code>.</p>
         </section>
         <section class="toc-block">
           <h2>On This Page</h2>

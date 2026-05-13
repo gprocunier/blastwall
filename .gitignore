@@ -13,7 +13,15 @@ __pycache__/
 .env.*
 !.env.example
 *.log
-scripts/
+scripts/*
+!scripts/lib/
+!scripts/lib/*.sh
+!scripts/blastwall-poc-demo/
+!scripts/blastwall-poc-demo/*.sh
+!scripts/blastwall-aap-demo/
+!scripts/blastwall-aap-demo/*.sh
+!scripts/blastwall-openshift-spo-demo/
+!scripts/blastwall-openshift-spo-demo/*.sh
 !openshift/spo/scripts/
 !openshift/spo/scripts/*.sh
 node_modules/
