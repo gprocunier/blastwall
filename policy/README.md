@@ -42,14 +42,23 @@ enforced on each host.
 Support modules that keep login or packaging mechanics working belong in
 `SUPPORT_POLICIES`, not `DENY_POLICIES`.
 
-## Current Dirty Frag response
+## Current Dirty Frag / Fragnesia response
 
-Blastwall `0.5.2` adds two deny scopes for the Dirty Frag disclosure:
+Blastwall `0.5.2` adds the Dirty Frag scopes and uses the same XFRM/ESP
+control-plane denial for Fragnesia.  A duplicate Fragnesia CIL module is not
+needed because the enforceable SELinux surfaces are already named scopes:
 
 - `blastwall-xfrm-deny.cil` denies `netlink_xfrm_socket` access so confined
-  automation cannot register XFRM/IPsec state.
+  automation cannot register XFRM/IPsec state used by Dirty Frag and
+  Fragnesia.
 - `blastwall-rxrpc-deny.cil` denies `rxrpc_socket` access so confined
-  automation cannot open the RxRPC protocol entry point.
+  automation cannot open the Dirty Frag RxRPC protocol entry point.
+- `blastwall-alg-socket-deny.cil` denies the AF_ALG helper surface Fragnesia
+  uses to prepare AES-GCM keystream material.
+- `blastwall-userns-deny.cil` denies user namespace creation for the RHEL login
+  path, closing the usual unprivileged route to namespace-local network
+  administration.
 
 The matching safe probe is `tests/trigger-dirtyfrag-deny.py`.  It only checks
-entry-point reachability and does not run exploit payload logic.
+entry-point reachability for the Dirty Frag / Fragnesia family and does not run
+exploit payload logic.

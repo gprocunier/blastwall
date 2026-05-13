@@ -163,15 +163,27 @@ test.describe("GitHub Pages rendering", () => {
     }
   });
 
-  test("Ansible demo cast carries Dirty Frag evidence", () => {
+  test("Ansible demo cast carries Dirty Frag / Fragnesia evidence", () => {
     const demoHtml = readText(path.join(docsRoot, "demo.html"));
     const cast = readText(path.join(docsRoot, "blastwall-poc.cast"));
 
-    expect(demoHtml).toContain("Dirty Frag response marker");
+    expect(demoHtml).toContain("Dirty Frag / Fragnesia response marker");
     expect(cast).toContain("Dirty Frag");
     expect(cast).toContain("NETLINK_XFRM");
     expect(cast).toContain("AF_RXRPC");
+    expect(cast).toContain("Fragnesia AF_ALG");
     expect(cast).toContain("Blastwall 0.5.2");
+  });
+
+  test("AAP demo cast carries Dirty Frag / Fragnesia evidence", () => {
+    const demoHtml = readText(path.join(docsRoot, "aap-demo.html"));
+    const cast = readText(path.join(docsRoot, "blastwall-aap.cast"));
+
+    expect(demoHtml).toContain("Dirty Frag / Fragnesia response marker");
+    expect(cast).toContain("Dirty Frag");
+    expect(cast).toContain("NETLINK_XFRM");
+    expect(cast).toContain("AF_RXRPC");
+    expect(cast).toContain("Fragnesia AF_ALG");
   });
 
   test("OpenShift SPO demo cast carries dual workload evidence", () => {
@@ -184,6 +196,7 @@ test.describe("GitHub Pages rendering", () => {
     expect(cast).toContain("blastwall-nested");
     expect(cast).toContain("Profile class: standard");
     expect(cast).toContain("Profile class: nested");
+    expect(cast).toContain("Fragnesia AF_ALG");
     expect(cast).toContain("standard_profile: passed");
     expect(cast).toContain("nested_profile: passed");
   });

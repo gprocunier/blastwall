@@ -36,7 +36,7 @@
 
         <section id="goal">
           <h2>Goal</h2>
-          <p>The exercise is successful when <a href="glossary.html#idm">IdM</a> contains the expected automation identity and policy objects, <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> can read the suitability state, the managed host enters <a href="glossary.html#selinux-context"><code>blastwall_u:blastwall_r:blastwall_t:s0</code></a>, <a href="glossary.html#sudo">sudo</a> reaches UID 0 without leaving <code>blastwall_t</code>, and the denial probes include visible Dirty Frag xfrm/RxRPC evidence.</p>
+          <p>The exercise is successful when <a href="glossary.html#idm">IdM</a> contains the expected automation identity and policy objects, <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> can read the suitability state, the managed host enters <a href="glossary.html#selinux-context"><code>blastwall_u:blastwall_r:blastwall_t:s0</code></a>, <a href="glossary.html#sudo">sudo</a> reaches UID 0 without leaving <code>blastwall_t</code>, and the denial probes include visible Dirty Frag / Fragnesia xfrm/RxRPC/AF_ALG evidence.</p>
           <figure class="diagram-card diagram-card--focus" id="ansible-lab-flow">
             <figcaption>
               <strong>Ansible Lab Flow</strong>
@@ -131,11 +131,11 @@ grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|BLOCKED|SKIP' \
   /tmp/blastwall-proof.log</code></pre>
           <p>Expected output: the proof log shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID <code>0</code>, and blocked probe output.</p>
 
-          <h3>4. Mark The Dirty Frag Response Date</h3>
+          <h3>4. Mark The Dirty Frag / Fragnesia Response Date</h3>
           <p>Keep the timing explicit when replaying the non-AAP path.</p>
-          <pre><code class="language-bash">date -u '+Dirty Frag response marker: %Y-%m-%d %H:%M:%S UTC'
-echo 'Blastwall 0.5.2: verify xfrm and RxRPC are denied for confined automation'</code></pre>
-          <p>Expected output: the replay records that Dirty Frag was publicly documented on May 7, 2026, and this run verifies the xfrm and RxRPC deny scopes on May 8, 2026.</p>
+          <pre><code class="language-bash">date -u '+Dirty Frag / Fragnesia response marker: %Y-%m-%d %H:%M:%S UTC'
+echo 'Blastwall 0.5.2: verify xfrm, RxRPC, and AF_ALG are denied for confined automation'</code></pre>
+          <p>Expected output: the replay records that Dirty Frag was publicly documented on May 7, 2026, Fragnesia followed on May 13, 2026, and this run verifies xfrm, RxRPC, and AF_ALG evidence for the confined automation path.</p>
 
           <h3>5. Run The Probes Directly</h3>
           <p>Direct GSSAPI SSH probes make the proof easy to follow. The automation identity logs in normally, lands in the confined SELinux context, and the risky kernel surfaces are unavailable from that session.</p>
@@ -164,7 +164,7 @@ ssh -o GSSAPIAuthentication=yes \
 ssh -o GSSAPIAuthentication=yes \
   svc-ansible-runner@mirror-registry.workshop.lan \
   /usr/local/libexec/blastwall-poc/trigger-dirtyfrag-deny.py</code></pre>
-          <p>Expected output: the probes print denied entry points. AF_ALG may appear as the documented socket-denial <code>SKIP</code> shape, depending on where socket creation fails. Dirty Frag should report <code>NETLINK_XFRM</code> blocked and <code>AF_RXRPC</code> blocked, or an AF_RXRPC <code>SKIP</code> when the kernel lacks that protocol.</p>
+          <p>Expected output: the probes print denied entry points. The standalone AF_ALG/authencesn probe may appear as the documented socket-denial <code>SKIP</code> shape, depending on where socket creation fails. The Dirty Frag / Fragnesia probe should report <code>NETLINK_XFRM</code>, <code>AF_RXRPC</code>, and Fragnesia <code>AF_ALG</code> as <code>BLOCKED</code>.</p>
 
           <h3>6. Read Audit Evidence</h3>
           <p>Finish with target-side evidence. The audit log confirms the denials happened under <code>blastwall_t</code>, not just inside a local script variable.</p>
@@ -200,9 +200,9 @@ grep -E 'sudo_expansion_seen|semodule_attempt_rc|Permission denied|blastwall-(al
             <li><code>eigenstate.ipa</code> reports the expected SELinux map, HBAC rule, sudo rule, and candidate host.</li>
             <li><code>id -Z</code> reports <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</li>
             <li><code>sudo -n /usr/bin/id -u</code> returns <code>0</code> without leaving <code>blastwall_t</code>.</li>
-            <li>AF_ALG may print <code>BLOCKED</code> or the documented socket-denial <code>SKIP</code> shape.</li>
+            <li>The standalone AF_ALG/authencesn probe may print <code>BLOCKED</code> or the documented socket-denial <code>SKIP</code> shape.</li>
             <li>BPF, packet_socket, userns, io_uring, and <code>NETLINK_XFRM</code> print <code>BLOCKED</code>.</li>
-            <li><code>AF_RXRPC</code> prints <code>BLOCKED</code>, or <code>SKIP</code> when the kernel lacks RxRPC support.</li>
+            <li><code>AF_RXRPC</code> and Fragnesia <code>AF_ALG</code> print <code>BLOCKED</code> in the combined Dirty Frag / Fragnesia probe.</li>
             <li>The self-protection play shows sudo expansion is visible, but SELinux blocks policy-management execution from <code>blastwall_t</code>.</li>
           </ul>
         </section>

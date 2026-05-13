@@ -41,7 +41,7 @@
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
         <p class="lead"><code>blastwall</code> is a proof of concept for privileged automation security on RHEL: Red Hat Identity Management (<a href="glossary.html#idm">IdM</a>) defines who may arrive, Ansible Automation Platform (<a href="glossary.html#aap">AAP</a>) acts on that state, and SELinux confines the session once it reaches the managed host.</p>
-        <p>The recent <a href="https://copy.fail/">copy.fail</a> work was the first pressure test. <a href="https://github.com/V4bel/dirtyfrag">Dirty Frag</a>, publicly documented on May 7, 2026, is the next one: it moves the same page-cache-write class into xfrm-ESP and RxRPC paths. Blastwall asks whether risky kernel surfaces can be denied for privileged automation identities through the SELinux, IdM, AAP, and RHEL content-delivery model operators already use.</p>
+        <p>The recent <a href="https://copy.fail/">copy.fail</a> work was the first pressure test. <a href="https://github.com/V4bel/dirtyfrag">Dirty Frag</a>, publicly documented on May 7, 2026, moved the same page-cache-write class into xfrm-ESP and RxRPC paths. <a href="https://github.com/v12-security/pocs/tree/main/fragnesia">Fragnesia</a>, disclosed on May 13, 2026, is a separate ESP-in-TCP/XFRM issue in the same mitigation family. Blastwall asks whether risky kernel surfaces can be denied for privileged automation identities through the SELinux, IdM, AAP, and RHEL content-delivery model operators already use.</p>
 
         <section id="two-minute-version">
           <h2>The 2-Minute Version</h2>
@@ -87,7 +87,7 @@
 
         <section id="threat-landscape">
           <h2>Why This Matters Now</h2>
-          <p>Copy Fail and Dirty Frag are examples of a larger pressure pattern: exploit research, fuzzing, and vulnerability triage are moving faster. Broad privileged automation turns that speed into fleet risk because one useful kernel path can be exercised across many hosts before a patch is ready.</p>
+          <p>Copy Fail, Dirty Frag, and Fragnesia are examples of a larger pressure pattern: exploit research, fuzzing, and vulnerability triage are moving faster. Broad privileged automation turns that speed into fleet risk because one useful kernel path can be exercised across many hosts before a patch is ready.</p>
           <p><strong>Organizations that adopt broad privileged automation without confinement are building a superhighway: high speed, high privilege, low friction, and an attacker only needs one exploit to get on the road.</strong></p>
         </section>
 
@@ -96,7 +96,7 @@
           <p>The first Blastwall use case is response: a risky kernel path appears before the fleet is fully patched, so the automation account gets a named SELinux boundary and the workflow proves that the right hosts have the right deny scopes before jobs run.</p>
           <p>The more durable use case is proactive. Once privileged automation has a named boundary, operators can treat that boundary like a governed artifact: build it, test it, promote it, watch what breaks, and tighten it through <a href="glossary.html#ci-cd">CI/CD</a>. The question changes from "can we block this CVE path?" to "what should privileged automation ever be allowed to do?"</p>
           <p>User namespace creation is the clearest example in the current proof. It is often useful in exploit chains and rarely useful for this automation identity path, so Blastwall denies it before the next userns-adjacent CVE becomes urgent.</p>
-          <p>Dirty Frag shows the reactive side of the same model. Within a day of public disclosure, the policy gained xfrm and RxRPC deny scopes, a safe verification probe, and AAP-visible evidence that the automation identity cannot reach those entry points.</p>
+          <p>Dirty Frag and Fragnesia show the reactive side of the same model. The current proof carries xfrm, RxRPC, AF_ALG, and user namespace denial evidence so the automation identity cannot reach the named entry points from the confined path.</p>
         </section>
 
         <section id="architecture-map">

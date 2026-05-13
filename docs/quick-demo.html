@@ -123,7 +123,7 @@ awx jobs stdout "${preflight_id}" |
   grep -E 'All assertions passed|blastwall-root-local-map|blastwall-ssh|blastwall-root-local-sudo|candidate_hosts|selected_hosts|stale_hosts|mirror-registry.workshop.lan|stale-blastwall-01.workshop.lan'
 
 awx jobs stdout "${verify_id}" |
-  grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|Dirty Frag|BLOCKED:'</code></pre>
+  grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|SKIP: could not create AF_ALG socket|Dirty Frag|Fragnesia|BLOCKED:'</code></pre>
           <p>Expected output: the workflow finishes successfully, the selected host is <code>mirror-registry.workshop.lan</code>, the stale fixture is <code>stale-blastwall-01.workshop.lan</code>, and verification prints the confined SELinux context plus blocked probes.</p>
         </section>
 
@@ -145,7 +145,7 @@ awx jobs stdout "${verify_id}" |
             <li>Credential smoke proves the injected IdM runtime credential can authenticate and read Blastwall IdM state.</li>
             <li>Preflight shows the SELinux map, HBAC rule, sudo rule, <code>mirror-registry.workshop.lan</code> as selected, and <code>stale-blastwall-01.workshop.lan</code> as stale.</li>
             <li>Verification shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code> before and after sudo reaches UID 0.</li>
-            <li>BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes print <code>BLOCKED</code>.</li>
+            <li>BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and Fragnesia AF_ALG probes print <code>BLOCKED</code>.</li>
             <li>AF_ALG may print <code>SKIP</code> when socket creation is denied before the authencesn bind path is reachable.</li>
           </ul>
         </section>

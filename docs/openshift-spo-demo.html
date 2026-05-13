@@ -32,7 +32,7 @@
 
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
-        <p class="lead">This demo proves both OpenShift workload classes: standard <code>blastwall</code> and nested <code>blastwall-nested</code>. The standard class blocks workload-created user namespaces; the nested class opts into pod-level user namespace behavior while keeping the Dirty Frag and Copy Fail surface denies.</p>
+        <p class="lead">This demo proves both OpenShift workload classes: standard <code>blastwall</code> and nested <code>blastwall-nested</code>. The standard class blocks workload-created user namespaces; the nested class opts into pod-level user namespace behavior while keeping the Copy Fail, Dirty Frag, and Fragnesia surface denies.</p>
 
         <section id="demo-player">
           <h2>OpenShift/SPO Demo</h2>
@@ -156,7 +156,7 @@ scope:    safe UBI probe pods across the lab node set
 
 BLOCKED: NETLINK_XFRM: errno 13: Permission denied
 BLOCKED: AF_RXRPC: errno 13: Permission denied
-BLOCKED: AF_ALG: errno 13: Permission denied
+BLOCKED: Fragnesia AF_ALG: errno 13: Permission denied
 BLOCKED: AF_PACKET: errno 13: Permission denied
 SKIP: userns: errno 38: Function not implemented
 BLOCKED: bpf: errno 1: Operation not permitted
@@ -192,7 +192,7 @@ gid_map: 0 1000840000 65536
 PASS: selinux_context: system_u:system_r:blastwall_.process:s0:c12,c34
 BLOCKED: NETLINK_XFRM: errno 13: Permission denied
 BLOCKED: AF_RXRPC: errno 13: Permission denied
-BLOCKED: AF_ALG: errno 13: Permission denied
+BLOCKED: Fragnesia AF_ALG: errno 13: Permission denied
 BLOCKED: AF_PACKET: errno 13: Permission denied
 SKIP: userns: errno 38: Function not implemented
 BLOCKED: bpf: errno 1: Operation not permitted
