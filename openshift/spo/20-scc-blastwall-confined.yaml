@@ -9,10 +9,11 @@ metadata:
   annotations:
     kubernetes.io/description: >-
       Runs selected workloads under the Security Profiles Operator SELinux type
-      blastwall_.process while preserving OpenShift namespace MCS categories.
-    blastwall.io/policy-version: "0.5.2"
-    blastwall.io/policy-release: "1"
-    blastwall.io/policy-nevra: blastwall-selinux-0.5.2-1
+      discovered from RawSelinuxProfile status.usage while preserving OpenShift
+      namespace MCS categories.
+    blastwall.io/policy-version: "0.6.1"
+    blastwall.io/policy-release: "0.rc1"
+    blastwall.io/policy-nevra: blastwall-selinux-0.6.1-0.rc1
     blastwall.io/source: openshift/spo
 allowHostDirVolumePlugin: false
 allowHostIPC: false
@@ -35,7 +36,7 @@ runAsUser:
 seLinuxContext:
   type: MustRunAs
   seLinuxOptions:
-    type: blastwall_.process
+    type: __BLASTWALL_SPO_STANDARD_SELINUX_TYPE__
 seccompProfiles:
   - runtime/default
 supplementalGroups:
@@ -60,12 +61,12 @@ metadata:
   annotations:
     kubernetes.io/description: >-
       Runs selected nested workloads under the Security Profiles Operator
-      SELinux type blastwallnested_.process with pod-level user namespace
-      behavior. UID and group strategy fields are RunAsAny because they are
-      interpreted inside the pod user namespace.
-    blastwall.io/policy-version: "0.5.2"
-    blastwall.io/policy-release: "1"
-    blastwall.io/policy-nevra: blastwall-selinux-0.5.2-1
+      SELinux type discovered from RawSelinuxProfile status.usage with pod-level
+      user namespace behavior. UID and group strategy fields are RunAsAny
+      because they are interpreted inside the pod user namespace.
+    blastwall.io/policy-version: "0.6.1"
+    blastwall.io/policy-release: "0.rc1"
+    blastwall.io/policy-nevra: blastwall-selinux-0.6.1-0.rc1
     blastwall.io/source: openshift/spo
 allowHostDirVolumePlugin: false
 allowHostIPC: false
@@ -88,7 +89,7 @@ runAsUser:
 seLinuxContext:
   type: MustRunAs
   seLinuxOptions:
-    type: blastwallnested_.process
+    type: __BLASTWALL_SPO_NESTED_SELINUX_TYPE__
 seccompProfiles:
   - runtime/default
 supplementalGroups:

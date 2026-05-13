@@ -193,15 +193,14 @@ BLOCKED: Fragnesia AF_ALG socket creation denied with errno 13</code></pre>
             <li>Credential smoke proves the injected IdM runtime credential before inventory and preflight depend on it.</li>
             <li>Preflight reads the SELinux user map, HBAC rule, sudo rule, and candidate host state before verification runs.</li>
             <li>The current/stale output shows <code>mirror-registry.workshop.lan</code> selected and <code>stale-blastwall-01.workshop.lan</code> rejected as stale.</li>
-            <li>The verification job shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving <code>blastwall_t</code>, and denied BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and Fragnesia AF_ALG probes.</li>
-            <li>The Dirty Frag / Fragnesia probe is deliberately safe: it checks xfrm, RxRPC, and AF_ALG entry points without running exploit payload logic.</li>
+            <li>The verification job shows <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving <code>blastwall_t</code>, and denied BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes.</li>
+            <li>The Dirty Frag probe is deliberately safe: it checks the xfrm and RxRPC entry points without running exploit payload logic.</li>
             <li>The AF_ALG result is a denial at socket creation time for this confined automation domain. That is the broad SELinux tradeoff in this proof.</li>
           </ol>
         </section>
 
         <section id="recording-guide">
           <h2>Recording Guide</h2>
-          <p>The public cast uses <code>scripts/blastwall-aap-demo/run-demo.sh</code>. The runner types the AAP commands before executing them, then leaves Controller health, object lookup, workflow launch, node status, and verification stdout visible without replaying every low-value line.</p>
           <h3>1. Separate setup from verification</h3>
           <p>The cast starts by keeping the boundary honest. AAP is here to select a current host and verify runtime confinement. It is not the path that lets the confined automation identity mutate SELinux policy, install policy RPMs, or publish host markers.</p>
           <p>That split makes the demo stronger. Controller shows the project, inventory, workflow, launch user, node status, and job stdout. SELinux still owns enforcement on the managed host.</p>
@@ -233,10 +232,10 @@ awx workflow_job_template_nodes list --workflow_job_template "${workflow_templat
   jq -r '.results[] | [.identifier, .summary_fields.unified_job_template.name] | @tsv'</code></pre>
           <p>This is the AAP-facing control surface: synced code, synced IdM inventory, runtime credentials, and the workflow graph.</p>
 
-          <h3>4. Mark the Dirty Frag / Fragnesia response date</h3>
-          <pre><code class="language-bash">date -u '+Dirty Frag / Fragnesia response marker: %Y-%m-%d %H:%M:%S UTC'
-echo 'Blastwall 0.5.2: verify xfrm, RxRPC, and AF_ALG are denied for confined automation'</code></pre>
-          <p>This is the point to call out the timing: Dirty Frag was publicly documented on May 7, 2026, and Fragnesia followed on May 13, 2026. This verification path includes xfrm, RxRPC, and AF_ALG entry-point evidence.</p>
+          <h3>4. Mark the Dirty Frag response date</h3>
+          <pre><code class="language-bash">date -u '+Dirty Frag response marker: %Y-%m-%d %H:%M:%S UTC'
+echo 'Blastwall 0.5.2: verify xfrm and RxRPC are denied for confined automation'</code></pre>
+          <p>This is the point to call out the timing: Dirty Frag was publicly documented on May 7, 2026, and this verification path includes the xfrm and RxRPC deny scopes immediately after disclosure.</p>
 
           <h3>5. Launch the workflow from AAP</h3>
           <pre><code class="language-bash">awx workflow_job_templates launch "${workflow_template_id}" -f json |

@@ -7,20 +7,59 @@
     blastwall_spo_bundle_content: "{{ blastwall_spo_bundle_yaml | default('', true) }}"
     blastwall_spo_bundle_source_path: "{{ blastwall_spo_bundle_path | default('AAP workflow artifact', true) }}"
     blastwall_spo_bundle_hash: "{{ blastwall_spo_bundle_sha256 | default('', true) }}"
+    blastwall_spo_validate_strange_socket_v1: "{{ (lookup('env', 'BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1') | default('false', true) | bool) }}"
+    blastwall_spo_selinux_type_resolution_mode_default: "calabi-ocp420-rawprofile-underscore"
+    blastwall_spo_selinux_type_resolution_mode_effective: "{{ blastwall_spo_selinux_type_resolution_mode | default(blastwall_spo_selinux_type_resolution_mode_default, true) }}"
     blastwall_spo_profile_namespace: blastwall-spo
     blastwall_spo_workload_namespace: blastwall-workloads
-    blastwall_spo_profiles:
+    blastwall_spo_profiles_base:
       - blastwall
       - blastwallnested
-    blastwall_spo_sccs:
+    blastwall_spo_profiles_strange:
+      - blastwallstrange
+      - blastwallnestedstrange
+    blastwall_spo_profiles: "{{ blastwall_spo_profiles_base + (blastwall_spo_validate_strange_socket_v1 | ternary(blastwall_spo_profiles_strange, [])) }}"
+    blastwall_spo_sccs_base:
       - blastwall-confined
       - blastwall-nested
-    blastwall_spo_validation_jobs:
+    blastwall_spo_sccs_strange:
+      - blastwall-strange
+      - blastwall-nested-strange
+    blastwall_spo_sccs: "{{ blastwall_spo_sccs_base + (blastwall_spo_validate_strange_socket_v1 | ternary(blastwall_spo_sccs_strange, [])) }}"
+    blastwall_spo_validation_jobs_base:
       - name: blastwall-spo-validation
+        profile_resource: blastwall
+        expected_type_placeholder: __BLASTWALL_SPO_STANDARD_SELINUX_TYPE__
         summary: "standard_profile: passed"
       - name: blastwall-nested-spo-validation
+        profile_resource: blastwallnested
+        expected_type_placeholder: __BLASTWALL_SPO_NESTED_SELINUX_TYPE__
         summary: "nested_profile: passed"
+    blastwall_spo_validation_jobs_strange:
+      - name: blastwall-strange-spo-validation
+        profile_resource: blastwallstrange
+        expected_type_placeholder: __BLASTWALL_SPO_STRANGE_SELINUX_TYPE__
+        summary: "standard-strange_profile: passed"
+      - name: blastwall-nested-strange-spo-validation
+        profile_resource: blastwallnestedstrange
+        expected_type_placeholder: __BLASTWALL_SPO_NESTED_STRANGE_SELINUX_TYPE__
+        summary: "nested-strange_profile: passed"
+    blastwall_spo_validation_jobs: "{{ blastwall_spo_validation_jobs_base + (blastwall_spo_validate_strange_socket_v1 | ternary(blastwall_spo_validation_jobs_strange, [])) }}"
+    blastwall_spo_validation_summaries_base:
+      - standard_profile: passed
+      - nested_profile: passed
+    blastwall_spo_validation_summaries_strange:
+      - standard-strange_profile: passed
+      - nested-strange_profile: passed
+    blastwall_spo_validation_summaries: "{{ blastwall_spo_validation_summaries_base + (blastwall_spo_validate_strange_socket_v1 | ternary(blastwall_spo_validation_summaries_strange, [])) }}"
   tasks:
+    - name: Load rendered OpenShift/SPO bundle from source path when needed
+      ansible.builtin.set_fact:
+        blastwall_spo_bundle_content: "{{ lookup('ansible.builtin.file', blastwall_spo_bundle_source_path, rstrip=False) }}"
+      when:
+        - blastwall_spo_bundle_content | length == 0
+        - blastwall_spo_bundle_source_path != 'AAP workflow artifact'
+
     - name: Require rendered OpenShift/SPO workflow artifact
       ansible.builtin.assert:
         that:
@@ -28,6 +67,11 @@
         fail_msg: >-
           Missing blastwall_spo_bundle_yaml. Run this job after
           render_spo_policy_crs in the Blastwall policy pipeline workflow.
+
+    - name: Compute rendered OpenShift/SPO bundle hash when not provided
+      ansible.builtin.set_fact:
+        blastwall_spo_bundle_hash: "{{ blastwall_spo_bundle_content | hash('sha256') }}"
+      when: blastwall_spo_bundle_hash | length == 0
 
     - name: Require OpenShift kubeconfig credential
       ansible.builtin.assert:
@@ -80,13 +124,18 @@
         wait_timeout: 120
       loop: "{{ blastwall_spo_validation_jobs }}"
 
-    - name: Apply rendered OpenShift/SPO bundle
+    - name: Apply rendered OpenShift/SPO bundle prerequisites
       kubernetes.core.k8s:
         state: present
         definition: "{{ item }}"
       loop: "{{ blastwall_spo_bundle_objects }}"
       loop_control:
         label: "{{ item.kind }}/{{ item.metadata.name | default('unnamed') }}"
+      when:
+        - item.kind not in ['SecurityContextConstraints', 'Job', 'Deployment']
+        - >-
+          blastwall_spo_validate_strange_socket_v1 | bool or
+          (item.metadata.labels | default({})).get('blastwall.io/policy-profile', '') != 'strange-socket-v1'
 
     - name: Wait for Blastwall SPO profiles to become ready
       kubernetes.core.k8s_info:
@@ -111,6 +160,112 @@
       delay: 10
       loop: "{{ blastwall_spo_profiles }}"
 
+    - name: Capture status-derived OpenShift/SPO usage strings
+      ansible.builtin.set_fact:
+        blastwall_spo_usage_by_profile: >-
+          {{
+            (blastwall_spo_usage_by_profile | default({}))
+            | combine({item.item: item.resources[0].status.usage | default('', true)})
+          }}
+      loop: "{{ blastwall_spo_profile_info.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Require OpenShift/SPO profiles to publish status.usage
+      ansible.builtin.assert:
+        that:
+          - blastwall_spo_usage_by_profile[item] | default('', true) | length > 0
+        fail_msg: "RawSelinuxProfile/{{ item }} did not expose status.usage."
+      loop: "{{ blastwall_spo_profiles }}"
+
+    - name: Validate OpenShift/SPO SELinux type resolution mode
+      ansible.builtin.assert:
+        that:
+          - blastwall_spo_selinux_type_resolution_mode_effective in
+            ["calabi-ocp420-rawprofile-underscore", "status-usage-direct"]
+        fail_msg: >-
+          blastwall_spo_selinux_type_resolution_mode must be either
+          calabi-ocp420-rawprofile-underscore or status-usage-direct.
+
+    - name: Derive SCC SELinux types from OpenShift/SPO usage
+      ansible.builtin.set_fact:
+        blastwall_spo_selinux_type_by_profile:
+          blastwall: >-
+            {{
+              (blastwall_spo_selinux_type_resolution_mode_effective == 'status-usage-direct')
+              | ternary(
+                blastwall_spo_usage_by_profile['blastwall'],
+                (blastwall_spo_usage_by_profile['blastwall'] | regex_replace('(?<!_)\.process$', '_.process'))
+              )
+            }}
+          blastwallnested: >-
+            {{
+              (blastwall_spo_selinux_type_resolution_mode_effective == 'status-usage-direct')
+              | ternary(
+                blastwall_spo_usage_by_profile['blastwallnested'],
+                (blastwall_spo_usage_by_profile['blastwallnested'] | regex_replace('(?<!_)\.process$', '_.process'))
+              )
+            }}
+          blastwallstrange: >-
+            {{
+              (blastwall_spo_validate_strange_socket_v1 and (blastwall_spo_selinux_type_resolution_mode_effective == 'status-usage-direct'))
+              | ternary(
+                (blastwall_spo_usage_by_profile.get('blastwallstrange', '')),
+                (blastwall_spo_usage_by_profile.get('blastwallstrange', '') | regex_replace('(?<!_)\.process$', '_.process'))
+              )
+            }}
+          blastwallnestedstrange: >-
+            {{
+              (blastwall_spo_validate_strange_socket_v1 and (blastwall_spo_selinux_type_resolution_mode_effective == 'status-usage-direct'))
+              | ternary(
+                (blastwall_spo_usage_by_profile.get('blastwallnestedstrange', '')),
+                (blastwall_spo_usage_by_profile.get('blastwallnestedstrange', '') | regex_replace('(?<!_)\.process$', '_.process'))
+              )
+            }}
+
+    - name: Record OpenShift/SPO SELinux type resolution mode
+      ansible.builtin.set_stats:
+        data:
+          blastwall_spo_selinux_type_resolution_mode: "{{ blastwall_spo_selinux_type_resolution_mode_effective }}"
+
+    - name: Log OpenShift/SPO SELinux type resolution mode
+      ansible.builtin.debug:
+        msg: "blastwall_spo_selinux_type_resolution_mode={{ blastwall_spo_selinux_type_resolution_mode_effective }}"
+
+    - name: Hydrate OpenShift/SPO bundle with status-derived SELinux types
+      ansible.builtin.set_fact:
+        blastwall_spo_hydrated_bundle_content: >-
+          {{
+            blastwall_spo_bundle_content
+            | replace('__BLASTWALL_SPO_STANDARD_SELINUX_TYPE__', blastwall_spo_selinux_type_by_profile['blastwall'])
+            | replace('__BLASTWALL_SPO_NESTED_SELINUX_TYPE__', blastwall_spo_selinux_type_by_profile['blastwallnested'])
+            | replace('__BLASTWALL_SPO_STRANGE_SELINUX_TYPE__', blastwall_spo_selinux_type_by_profile.get('blastwallstrange', ''))
+            | replace('__BLASTWALL_SPO_NESTED_STRANGE_SELINUX_TYPE__', blastwall_spo_selinux_type_by_profile.get('blastwallnestedstrange', ''))
+          }}
+
+    - name: Parse status-hydrated OpenShift/SPO bundle
+      ansible.builtin.set_fact:
+        blastwall_spo_hydrated_bundle_objects: >-
+          {{
+            blastwall_spo_hydrated_bundle_content
+            | from_yaml_all
+            | reject('equalto', None)
+            | list
+          }}
+
+    - name: Apply status-hydrated OpenShift/SPO runtime objects
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ item }}"
+      loop: "{{ blastwall_spo_hydrated_bundle_objects }}"
+      loop_control:
+        label: "{{ item.kind }}/{{ item.metadata.name | default('unnamed') }}"
+      when:
+        - item.kind != 'Job'
+        - >-
+          blastwall_spo_validate_strange_socket_v1 | bool or
+          (item.metadata.labels | default({})).get('blastwall.io/policy-profile', '') != 'strange-socket-v1'
+
     - name: Confirm Blastwall SCCs exist
       kubernetes.core.k8s_info:
         api_version: security.openshift.io/v1
@@ -119,6 +274,17 @@
       register: blastwall_spo_scc_info
       failed_when: blastwall_spo_scc_info.resources | length == 0
       loop: "{{ blastwall_spo_sccs }}"
+
+    - name: Apply status-hydrated OpenShift/SPO validation jobs
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ item }}"
+      loop: "{{ blastwall_spo_hydrated_bundle_objects }}"
+      loop_control:
+        label: "{{ item.kind }}/{{ item.metadata.name | default('unnamed') }}"
+      when:
+        - item.kind == 'Job'
+        - item.metadata.name in (blastwall_spo_validation_jobs | map(attribute='name') | list)
 
     - name: Wait for OpenShift/SPO validation jobs to complete
       kubernetes.core.k8s_info:
@@ -153,7 +319,7 @@
     - name: Collect OpenShift/SPO validation logs
       kubernetes.core.k8s_log:
         namespace: "{{ blastwall_spo_workload_namespace }}"
-        name: "{{ item.resources[0].metadata.name }}"
+        name: "{{ (item.resources | sort(attribute='metadata.creationTimestamp') | last).metadata.name }}"
       register: blastwall_spo_validation_logs
       loop: "{{ blastwall_spo_validation_pods.results }}"
       loop_control:
@@ -187,7 +353,16 @@
           spo_policy_bundle_source: "{{ blastwall_spo_bundle_source_path }}"
           spo_policy_bundle_sha256: "{{ blastwall_spo_bundle_hash }}"
           spo_profiles_ready: "{{ blastwall_spo_profiles | join(', ') }}"
+          spo_usage:
+            standard: "{{ blastwall_spo_usage_by_profile['blastwall'] }}"
+            nested: "{{ blastwall_spo_usage_by_profile['blastwallnested'] }}"
+            standard_strange: "{{ blastwall_spo_usage_by_profile.get('blastwallstrange', '') }}"
+            nested_strange: "{{ blastwall_spo_usage_by_profile.get('blastwallnestedstrange', '') }}"
+          spo_selinux_type_resolution_mode: "{{ blastwall_spo_selinux_type_resolution_mode_effective }}"
+          spo_selinux_type:
+            standard: "{{ blastwall_spo_selinux_type_by_profile['blastwall'] }}"
+            nested: "{{ blastwall_spo_selinux_type_by_profile['blastwallnested'] }}"
+            standard_strange: "{{ blastwall_spo_selinux_type_by_profile.get('blastwallstrange', '') }}"
+            nested_strange: "{{ blastwall_spo_selinux_type_by_profile.get('blastwallnestedstrange', '') }}"
           spo_sccs_present: "{{ blastwall_spo_sccs | join(', ') }}"
-          spo_validation_summaries:
-            - standard_profile: passed
-            - nested_profile: passed
+          spo_validation_summaries: "{{ blastwall_spo_validation_summaries }}"

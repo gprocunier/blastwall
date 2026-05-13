@@ -25,10 +25,54 @@
     blastwall_expected_selinux_user: blastwall_u:s0
     blastwall_hbac_rule_name: blastwall-ssh
     blastwall_sudo_rule_name: blastwall-root-local-sudo
-    blastwall_required_policy_marker: blastwall-selinux-0.5.2-1
+    blastwall_required_policy_marker: >-
+      {{ lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default('blastwall-selinux-0.6.1-0.rc1', true) }}
+    blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
+    blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
+    blastwall_marker_v2_registry_field: registry_sha256=
+    blastwall_required_profiles_env: >-
+      {{
+        BLASTWALL_REQUIRED_POLICY_PROFILES |
+        default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true)
+      }}
+    blastwall_allow_dry_run_profiles: >-
+      {{
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES |
+        default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) |
+        bool
+      }}
+    required_blastwall_profiles: >-
+      {{
+        (blastwall_required_profiles_env.split(',') | map('trim') | reject('equalto', '') | list)
+        if blastwall_required_profiles_env | length > 0
+        else ['base']
+      }}
+    blastwall_base_scope_csv: alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect
+    blastwall_strange_socket_v1_scope_csv: bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket
+    blastwall_required_scope_csv: >-
+      {{
+        blastwall_base_scope_csv ~
+        ((',' ~ blastwall_strange_socket_v1_scope_csv) if 'strange-socket-v1' in required_blastwall_profiles else '')
+      }}
+    blastwall_required_profile_csv: "{{ required_blastwall_profiles | join(',') }}"
+    blastwall_strange_socket_v1_requested: "{{ 'strange-socket-v1' in required_blastwall_profiles }}"
+    blastwall_strange_socket_v1_legacy_dry_run_raw: >-
+      {{
+        BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN |
+        default(lookup('env', 'BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN') | default('', true), true)
+      }}
+    blastwall_strange_socket_v1_legacy_dry_run_set: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | string | length > 0 }}"
+    blastwall_strange_socket_v1_legacy_dry_run: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | bool }}"
+    blastwall_enable_strange_socket_v1_dry_run: "{{ blastwall_strange_socket_v1_requested | bool and blastwall_allow_dry_run_profiles | bool }}"
+    blastwall_profile_preflight_group: >-
+      {{
+        'blastwall_profile_strange_socket_v1'
+        if blastwall_strange_socket_v1_requested | bool
+        else 'blastwall_profile_base'
+      }}
     blastwall_fail_on_stale_policy: true
     blastwall_target_hosts: >-
-      {{ groups['blastwall_policy_current'] | default([]) }}
+      {{ groups[blastwall_profile_preflight_group] | default([]) }}
     blastwall_stale_hosts: >-
       {{ groups['blastwall_policy_stale'] | default([]) }}
     blastwall_candidate_hosts: >-
@@ -45,6 +89,20 @@
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, BLASTWALL_IDENTITY, and
           either IPA_KEYTAB or IPA_PASSWORD for preflight.
+
+    - name: Assert strange-socket-v1 dry-run intent is consistent
+      ansible.builtin.assert:
+        that:
+          - not blastwall_strange_socket_v1_requested | bool or blastwall_allow_dry_run_profiles | bool
+          - >-
+            not blastwall_strange_socket_v1_legacy_dry_run_set | bool or
+            (blastwall_strange_socket_v1_legacy_dry_run | bool) == (blastwall_enable_strange_socket_v1_dry_run | bool)
+        fail_msg: >-
+          strange-socket-v1 requires canonical dry-run intent:
+          include strange-socket-v1 in BLASTWALL_REQUIRED_POLICY_PROFILES and set
+          BLASTWALL_ALLOW_DRY_RUN_PROFILES=true. If legacy
+          BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN is set, it must agree with the
+          derived profile intent.
 
     - name: Write FreeIPA client config for controller-side lookups
       ansible.builtin.copy:
@@ -142,11 +200,52 @@
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_stale_policy | bool
 
+    - name: Fail closed when selected hosts lack required Blastwall profile evidence
+      ansible.builtin.command:
+        argv: "{{ blastwall_marker_check_argv }}"
+        stdin: "{{ host_marker_values | to_json }}"
+      register: blastwall_marker_check
+      changed_when: false
+      failed_when: blastwall_marker_check.rc != 0
+      vars:
+        raw_host_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        host_userclass_values: >-
+          {{
+            raw_host_userclass_values
+            if raw_host_userclass_values is not string
+            else [raw_host_userclass_values]
+          }}
+        host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
+        blastwall_marker_check_argv: >-
+          {{
+            [
+              ansible_playbook_python | default('/usr/bin/python3'),
+              playbook_dir ~ '/../tools/blastwall_marker.py',
+              'check',
+              '--registry',
+              blastwall_profile_registry_path,
+              '--expected-registry-sha256',
+              blastwall_profile_registry_sha256,
+              '--accepted-rpm',
+              blastwall_required_policy_marker,
+              '--expected-target',
+              'rhel-login',
+              '--required-profiles-csv',
+              blastwall_required_profile_csv,
+              '--markers-stdin'
+            ]
+            + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+          }}
+      loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_fail_on_stale_policy | bool
+
     - name: Report selected candidates
       ansible.builtin.debug:
         msg:
           selected_hosts: "{{ blastwall_target_hosts }}"
           stale_hosts: "{{ blastwall_stale_hosts }}"
           candidate_hosts: "{{ blastwall_candidate_hosts }}"
+          required_profiles: "{{ required_blastwall_profiles }}"
+          registry_sha256: "{{ blastwall_profile_registry_sha256 }}"
           hbac_rule: "{{ blastwall_hbac_rule_name }}"
           selinux_user: "{{ blastwall_selinux_map.selinuxuser }}"

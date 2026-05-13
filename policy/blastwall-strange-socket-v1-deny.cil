@@ -1,0 +1,75 @@
+; Lab-only dry-run deny module for the strange-socket-v1 profile.
+;
+; These optional classes are not present on every RHEL/RHCOS policy build.  The
+; module is packaged as payload for lab validation, but is not installed by the
+; default Makefile or RPM install path unless the explicit dry-run flag is set.
+
+(optional blastwall_strange_socket_xdp_deny
+  (deny blastwall_t self (xdp_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (xdp_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))
+
+(optional blastwall_strange_socket_tipc_deny
+  (deny blastwall_t self (tipc_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (tipc_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))
+
+(optional blastwall_strange_socket_can_deny
+  (deny blastwall_t self (can_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (can_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))
+
+(optional blastwall_strange_socket_bluetooth_deny
+  (deny blastwall_t self (bluetooth_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (bluetooth_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))
+
+(optional blastwall_strange_socket_nfc_deny
+  (deny blastwall_t self (nfc_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (nfc_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))
+
+(optional blastwall_strange_socket_kcm_deny
+  (deny blastwall_t self (kcm_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (kcm_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))
+
+(optional blastwall_strange_socket_rds_deny
+  (deny blastwall_t self (rds_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write)))
+  (neverallow blastwall_t self (rds_socket
+    (accept append bind connect create getattr getopt ioctl listen lock map
+     name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+     setattr setopt shutdown write))))

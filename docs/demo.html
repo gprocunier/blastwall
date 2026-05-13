@@ -37,14 +37,14 @@
         <section id="what-this-proves">
           <h2>What This Proves</h2>
           <p>This demo shows the whole control path without requiring <a href="glossary.html#aap">AAP</a>. AAP is not needed to prove the local behavior: the same IdM state AAP would consume is visible before the mutation step, and the final denial is enforced by the target host <a href="glossary.html#selinux">SELinux</a> policy.</p>
-          <p>The run starts from <code>bastion-01</code>, uses <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, <a href="glossary.html#io-uring">io_uring</a>, xfrm, and RxRPC probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
+          <p>The run starts from <code>bastion-01</code>, uses <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
           <p>The observable flow is:</p>
           <ul>
             <li><code>bastion-01</code> runs the Calabi PoC playbooks locally.</li>
             <li><code>eigenstate.ipa</code> validates the IdM SELinux user map, HBAC rule, sudo rule, and candidate host view.</li>
             <li><code>mirror-registry</code> receives the Blastwall policy RPM.</li>
             <li>The automation identity logs in with the expected SELinux context.</li>
-            <li>The AF_ALG/authencesn, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and Fragnesia AF_ALG probes are blocked for that mapped automation session.</li>
+            <li>The AF_ALG/authencesn, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes are blocked for that mapped automation session.</li>
             <li>The target audit log shows denied <code>socket</code>, <code>bpf</code>, and namespace syscall evidence for <code>blastwall_t</code>; the <code>io_uring</code> denial is visible in the probe output.</li>
             <li>A temporary sudo expansion exposes <code>/usr/sbin/semodule</code>, and SELinux still prevents the automation identity from removing a deny module.</li>
           </ul>
@@ -92,7 +92,7 @@
             <li>The packet_socket probe reports <code>BLOCKED</code> for AF_PACKET socket creation.</li>
             <li>The userns probe reports <code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</li>
             <li>The io_uring probe reports <code>BLOCKED</code> for <code>io_uring_setup</code>, or <code>SKIP</code> on kernels without that object class.</li>
-            <li>The Dirty Frag / Fragnesia probe reports <code>BLOCKED</code> for <code>NETLINK_XFRM</code>, <code>AF_RXRPC</code>, and Fragnesia <code>AF_ALG</code> socket creation.</li>
+            <li>The Dirty Frag probe reports <code>BLOCKED</code> for <code>NETLINK_XFRM</code> and <code>AF_RXRPC</code> socket creation.</li>
             <li>The self-protection play shows sudo can be expanded while SELinux still denies <code>semodule</code> execution from <code>blastwall_t</code>.</li>
             <li>A conventional audit-log check shows the SELinux denial evidence from the target host.</li>
           </ol>
@@ -100,7 +100,6 @@
 
         <section id="recording-guide">
           <h2>Recording Guide</h2>
-          <p>The public cast uses <code>scripts/blastwall-poc-demo/run-demo.sh</code>. The runner types each operator command into the recording before it executes the command, then keeps the raw playbook, probe, audit, and self-protection output where that output builds trust.</p>
           <h3>1. Start from the bastion-local PoC tree</h3>
           <pre><code class="language-bash">pwd
 cd ~/blastwall/poc-calabi</code></pre>
@@ -123,11 +122,11 @@ target: mirror-registry.workshop.lan</code></pre>
 
           <h3>4. Deploy policy and run the playbook proof</h3>
           <pre><code class="language-bash">ansible-playbook 30-deploy-and-test.yml | tee /tmp/blastwall-proof.log</code></pre>
-          <p>The target host installs the Blastwall RPM, refreshes local policy state, and runs the automated validation for AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and Fragnesia AF_ALG.</p>
+          <p>The target host installs the Blastwall RPM, refreshes local policy state, and runs the automated validation for AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC.</p>
 
-          <h3>5. Mark the Dirty Frag / Fragnesia response date</h3>
-          <pre><code class="language-bash">date -u '+Dirty Frag / Fragnesia response marker: %Y-%m-%d %H:%M:%S UTC'
-echo 'Blastwall 0.5.2: verify xfrm, RxRPC, and AF_ALG are denied for confined automation'</code></pre>
+          <h3>5. Mark the Dirty Frag response date</h3>
+          <pre><code class="language-bash">date -u '+Dirty Frag response marker: %Y-%m-%d %H:%M:%S UTC'
+echo 'Blastwall 0.5.2: verify xfrm and RxRPC are denied for confined automation'</code></pre>
           <p>This callout keeps the timing visible in the non-AAP proof: Dirty Frag was publicly documented on May 7, 2026, and Fragnesia followed on May 13, 2026. The run verifies the same deny family against xfrm, RxRPC, and AF_ALG entry points.</p>
 
           <h3>6. Inspect and run the probes directly</h3>
@@ -210,7 +209,7 @@ grep -E \
         <section class="context-block context-block--meta">
           <h2>Demo Boundary</h2>
           <p class="context-kicker">Calabi lab proof</p>
-          <p class="context-copy">Use this page when the question is whether the IdM read-side gate, policy rollout, SELinux mapping, AF_ALG/BPF/packet_socket/userns/io_uring/xfrm/RxRPC/Fragnesia denials, self-protection, and audit evidence can be seen in one operator run.</p>
+          <p class="context-copy">Use this page when the question is whether the IdM read-side gate, policy rollout, SELinux mapping, AF_ALG/BPF/packet_socket/userns/io_uring/xfrm/RxRPC denials, self-protection, and audit evidence can be seen in one operator run.</p>
         </section>
         <section class="toc-block">
           <h2>On This Page</h2>

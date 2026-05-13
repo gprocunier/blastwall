@@ -1,30 +1,125 @@
 {
   "hosts": [
     {
-      "name": "mirror-registry.workshop.lan",
+      "name": "v2-base-current.example.com",
       "idm_userclass": [
-        "blastwall:state=active;rpm=blastwall-selinux-0.5.0-1;rpm_sha256=1111111111111111111111111111111111111111111111111111111111111111;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny"
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect"
       ]
     },
     {
-      "name": "promoted-mirror-registry.workshop.lan",
+      "name": "v1-base-compat.example.com",
       "idm_userclass": [
         "blastwall:state=active;rpm=blastwall-selinux-0.5.2-1;rpm_sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny"
       ]
     },
     {
-      "name": "stale-blastwall-01.workshop.lan",
+      "name": "v2-strange-socket-lab-active.example.com",
       "idm_userclass": [
-        "blastwall:state=active;rpm=blastwall-selinux-0.4.0-1;rpm_sha256=2222222222222222222222222222222222222222222222222222222222222222;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny"
+        "blastwall:v=2;state=lab-active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket"
       ]
     },
     {
-      "name": "missing-01.example.com",
+      "name": "v2-strange-socket-missing-dry-run-flag.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket"
+      ]
+    },
+    {
+      "name": "v2-strange-socket-noncanonical-order.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=lab-active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=strange-socket-v1,base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket"
+      ]
+    },
+    {
+      "name": "stale-registry-hash.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=1111111111111111111111111111111111111111111111111111111111111111;policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect"
+      ]
+    },
+    {
+      "name": "unknown-profile.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=missing;scopes=alg_socket"
+      ]
+    },
+    {
+      "name": "base-with-strange-scope.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,xdp_socket"
+      ]
+    },
+    {
+      "name": "unknown-scope.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,evil_scope"
+      ]
+    },
+    {
+      "name": "malformed-marker.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state"
+      ]
+    },
+    {
+      "name": "old-rpm.example.com",
+      "idm_userclass": [
+        "blastwall:state=active;rpm=blastwall-selinux-0.5.0-1;rpm_sha256=2222222222222222222222222222222222222222222222222222222222222222;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny"
+      ]
+    },
+    {
+      "name": "missing-marker.example.com",
       "idm_userclass": []
     }
   ],
   "expected": {
-    "blastwall_policy_current": ["promoted-mirror-registry.workshop.lan"],
-    "blastwall_policy_stale": ["mirror-registry.workshop.lan", "stale-blastwall-01.workshop.lan", "missing-01.example.com"]
+    "default": {
+      "blastwall_policy_current": [
+        "v2-base-current.example.com",
+        "v1-base-compat.example.com"
+      ],
+      "blastwall_policy_stale": [
+        "v2-strange-socket-lab-active.example.com",
+        "v2-strange-socket-missing-dry-run-flag.example.com",
+        "v2-strange-socket-noncanonical-order.example.com",
+        "stale-registry-hash.example.com",
+        "unknown-profile.example.com",
+        "base-with-strange-scope.example.com",
+        "unknown-scope.example.com",
+        "malformed-marker.example.com",
+        "old-rpm.example.com",
+        "missing-marker.example.com"
+      ],
+      "blastwall_profile_base": [
+        "v2-base-current.example.com",
+        "v1-base-compat.example.com"
+      ],
+      "blastwall_profile_strange_socket_v1": []
+    },
+    "allow_dry_run": {
+      "blastwall_policy_current": [
+        "v2-base-current.example.com",
+        "v1-base-compat.example.com",
+        "v2-strange-socket-lab-active.example.com"
+      ],
+      "blastwall_policy_stale": [
+        "v2-strange-socket-missing-dry-run-flag.example.com",
+        "v2-strange-socket-noncanonical-order.example.com",
+        "stale-registry-hash.example.com",
+        "unknown-profile.example.com",
+        "base-with-strange-scope.example.com",
+        "unknown-scope.example.com",
+        "malformed-marker.example.com",
+        "old-rpm.example.com",
+        "missing-marker.example.com"
+      ],
+      "blastwall_profile_base": [
+        "v2-base-current.example.com",
+        "v1-base-compat.example.com",
+        "v2-strange-socket-lab-active.example.com"
+      ],
+      "blastwall_profile_strange_socket_v1": [
+        "v2-strange-socket-lab-active.example.com"
+      ]
+    }
   }
 }

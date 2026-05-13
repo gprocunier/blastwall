@@ -57,6 +57,20 @@
           </table>
         </section>
 
+        <section id="aap-targeting-controls">
+          <h2>AAP Targeting Controls</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Variable</th><th>Target Surface</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Variable"><code>BLASTWALL_AAP_VERIFY_TARGET_GROUP</code></td><td data-label="Target Surface"><code>blastwall_profile_base</code> (default)</td><td data-label="Purpose">Controls profile-aware runtime host selection for preflight and managed-host verification.</td></tr>
+              <tr><td data-label="Variable"><code>BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP</code></td><td data-label="Target Surface">Policy pipeline candidate cohort</td><td data-label="Purpose">Controls host selection for install/verify/promotion in the policy pipeline staging path; set explicitly for strange-socket dry-run cohorts.</td></tr>
+              <tr><td data-label="Variable"><code>BLASTWALL_REQUIRED_POLICY_PROFILES</code></td><td data-label="Target Surface"><code>base</code>, <code>strange-socket-v1</code></td><td data-label="Purpose">Drives preflight marker coverage requirements and profile suitability checks.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
         <section id="idm-records">
           <h2>IdM Records</h2>
           <table class="comparison-table">
@@ -160,6 +174,7 @@
           <h2>On This Page</h2>
           <ol class="path-list">
             <li><a href="#aap-objects">AAP Objects</a></li>
+            <li><a href="#aap-targeting-controls">AAP Targeting Controls</a></li>
             <li><a href="#idm-records">IdM Records</a></li>
             <li><a href="#selinux-contexts">SELinux Contexts</a></li>
             <li><a href="#probes">Probes</a></li>

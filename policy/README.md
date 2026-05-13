@@ -25,7 +25,8 @@ CIL rules are wrapped in a CIL `optional` block:
 
 If the class is unknown to the running kernel's policy, `semodule`
 silently discards the block instead of failing.  This keeps the policy
-RPM a single artifact across RHEL versions.  The host marker script
+RPM a single artifact across RHEL versions. Optional wrappers are a portability
+control only; they do not define runtime evidence behavior.  The host marker script
 gates scope-specific markers on the class actually existing in
 `/sys/fs/selinux/class/`, so inventory correctly reflects what is
 enforced on each host.
@@ -44,7 +45,7 @@ Support modules that keep login or packaging mechanics working belong in
 
 ## Current Dirty Frag / Fragnesia response
 
-Blastwall `0.5.2` adds the Dirty Frag scopes and uses the same XFRM/ESP
+Blastwall keeps the active Dirty Frag scopes and uses the same XFRM/ESP
 control-plane denial for Fragnesia.  A duplicate Fragnesia CIL module is not
 needed because the enforceable SELinux surfaces are already named scopes:
 

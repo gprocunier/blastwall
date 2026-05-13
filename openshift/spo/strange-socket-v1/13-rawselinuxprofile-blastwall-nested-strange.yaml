@@ -1,0 +1,146 @@
+apiVersion: security-profiles-operator.x-k8s.io/v1alpha2
+kind: RawSelinuxProfile
+metadata:
+  name: blastwallnestedstrange
+  namespace: blastwall-spo
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: selinux-profile
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall-nested-strange
+    blastwall.io/public-profile-name: blastwall-nested-strange
+    blastwall.io/policy-profile: strange-socket-v1
+  annotations:
+    blastwall.io/policy-version: "0.6.1"
+    blastwall.io/policy-release: "0.rc1"
+    blastwall.io/policy-nevra: blastwall-selinux-0.6.1-0.rc1
+    blastwall.io/source: policy/Makefile
+spec:
+  policy: |
+    (blockinherit container)
+
+    (optional blastwall_nested_strange_xfrm_deny
+      (deny process self (netlink_xfrm_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind nlmsg_read nlmsg_write read recv_msg recvfrom relabelfrom
+         relabelto send_msg sendto setattr setopt shutdown write)))
+      (neverallow process self (netlink_xfrm_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind nlmsg_read nlmsg_write read recv_msg recvfrom relabelfrom
+         relabelto send_msg sendto setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_rxrpc_deny
+      (deny process self (rxrpc_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (rxrpc_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_packet_socket_deny
+      (deny process self (packet_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (packet_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_alg_socket_deny
+      (deny process self (alg_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (alg_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_bpf_deny
+      (deny process self (bpf
+        (map_create map_read map_write prog_load prog_run)))
+      (neverallow process self (bpf
+        (map_create map_read map_write prog_load prog_run))))
+
+    (optional blastwall_nested_strange_capability2_bpf_deny
+      (deny process self (capability2 (bpf)))
+      (neverallow process self (capability2 (bpf))))
+
+    (optional blastwall_nested_strange_io_uring_deny
+      (deny process self (io_uring
+        (cmd override_creds sqpoll)))
+      (neverallow process self (io_uring
+        (cmd override_creds sqpoll))))
+
+    (optional blastwall_nested_strange_xdp_socket_deny
+      (deny process self (xdp_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (xdp_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_tipc_socket_deny
+      (deny process self (tipc_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (tipc_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_can_socket_deny
+      (deny process self (can_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (can_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_bluetooth_socket_deny
+      (deny process self (bluetooth_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (bluetooth_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_nfc_socket_deny
+      (deny process self (nfc_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (nfc_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_kcm_socket_deny
+      (deny process self (kcm_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (kcm_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))
+
+    (optional blastwall_nested_strange_rds_socket_deny
+      (deny process self (rds_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write)))
+      (neverallow process self (rds_socket
+        (accept append bind connect create getattr getopt ioctl listen lock map
+         name_bind read recv_msg recvfrom relabelfrom relabelto send_msg sendto
+         setattr setopt shutdown write))))

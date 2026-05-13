@@ -10,9 +10,9 @@ CVE-2025-38617 uses them to obtain CAP_NET_RAW unprivileged.
 
 Exit codes:
     0   BLOCKED  - unshare(CLONE_NEWUSER) denied with EPERM/EACCES
-    0   INFO     - denied for a non-permission reason
-    1   FAIL     - user namespace creation succeeded (policy is NOT protecting)
-   77   SKIP     - user namespaces not available
+    1   FAIL_ALLOWED                  - user namespace creation succeeded
+    1   FAIL_UNKNOWN                  - unexpected errno or probe failure
+    1   FAIL_MISSING_CLASS_REQUIRED   - user namespaces not available
 """
 
 import ctypes
@@ -26,8 +26,8 @@ CLONE_NEWUSER = 0x10000000
 def main():
     libc_name = ctypes.util.find_library("c")
     if not libc_name:
-        print("SKIP: cannot find libc")
-        sys.exit(77)
+        print("FAIL_UNKNOWN: cannot find libc")
+        sys.exit(1)
 
     libc = ctypes.CDLL(libc_name, use_errno=True)
 
@@ -60,16 +60,16 @@ def main():
               f"{errno_name} errno {errno_value}  [exploit chain enabler]")
         return 0
     elif exit_code == 1:
-        print("FAIL: unshare(CLONE_NEWUSER) succeeded - "
+        print("FAIL_ALLOWED: unshare(CLONE_NEWUSER) succeeded - "
               "policy is NOT denying user namespace creation")
         return 1
     elif exit_code == 77:
-        print("SKIP: user namespaces not available on this kernel")
-        return 77
+        print("FAIL_MISSING_CLASS_REQUIRED: user namespaces not available on this kernel")
+        return 1
     else:
-        print("INFO: unshare(CLONE_NEWUSER) failed with unexpected "
+        print("FAIL_UNKNOWN: unshare(CLONE_NEWUSER) failed with unexpected "
               "error (exit %d)" % exit_code)
-        return 0
+        return 1
 
 if __name__ == "__main__":
     raise SystemExit(main())

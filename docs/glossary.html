@@ -121,8 +121,6 @@
             <dd>The <a href="https://copy.fail/">public exploit write-up and proof</a> that motivates Blastwall's first concrete deny-scope example.</dd>
             <dt id="dirty-frag">Dirty Frag</dt>
             <dd>A <a href="https://github.com/V4bel/dirtyfrag">public Linux local privilege escalation write-up and proof</a> that chains xfrm-ESP and RxRPC page-cache write paths. Blastwall responds by denying those entry points for confined automation.</dd>
-            <dt id="fragnesia">Fragnesia</dt>
-            <dd>A <a href="https://github.com/v12-security/pocs/tree/main/fragnesia">public Linux local privilege escalation proof</a> disclosed on May 13, 2026. It targets a separate ESP-in-TCP/XFRM issue in the Dirty Frag mitigation family. Blastwall covers the confined automation path with the existing xfrm, AF_ALG, and user namespace denies.</dd>
             <dt id="authencesn">authencesn</dt>
             <dd>The specific authenticated encryption template shape associated with the <a href="https://copy.fail/">Copy Fail</a> exploit path. Blastwall blocks the broader AF_ALG surface for mapped automation instead of matching this argument.</dd>
             <dt id="seccomp">seccomp</dt>
@@ -136,7 +134,7 @@
             <dt id="af-packet">AF_PACKET</dt>
             <dd>The Linux socket family for packet-level network access. Blastwall's packet socket probe checks that this path is denied for the confined automation domain.</dd>
             <dt id="xfrm">xfrm</dt>
-            <dd>The Linux IPsec transformation framework. Blastwall's Dirty Frag / Fragnesia response denies <code>netlink_xfrm_socket</code> access for confined automation so that automation cannot register XFRM security-association state.</dd>
+            <dd>The Linux IPsec transformation framework. Blastwall's Dirty Frag response denies <code>netlink_xfrm_socket</code> access for confined automation so that automation cannot register XFRM security-association state.</dd>
             <dt id="rxrpc">RxRPC</dt>
             <dd>A Linux remote procedure call protocol family used by AFS-related code paths. Blastwall's Dirty Frag response denies <code>rxrpc_socket</code> access for confined automation.</dd>
             <dt id="syscall">syscall</dt>

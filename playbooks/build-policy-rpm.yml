@@ -6,9 +6,9 @@
   vars:
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
-      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.6.1', true), true) }}
     blastwall_policy_release: >-
-      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('0.rc1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
     blastwall_pipeline_root: /var/tmp/blastwall-policy-pipeline
     blastwall_rpmbuild_root: "{{ blastwall_pipeline_root }}/rpmbuild"
@@ -134,6 +134,13 @@
             | first
             | default('')
           }}
+        blastwall_dry_run_policy_line: >-
+          {{
+            (blastwall_policy_makefile.content | b64decode).splitlines()
+            | select('match', '^DRY_RUN_POLICIES[ ]*:=')
+            | first
+            | default('')
+          }}
 
     - name: Parse policy module lists from Makefile
       ansible.builtin.set_fact:
@@ -147,6 +154,12 @@
           {{
             blastwall_deny_policy_line
             | regex_replace('^DENY_POLICIES[ ]*:=[ ]*', '')
+            | split
+          }}
+        blastwall_dry_run_policy_modules: >-
+          {{
+            blastwall_dry_run_policy_line
+            | regex_replace('^DRY_RUN_POLICIES[ ]*:=[ ]*', '')
             | split
           }}
 
@@ -217,6 +230,10 @@
           install -D -m 0644 {{ module }}.cil \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/{{ module }}.cil
           {% endfor %}
+          {% for module in blastwall_dry_run_policy_modules %}
+          install -D -m 0644 {{ module }}.cil \
+            %{buildroot}%{_datadir}/selinux/packages/blastwall/dry-run/{{ module }}.cil
+          {% endfor %}
           install -D -m 0644 contexts/blastwall_u \
             %{buildroot}%{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
@@ -228,6 +245,9 @@
           {% endfor %}
           {% for module in blastwall_deny_policy_modules %}
           %{_datadir}/selinux/packages/blastwall/{{ module }}.cil
+          {% endfor %}
+          {% for module in blastwall_dry_run_policy_modules %}
+          %{_datadir}/selinux/packages/blastwall/dry-run/{{ module }}.cil
           {% endfor %}
           %{_datadir}/selinux/packages/blastwall/contexts/blastwall_u
 
@@ -283,3 +303,4 @@
           policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
           support_modules: "{{ blastwall_support_policy_modules }}"
           deny_scopes: "{{ blastwall_deny_policy_modules }}"
+          dry_run_scopes: "{{ blastwall_dry_run_policy_modules }}"

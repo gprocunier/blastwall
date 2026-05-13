@@ -105,6 +105,14 @@
           <p>The policy repository should behave like any other production control. The main branch holds the master policy baseline. A new deny scope starts on a feature branch, proves that the policy still compiles, proves that normal automation still works, proves that the new surface is denied, and only then becomes a promoted artifact.</p>
           <p>The runner can be GitHub Actions, a GitLab runner, Tekton, AAP, or a mix of them. The important part is the contract: build the RPM, run unit checks, replay the automation corpus, run safe denial probes, keep the logs, and promote only when the evidence says the baseline is still usable.</p>
           <p>The Calabi lab now has that loop as a runnable AAP workflow. <code>Blastwall policy pipeline</code> starts with the synced Git project, builds a candidate <code>blastwall-selinux</code> RPM from <code>policy/</code>, renders an OpenShift/SPO CR bundle from the same policy version, installs the RPM on the selected lab endpoint, verifies the confined context and deny probes, then updates the IdM host marker through the FreeIPA collection. After the marker moves, the workflow resyncs inventory through <code>eigenstate.ipa</code> and runs preflight against the promoted state.</p>
+          <p>There are two targeting controls in this design. Runtime/preflight verify is
+          profile-aware: it reads <code>BLASTWALL_AAP_VERIFY_TARGET_GROUP</code>, which defaults to
+          <code>blastwall_profile_base</code>, and should be switched to
+          <code>blastwall_profile_strange_socket_v1</code> for strange-socket dry-run runs.
+          The policy pipeline itself is cohort-based and is controlled separately by
+          <code>BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP</code>. Strange-socket dry-run rollout
+          should use an explicit lab cohort for this variable rather than reusing the base verify
+          group.</p>
           <figure class="diagram-card diagram-card--focus" id="day2-aap-policy-pipeline">
             <figcaption>
               <strong>The Day 2 loop is runnable in AAP.</strong>

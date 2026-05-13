@@ -8,9 +8,9 @@ with EPERM.
 
 Exit codes:
     0   BLOCKED  - AF_PACKET socket creation denied with EPERM
-    0   INFO     - denied for a non-permission reason
-    1   FAIL     - socket creation succeeded (policy is NOT protecting)
-   77   SKIP     - AF_PACKET not available
+    1   FAIL_ALLOWED                  - socket creation succeeded
+    1   FAIL_UNKNOWN                  - unexpected errno or probe failure
+    1   FAIL_MISSING_CLASS_REQUIRED   - AF_PACKET not available
 """
 
 import errno
@@ -33,14 +33,14 @@ def main():
         return 1
     except OSError as exc:
         if exc.errno == errno.EAFNOSUPPORT:
-            print("SKIP: AF_PACKET not supported on this system")
-            return 77
-        print("INFO: AF_PACKET socket creation failed with %s "
-              "(not EPERM, may not be SELinux)" % exc)
-        return 0
+            print("FAIL_MISSING_CLASS_REQUIRED: AF_PACKET not supported on this system")
+            return 1
+        print("FAIL_UNKNOWN: AF_PACKET socket creation failed with %s "
+              "(not EPERM/EACCES, cannot count as blocked evidence)" % exc)
+        return 1
 
     sock.close()
-    print("FAIL: AF_PACKET socket creation succeeded - "
+    print("FAIL_ALLOWED: AF_PACKET socket creation succeeded - "
           "policy is NOT denying packet_socket")
     return 1
 

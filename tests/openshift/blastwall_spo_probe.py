@@ -15,8 +15,23 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-EXPECTED_TYPE = os.environ.get("BLASTWALL_EXPECTED_SELINUX_TYPE", "blastwall_.process")
 PROFILE_CLASS = os.environ.get("BLASTWALL_PROFILE_CLASS", "standard")
+STRANGE_SOCKET_V1 = os.environ.get("BLASTWALL_STRANGE_SOCKET_V1", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
+SELINUX_CLASS_DIR = Path("/sys/fs/selinux/class")
+SKIP_ERRNOS = {
+    errno.EAFNOSUPPORT,
+    errno.EINVAL,
+    errno.ENODEV,
+    errno.ENOENT,
+    errno.ENOPROTOOPT,
+    errno.ENOSYS,
+    errno.EPROTONOSUPPORT,
+    errno.ESOCKTNOSUPPORT,
+}
 
 
 @dataclass
@@ -26,19 +41,41 @@ class ProbeResult:
     detail: str
 
 
+def required_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        print(json.dumps({
+            "overall": "FAIL",
+            "reason": f"missing required environment variable {name}",
+        }, sort_keys=True), file=sys.stderr)
+        raise SystemExit(2)
+    return value
+
+
+EXPECTED_TYPE = required_env("BLASTWALL_EXPECTED_SELINUX_TYPE")
+
+
 def classify_errno(value: int | None) -> str:
     if value in (errno.EPERM, errno.EACCES):
         return "BLOCKED"
-    if value in (errno.EAFNOSUPPORT, errno.EPROTONOSUPPORT, errno.ENOPROTOOPT, errno.ENOSYS):
-        return "SKIP"
-    return "FAIL"
+    return "FAIL_UNKNOWN"
+
+
+def classify_absent_errno(value: int | None, *, optional: bool) -> str:
+    if value in (errno.EPERM, errno.EACCES):
+        return "BLOCKED"
+    if value in SKIP_ERRNOS:
+        return "SKIP_ABSENT" if optional else "FAIL_MISSING_CLASS_REQUIRED"
+    return "FAIL_UNKNOWN"
 
 
 def read_context() -> str:
     try:
-        context = subprocess.check_output(["id", "-Z"], text=True, stderr=subprocess.STDOUT).strip()
+        context = subprocess.check_output(["id", "-Z"], text=True, stderr=subprocess.STDOUT, timeout=5).strip()
         if context:
             return context
+    except subprocess.TimeoutExpired as exc:
+        return f"context command timed out after {exc.timeout:.0f}s"
     except Exception:
         pass
 
@@ -48,13 +85,27 @@ def read_context() -> str:
         return f"unavailable: {exc}"
 
 
-def probe_socket(name: str, family: int, socktype: int, proto: int = 0) -> ProbeResult:
+def probe_socket(name: str, family: int, socktype: int, proto: int = 0, *, optional: bool = False) -> ProbeResult:
     try:
         sock = socket.socket(family, socktype, proto)
         sock.close()
-        return ProbeResult(name, "FAIL", "socket creation succeeded")
+        return ProbeResult(name, "FAIL_ALLOWED", "socket creation succeeded")
     except OSError as exc:
-        return ProbeResult(name, classify_errno(exc.errno), f"errno {exc.errno}: {exc.strerror}")
+        return ProbeResult(name, classify_absent_errno(exc.errno, optional=optional), f"errno {exc.errno}: {exc.strerror}")
+
+
+def selinux_class_absent(object_class: str) -> bool:
+    return SELINUX_CLASS_DIR.exists() and not (SELINUX_CLASS_DIR / object_class).exists()
+
+
+def probe_optional_socket(name: str, object_class: str, family: int, socktype: int, proto: int = 0) -> ProbeResult:
+    if selinux_class_absent(object_class):
+        return ProbeResult(name, "SKIP_ABSENT", f"SELinux object class {object_class} is absent")
+    return probe_socket(name, family, socktype, proto, optional=True)
+
+
+def family(name: str, fallback: int) -> int:
+    return int(getattr(socket, name, fallback))
 
 
 def probe_userns() -> ProbeResult:
@@ -62,14 +113,14 @@ def probe_userns() -> ProbeResult:
     clone_newuser = 0x10000000
     rc = libc.unshare(clone_newuser)
     if rc == 0:
-        return ProbeResult("userns", "FAIL", "unshare(CLONE_NEWUSER) succeeded")
+        return ProbeResult("userns", "FAIL_ALLOWED", "unshare(CLONE_NEWUSER) succeeded")
 
     err = ctypes.get_errno()
     if err in (errno.EPERM, errno.EACCES):
         return ProbeResult("userns", "BLOCKED", f"errno {err}: {os.strerror(err)}")
     if err in (errno.EINVAL, errno.ENOSYS):
-        return ProbeResult("userns", "SKIP", f"errno {err}: {os.strerror(err)}")
-    return ProbeResult("userns", "FAIL", f"errno {err}: {os.strerror(err)}")
+        return ProbeResult("userns", "SKIP_ABSENT", f"errno {err}: {os.strerror(err)}")
+    return ProbeResult("userns", "FAIL_UNKNOWN", f"errno {err}: {os.strerror(err)}")
 
 
 def read_proc_file(name: str, path: str) -> ProbeResult:
@@ -77,7 +128,7 @@ def read_proc_file(name: str, path: str) -> ProbeResult:
         value = Path(path).read_text(encoding="utf-8", errors="replace").strip()
         return ProbeResult(name, "PASS", value.replace("\n", " | "))
     except Exception as exc:  # pragma: no cover - depends on container runtime
-        return ProbeResult(name, "SKIP", f"unavailable: {exc}")
+        return ProbeResult(name, "SKIP_ABSENT", f"unavailable: {exc}")
 
 
 def syscall_number(name: str) -> int | None:
@@ -92,7 +143,7 @@ def syscall_number(name: str) -> int | None:
 def probe_bpf() -> ProbeResult:
     number = syscall_number("bpf")
     if number is None:
-        return ProbeResult("bpf", "SKIP", "syscall number unavailable for this architecture")
+        return ProbeResult("bpf", "FAIL_MISSING_CLASS_REQUIRED", "syscall number unavailable for this architecture")
 
     libc = ctypes.CDLL(None, use_errno=True)
     attr = ctypes.create_string_buffer(256)
@@ -101,52 +152,52 @@ def probe_bpf() -> ProbeResult:
     rc = libc.syscall(number, 0, ctypes.byref(attr), ctypes.sizeof(attr))
     if rc >= 0:
         os.close(rc)
-        return ProbeResult("bpf", "FAIL", "BPF_MAP_CREATE succeeded")
+        return ProbeResult("bpf", "FAIL_ALLOWED", "BPF_MAP_CREATE succeeded")
 
     err = ctypes.get_errno()
     if err in (errno.EPERM, errno.EACCES):
         return ProbeResult("bpf", "BLOCKED", f"errno {err}: {os.strerror(err)}")
     if err in (errno.ENOSYS, errno.EINVAL, errno.E2BIG):
-        return ProbeResult("bpf", "SKIP", f"errno {err}: {os.strerror(err)}")
-    return ProbeResult("bpf", "FAIL", f"errno {err}: {os.strerror(err)}")
+        return ProbeResult("bpf", "FAIL_MISSING_CLASS_REQUIRED", f"errno {err}: {os.strerror(err)}")
+    return ProbeResult("bpf", "FAIL_UNKNOWN", f"errno {err}: {os.strerror(err)}")
 
 
 def probe_io_uring_setup() -> ProbeResult:
     number = syscall_number("io_uring_setup")
     if number is None:
-        return ProbeResult("io_uring_setup", "SKIP", "syscall number unavailable for this architecture")
+        return ProbeResult("io_uring_setup", "SKIP_ABSENT", "syscall number unavailable for this architecture")
 
     libc = ctypes.CDLL(None, use_errno=True)
     params = ctypes.create_string_buffer(256)
     rc = libc.syscall(number, 2, ctypes.byref(params))
     if rc >= 0:
         os.close(rc)
-        return ProbeResult("io_uring_setup", "FAIL", "io_uring_setup succeeded")
+        return ProbeResult("io_uring_setup", "FAIL_ALLOWED", "io_uring_setup succeeded")
 
     err = ctypes.get_errno()
     if err in (errno.EPERM, errno.EACCES):
         return ProbeResult("io_uring_setup", "BLOCKED", f"errno {err}: {os.strerror(err)}")
-    if err in (errno.ENOSYS, errno.EINVAL):
-        return ProbeResult("io_uring_setup", "SKIP", f"errno {err}: {os.strerror(err)}")
-    return ProbeResult("io_uring_setup", "FAIL", f"errno {err}: {os.strerror(err)}")
+    if err == errno.ENOSYS:
+        return ProbeResult("io_uring_setup", "SKIP_ABSENT", f"errno {err}: {os.strerror(err)}")
+    return ProbeResult("io_uring_setup", "FAIL_UNKNOWN", f"errno {err}: {os.strerror(err)}")
 
 
 def probe_syscall(name: str) -> ProbeResult:
     number = syscall_number(name)
     if number is None:
-        return ProbeResult(name, "SKIP", "syscall number unavailable for this architecture")
+        return ProbeResult(name, "FAIL_MISSING_CLASS_REQUIRED", "syscall number unavailable for this architecture")
 
     libc = ctypes.CDLL(None, use_errno=True)
     rc = libc.syscall(number, 0, 0, 0)
     if rc == 0:
-        return ProbeResult(name, "FAIL", "syscall unexpectedly succeeded")
+        return ProbeResult(name, "FAIL_ALLOWED", "syscall unexpectedly succeeded")
 
     err = ctypes.get_errno()
     if err in (errno.EPERM, errno.EACCES):
         return ProbeResult(name, "BLOCKED", f"errno {err}: {os.strerror(err)}")
     if err in (errno.ENOSYS, errno.EINVAL, errno.EFAULT):
-        return ProbeResult(name, "SKIP", f"errno {err}: {os.strerror(err)}")
-    return ProbeResult(name, "FAIL", f"errno {err}: {os.strerror(err)}")
+        return ProbeResult(name, "FAIL_MISSING_CLASS_REQUIRED", f"errno {err}: {os.strerror(err)}")
+    return ProbeResult(name, "FAIL_UNKNOWN", f"errno {err}: {os.strerror(err)}")
 
 
 def as_dict(result: ProbeResult) -> dict[str, str]:
@@ -156,10 +207,11 @@ def as_dict(result: ProbeResult) -> dict[str, str]:
 def main() -> int:
     context = read_context()
     userns_result = probe_userns()
-    if PROFILE_CLASS == "nested" and userns_result.name == "userns":
-        if userns_result.status == "FAIL" and "succeeded" in userns_result.detail:
+    nested_profile = PROFILE_CLASS in {"nested", "nested-strange"}
+    if nested_profile and userns_result.name == "userns":
+        if userns_result.status == "FAIL_ALLOWED" and "succeeded" in userns_result.detail:
             userns_result = ProbeResult("userns", "PASS", "unshare(CLONE_NEWUSER) succeeded")
-        elif userns_result.status in ("BLOCKED", "SKIP"):
+        elif userns_result.status in ("BLOCKED", "SKIP_ABSENT", "FAIL_MISSING_CLASS_REQUIRED"):
             userns_result = ProbeResult("userns", userns_result.status, f"second user namespace not required: {userns_result.detail}")
 
     results = [
@@ -172,18 +224,27 @@ def main() -> int:
         probe_bpf(),
         probe_io_uring_setup(),
     ]
-    if PROFILE_CLASS == "nested":
+    if STRANGE_SOCKET_V1:
+        results.extend([
+            probe_optional_socket("AF_XDP", "xdp_socket", family("AF_XDP", 44), socket.SOCK_RAW, 0),
+            probe_optional_socket("AF_TIPC", "tipc_socket", family("AF_TIPC", 30), socket.SOCK_RDM, 0),
+            probe_optional_socket("AF_CAN", "can_socket", family("AF_CAN", 29), socket.SOCK_RAW, getattr(socket, "CAN_RAW", 1)),
+            probe_optional_socket("AF_BLUETOOTH", "bluetooth_socket", family("AF_BLUETOOTH", 31), socket.SOCK_RAW, 0),
+            probe_optional_socket("AF_NFC", "nfc_socket", family("AF_NFC", 39), socket.SOCK_RAW, 0),
+            probe_optional_socket("AF_KCM", "kcm_socket", family("AF_KCM", 41), socket.SOCK_DGRAM, 0),
+            probe_optional_socket("AF_RDS", "rds_socket", family("AF_RDS", 21), socket.SOCK_SEQPACKET, 0),
+        ])
+    if nested_profile:
         results.extend([
             read_proc_file("uid_map", "/proc/self/uid_map"),
             read_proc_file("gid_map", "/proc/self/gid_map"),
         ])
-    overall = "PASS" if all(result.status in ("PASS", "BLOCKED", "SKIP") for result in results) else "FAIL"
+    overall = "PASS" if all(result.status in ("PASS", "BLOCKED", "SKIP_ABSENT") for result in results) else "FAIL"
 
     print(f"Profile class: {PROFILE_CLASS}")
     print(f"SELinux context: {context}")
     for result in results:
         print(f"{result.status}: {result.name}: {result.detail}")
-    print(f"{PROFILE_CLASS}_profile: {'passed' if overall == 'PASS' else 'failed'}")
     print(json.dumps({
         "overall": overall,
         "profile_class": PROFILE_CLASS,
@@ -191,6 +252,7 @@ def main() -> int:
         "selinux_context": context,
         "results": [as_dict(result) for result in results],
     }, sort_keys=True))
+    print(f"{PROFILE_CLASS}_profile: {'passed' if overall == 'PASS' else 'failed'}")
 
     return 0 if overall == "PASS" else 1
 

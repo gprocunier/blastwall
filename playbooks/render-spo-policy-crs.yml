@@ -6,24 +6,37 @@
   vars:
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
-      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.6.1', true), true) }}
     blastwall_policy_release: >-
-      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('0.rc1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
-    blastwall_spo_profiles:
+    blastwall_spo_include_strange_socket_v1: "{{ (lookup('env', 'BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1') | default('false', true) | bool) }}"
+    blastwall_spo_profiles_base:
       - blastwall
       - blastwall-nested
-    blastwall_spo_profile_resources:
+    blastwall_spo_profiles_strange:
+      - blastwall-strange
+      - blastwall-nested-strange
+    blastwall_spo_profiles: "{{ blastwall_spo_profiles_base + (blastwall_spo_include_strange_socket_v1 | ternary(blastwall_spo_profiles_strange, [])) }}"
+    blastwall_spo_profile_resources_base:
       - blastwall
       - blastwallnested
-    blastwall_spo_sccs:
+    blastwall_spo_profile_resources_strange:
+      - blastwallstrange
+      - blastwallnestedstrange
+    blastwall_spo_profile_resources: "{{ blastwall_spo_profile_resources_base + (blastwall_spo_include_strange_socket_v1 | ternary(blastwall_spo_profile_resources_strange, [])) }}"
+    blastwall_spo_sccs_base:
       - blastwall-confined
       - blastwall-nested
+    blastwall_spo_sccs_strange:
+      - blastwall-strange
+      - blastwall-nested-strange
+    blastwall_spo_sccs: "{{ blastwall_spo_sccs_base + (blastwall_spo_include_strange_socket_v1 | ternary(blastwall_spo_sccs_strange, [])) }}"
     blastwall_spo_namespace: blastwall-spo
     blastwall_spo_workload_namespace: blastwall-workloads
     blastwall_spo_artifact_dir: /var/tmp/blastwall-policy-pipeline/artifacts/openshift-spo
     blastwall_spo_bundle_path: "{{ blastwall_spo_artifact_dir }}/blastwall-spo-crs.yaml"
-    blastwall_spo_manifest_files:
+    blastwall_spo_manifest_files_base:
       - openshift/spo/00-namespace.yaml
       - openshift/spo/05-workload-namespace.yaml
       - openshift/spo/10-rawselinuxprofile-blastwall.yaml
@@ -34,6 +47,13 @@
       - openshift/spo/examples/blastwall-protected-deployment.yaml
       - openshift/spo/examples/blastwall-nested-deployment.yaml
       - openshift/spo/tests/50-validation-job.yaml
+    blastwall_spo_manifest_files_strange:
+      - openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+      - openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+      - openshift/spo/strange-socket-v1/21-scc-blastwall-strange.yaml
+      - openshift/spo/strange-socket-v1/31-workload-rbac-strange.yaml
+      - openshift/spo/strange-socket-v1/tests/50-validation-job-strange.yaml
+    blastwall_spo_manifest_files: "{{ blastwall_spo_manifest_files_base + (blastwall_spo_include_strange_socket_v1 | ternary(blastwall_spo_manifest_files_strange, [])) }}"
     blastwall_spo_common_labels:
       blastwall.io/profile: openshift-spo
       blastwall.io/policy-version: "{{ blastwall_policy_version }}"

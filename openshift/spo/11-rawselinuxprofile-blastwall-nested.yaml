@@ -10,9 +10,9 @@ metadata:
     blastwall.io/workload-class: blastwall-nested
     blastwall.io/public-profile-name: blastwall-nested
   annotations:
-    blastwall.io/policy-version: "0.5.2"
-    blastwall.io/policy-release: "1"
-    blastwall.io/policy-nevra: blastwall-selinux-0.5.2-1
+    blastwall.io/policy-version: "0.6.1"
+    blastwall.io/policy-release: "0.rc1"
+    blastwall.io/policy-nevra: blastwall-selinux-0.6.1-0.rc1
     blastwall.io/source: policy/Makefile
 spec:
   policy: |
@@ -70,6 +70,6 @@ spec:
 
     (optional blastwall_nested_io_uring_deny
       (deny process self (io_uring
-        (cmd map override_creds sqpoll)))
+        (cmd override_creds sqpoll)))
       (neverallow process self (io_uring
-        (cmd map override_creds sqpoll))))
+        (cmd override_creds sqpoll))))

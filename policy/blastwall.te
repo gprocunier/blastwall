@@ -1,4 +1,4 @@
-policy_module(blastwall, 0.5.0)
+policy_module(blastwall, 0.6.1)
 
 ########################################
 #

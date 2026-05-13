@@ -9,10 +9,9 @@ CVE-2026-43006 is the current open vulnerability; the io_uring
 subsystem has a long history of privilege escalation bugs.
 
 Exit codes:
-    0   BLOCKED  - io_uring_setup denied with EPERM
-    0   INFO     - denied for a non-permission reason
-    1   FAIL     - io_uring_setup succeeded (policy is NOT protecting)
-   77   SKIP     - io_uring not available on this kernel
+    0   BLOCKED                  - io_uring_setup denied
+    1   FAIL_MISSING_CLASS_REQUIRED - io_uring_setup unsupported on this kernel
+    1   FAIL_UNKNOWN             - unexpected errno or probe failure
 """
 
 import ctypes
@@ -31,13 +30,13 @@ def main():
     }
     NR_IO_URING_SETUP = nr_table.get(machine)
     if NR_IO_URING_SETUP is None:
-        print("SKIP: unsupported architecture %s" % machine)
-        sys.exit(77)
+        print("FAIL_MISSING_CLASS_REQUIRED: unsupported architecture %s" % machine)
+        sys.exit(1)
 
     libc_name = ctypes.util.find_library("c")
     if not libc_name:
-        print("SKIP: cannot find libc")
-        sys.exit(77)
+        print("FAIL_UNKNOWN: cannot find libc")
+        sys.exit(1)
     libc = ctypes.CDLL(libc_name, use_errno=True)
 
     # struct io_uring_params (120 bytes, mostly zeros for defaults)
@@ -55,17 +54,16 @@ def main():
         sys.exit(1)
 
     err = ctypes.get_errno()
-    if err == errno.EPERM:
-        print("BLOCKED: io_uring_setup denied with EPERM  [CVE-2026-43006]")
+    if err in (errno.EPERM, errno.EACCES):
+        print("BLOCKED: io_uring_setup denied with errno %s  [CVE-2026-43006]" % err)
         sys.exit(0)
-    elif err == errno.ENOSYS:
-        print("SKIP: io_uring not available on this kernel")
-        sys.exit(77)
-    else:
-        print("INFO: io_uring_setup failed with %s "
-              "(not EPERM, may not be SELinux)" %
-              errno.errorcode.get(err, str(err)))
-        sys.exit(0)
+    if err in (errno.ENOSYS, errno.EINVAL):
+        print("FAIL_MISSING_CLASS_REQUIRED: io_uring not available on this kernel")
+        sys.exit(1)
+    print("FAIL_UNKNOWN: io_uring_setup failed with %s "
+          "(not EPERM/EACCES, cannot count as blocked evidence)" %
+          errno.errorcode.get(err, str(err)))
+    sys.exit(1)
 
 if __name__ == "__main__":
     main()

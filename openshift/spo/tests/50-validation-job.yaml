@@ -35,7 +35,7 @@ spec:
             - /opt/blastwall/blastwall_spo_probe.py
           env:
             - name: BLASTWALL_EXPECTED_SELINUX_TYPE
-              value: blastwall_.process
+              value: __BLASTWALL_SPO_STANDARD_SELINUX_TYPE__
             - name: BLASTWALL_PROFILE_CLASS
               value: standard
           volumeMounts:
@@ -91,7 +91,7 @@ spec:
             - /opt/blastwall/blastwall_spo_probe.py
           env:
             - name: BLASTWALL_EXPECTED_SELINUX_TYPE
-              value: blastwallnested_.process
+              value: __BLASTWALL_SPO_NESTED_SELINUX_TYPE__
             - name: BLASTWALL_PROFILE_CLASS
               value: nested
           volumeMounts:

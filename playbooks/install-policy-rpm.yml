@@ -6,13 +6,39 @@
   vars:
     blastwall_policy_name: blastwall-selinux
     blastwall_policy_version: >-
-      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.5.2', true), true) }}
+      {{ BLASTWALL_POLICY_VERSION | default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.6.1', true), true) }}
     blastwall_policy_release: >-
-      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('1', true), true) }}
+      {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('0.rc1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
     blastwall_pipeline_root: /var/tmp/blastwall-policy-pipeline
     blastwall_policy_artifact_path: "{{ blastwall_pipeline_root }}/artifacts/{{ blastwall_policy_nevra }}.noarch.rpm"
     blastwall_policy_package_dir: /usr/share/selinux/packages/blastwall
+    blastwall_allow_dry_run_profiles: >-
+      {{
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES |
+        default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) |
+        bool
+      }}
+    blastwall_required_profiles_env: >-
+      {{
+        BLASTWALL_REQUIRED_POLICY_PROFILES |
+        default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true)
+      }}
+    required_blastwall_profiles: >-
+      {{
+        (blastwall_required_profiles_env.split(',') | map('trim') | reject('equalto', '') | list)
+        if blastwall_required_profiles_env | length > 0
+        else ['base']
+      }}
+    blastwall_strange_socket_v1_requested: "{{ 'strange-socket-v1' in required_blastwall_profiles }}"
+    blastwall_strange_socket_v1_legacy_dry_run_raw: >-
+      {{
+        BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN |
+        default(lookup('env', 'BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN') | default('', true), true)
+      }}
+    blastwall_strange_socket_v1_legacy_dry_run_set: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | string | length > 0 }}"
+    blastwall_strange_socket_v1_legacy_dry_run: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | bool }}"
+    blastwall_enable_strange_socket_v1_dry_run: "{{ blastwall_strange_socket_v1_requested | bool and blastwall_allow_dry_run_profiles | bool }}"
     blastwall_selinux_type: targeted
     blastwall_selinux_user: blastwall_u
     blastwall_selinux_role: blastwall_r
@@ -30,12 +56,15 @@
       - blastwall-io-uring-deny
       - blastwall-xfrm-deny
       - blastwall-rxrpc-deny
+    blastwall_policy_dry_run_modules:
+      - blastwall-strange-socket-v1-deny
     blastwall_policy_modules: >-
       {{
         blastwall_policy_bootstrap_modules +
         ['blastwall'] +
         blastwall_policy_support_modules +
-        blastwall_policy_cil_modules
+        blastwall_policy_cil_modules +
+        (blastwall_policy_dry_run_modules if blastwall_enable_strange_socket_v1_dry_run else [])
       }}
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
     ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
@@ -57,6 +86,23 @@
         fail_msg: >-
           Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for GSSAPI
           target SSH.
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Assert strange-socket-v1 dry-run intent is consistent
+      ansible.builtin.assert:
+        that:
+          - not blastwall_strange_socket_v1_requested | bool or blastwall_allow_dry_run_profiles | bool
+          - >-
+            not blastwall_strange_socket_v1_legacy_dry_run_set | bool or
+            (blastwall_strange_socket_v1_legacy_dry_run | bool) == (blastwall_enable_strange_socket_v1_dry_run | bool)
+        fail_msg: >-
+          strange-socket-v1 requires canonical dry-run intent:
+          include strange-socket-v1 in BLASTWALL_REQUIRED_POLICY_PROFILES and set
+          BLASTWALL_ALLOW_DRY_RUN_PROFILES=true. If legacy
+          BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN is set, it must agree with the
+          derived profile intent.
       run_once: true
       delegate_to: localhost
       become: false
@@ -132,6 +178,11 @@
         {% for module in blastwall_policy_cil_modules %}
         {{ blastwall_policy_package_dir }}/{{ module }}.cil
         {% endfor %}
+        {% if blastwall_enable_strange_socket_v1_dry_run %}
+        {% for module in blastwall_policy_dry_run_modules %}
+        {{ blastwall_policy_package_dir }}/dry-run/{{ module }}.cil
+        {% endfor %}
+        {% endif %}
       changed_when: true
 
     - name: Install Blastwall SELinux login context from RPM payload
@@ -255,3 +306,4 @@
           policy_pipeline_install: passed
           policy_nevra: "{{ blastwall_policy_nevra }}"
           policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
+          strange_socket_v1_dry_run: "{{ blastwall_enable_strange_socket_v1_dry_run }}"

@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 12-rawselinuxprofile-blastwall-strange.yaml
+  - 13-rawselinuxprofile-blastwall-nested-strange.yaml
+  - 21-scc-blastwall-strange.yaml
+  - 31-workload-rbac-strange.yaml
+  - tests/50-validation-job-strange.yaml

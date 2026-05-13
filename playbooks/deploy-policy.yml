@@ -22,7 +22,7 @@
     ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
     krb5_ccache: FILE:/tmp/blastwall_krb5cc
-    blastwall_policy_rpm: blastwall-selinux-0.5.2-1
+    blastwall_policy_rpm: blastwall-selinux-0.6.1-0.rc1
     blastwall_project_dir: /opt/blastwall
     blastwall_policy_dir: "{{ blastwall_project_dir }}/policy"
     blastwall_selinux_type: targeted
@@ -34,6 +34,35 @@
     blastwall_deploy_force_cleanup_on_failure: false
     blastwall_policy_marker_rpm_sha256: >-
       {{ blastwall_policy_rpm_sha256 | default(lookup('env', 'BLASTWALL_POLICY_RPM_SHA256') | default('', true), true) }}
+    blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
+    blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
+    blastwall_policy_sha256: "{{ blastwall_policy_marker_rpm_sha256 }}"
+    blastwall_allow_dry_run_profiles: >-
+      {{
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES |
+        default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) |
+        bool
+      }}
+    blastwall_required_profiles_env: >-
+      {{
+        BLASTWALL_REQUIRED_POLICY_PROFILES |
+        default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true)
+      }}
+    required_blastwall_profiles: >-
+      {{
+        (blastwall_required_profiles_env.split(',') | map('trim') | reject('equalto', '') | list)
+        if blastwall_required_profiles_env | length > 0
+        else ['base']
+      }}
+    blastwall_strange_socket_v1_requested: "{{ 'strange-socket-v1' in required_blastwall_profiles }}"
+    blastwall_strange_socket_v1_legacy_dry_run_raw: >-
+      {{
+        BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN |
+        default(lookup('env', 'BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN') | default('', true), true)
+      }}
+    blastwall_strange_socket_v1_legacy_dry_run_set: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | string | length > 0 }}"
+    blastwall_strange_socket_v1_legacy_dry_run: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | bool }}"
+    blastwall_enable_strange_socket_v1_dry_run: "{{ blastwall_strange_socket_v1_requested | bool and blastwall_allow_dry_run_profiles | bool }}"
     blastwall_existing_userclass_values: >-
       {{
         idm_userclass
@@ -64,14 +93,24 @@
       - blastwall-io-uring-deny
       - blastwall-xfrm-deny
       - blastwall-rxrpc-deny
-    blastwall_policy_marker: >-
-      blastwall:state=active;rpm={{ blastwall_policy_rpm }};rpm_sha256={{ blastwall_policy_marker_rpm_sha256 }};alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny
-    blastwall_policy_failed_marker: >-
-      blastwall:state=failed;rpm={{ blastwall_policy_rpm }};rpm_sha256={{ blastwall_policy_marker_rpm_sha256 | default('unknown', true) }}
-    blastwall_policy_userclass_values: >-
-      {{ blastwall_preserved_userclass_values + [blastwall_policy_marker] }}
-    blastwall_policy_failed_userclass_values: >-
-      {{ blastwall_preserved_userclass_values + [blastwall_policy_failed_marker] }}
+    blastwall_policy_dry_run_modules:
+      - blastwall-strange-socket-v1-deny
+    blastwall_policy_modules_effective: >-
+      {{
+        blastwall_policy_modules +
+        (blastwall_policy_dry_run_modules if blastwall_enable_strange_socket_v1_dry_run | bool else [])
+      }}
+    blastwall_marker_emit_command: >-
+      {{ ansible_playbook_python | default('/usr/bin/python3') }}
+      {{ playbook_dir }}/../tools/blastwall_marker.py --emit --target=rhel-login
+      {% if blastwall_allow_dry_run_profiles | bool %}
+      --allow-dry-run-profiles
+      {% endif %}
+      --rpm={{ blastwall_policy_rpm }}
+      --policy-sha256={{ blastwall_policy_sha256 }}
+      {% for profile in required_blastwall_profiles %}
+      --profile={{ profile }}
+      {% endfor %}
   tasks:
     - name: Require Kerberos inputs for target SSH
       ansible.builtin.assert:
@@ -83,11 +122,29 @@
           - not blastwall_update_idm_marker | bool or ipa_domain | length > 0
           - not blastwall_update_idm_marker | bool or ipa_password | length > 0
           - not blastwall_update_idm_marker | bool or blastwall_policy_marker_rpm_sha256 is match('^[0-9a-f]{64}$')
+          - not blastwall_update_idm_marker | bool or blastwall_profile_registry_sha256 is match('^[0-9a-f]{64}$')
         fail_msg: >-
           Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for
           GSSAPI target SSH. Marker updates also require IPA_SERVER, IPA_DOMAIN,
           IPA_PASSWORD, and a 64-character BLASTWALL_POLICY_RPM_SHA256 value for
           the FreeIPA module.
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Assert strange-socket-v1 dry-run intent is consistent
+      ansible.builtin.assert:
+        that:
+          - not blastwall_strange_socket_v1_requested | bool or blastwall_allow_dry_run_profiles | bool
+          - >-
+            not blastwall_strange_socket_v1_legacy_dry_run_set | bool or
+            (blastwall_strange_socket_v1_legacy_dry_run | bool) == (blastwall_enable_strange_socket_v1_dry_run | bool)
+        fail_msg: >-
+          strange-socket-v1 requires canonical dry-run intent:
+          include strange-socket-v1 in BLASTWALL_REQUIRED_POLICY_PROFILES and set
+          BLASTWALL_ALLOW_DRY_RUN_PROFILES=true. If legacy
+          BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN is set, it must agree with the
+          derived profile intent.
       run_once: true
       delegate_to: localhost
       become: false
@@ -126,6 +183,15 @@
           basedn = {{ ipa_basedn }}
           xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
       run_once: true
+      delegate_to: localhost
+      become: false
+      when: blastwall_update_idm_marker | bool
+
+    - name: Render failed Blastwall marker for collection fallback
+      ansible.builtin.shell:
+        cmd: "{{ blastwall_marker_emit_command }} --state=failed"
+      register: blastwall_policy_failed_marker
+      changed_when: false
       delegate_to: localhost
       become: false
       when: blastwall_update_idm_marker | bool
@@ -206,6 +272,12 @@
             chdir: "{{ blastwall_policy_dir }}"
             target: install
 
+        - name: Install Blastwall dry-run policy modules
+          community.general.make:
+            chdir: "{{ blastwall_policy_dir }}"
+            target: install-dry-run
+          when: blastwall_enable_strange_socket_v1_dry_run | bool
+
         - name: Install Blastwall SELinux login context
           ansible.builtin.copy:
             src: "{{ blastwall_policy_dir }}/contexts/{{ blastwall_selinux_user }}"
@@ -285,7 +357,7 @@
             that:
               - item in (blastwall_installed_modules.stdout_lines | map('split') | map('first') | list)
             fail_msg: "SELinux module {{ item }} is not installed."
-          loop: "{{ blastwall_policy_modules }}"
+          loop: "{{ blastwall_policy_modules_effective }}"
 
         - name: Validate registered Blastwall SELinux user
           ansible.builtin.command:
@@ -322,13 +394,22 @@
               Blastwall policy install did not validate cleanly.
               context_exists={{ blastwall_login_context_file.stat.exists | default(false) }}.
 
+        - name: Render active Blastwall marker for collection writes
+          ansible.builtin.shell:
+            cmd: "{{ blastwall_marker_emit_command }} --state=active"
+          register: blastwall_policy_marker
+          changed_when: false
+          delegate_to: localhost
+          become: false
+          when: blastwall_update_idm_marker | bool
+
         - name: Publish Blastwall host marker to IdM
           freeipa.ansible_freeipa.ipahost:
             ipaadmin_principal: "{{ ipa_principal }}"
             ipaadmin_password: "{{ ipa_password }}"
             name: "{{ inventory_hostname }}"
             description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
-            userclass: "{{ blastwall_policy_userclass_values }}"
+            userclass: "{{ blastwall_preserved_userclass_values + [blastwall_policy_marker.stdout] }}"
             state: present
           no_log: true
           delegate_to: localhost
@@ -342,7 +423,7 @@
               - semodule
               - -r
               - "{{ item }}"
-          loop: "{{ blastwall_policy_modules | reverse | list }}"
+          loop: "{{ blastwall_policy_modules_effective | reverse | list }}"
           changed_when: true
           failed_when: false
           when:
@@ -393,7 +474,7 @@
             ipaadmin_password: "{{ ipa_password }}"
             name: "{{ inventory_hostname }}"
             description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
-            userclass: "{{ blastwall_policy_failed_userclass_values }}"
+            userclass: "{{ blastwall_preserved_userclass_values + [blastwall_policy_failed_marker.stdout] }}"
             state: present
           no_log: true
           delegate_to: localhost

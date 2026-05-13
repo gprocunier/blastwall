@@ -32,7 +32,7 @@
 
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
-        <p class="lead">This demo proves both OpenShift workload classes: standard <code>blastwall</code> and nested <code>blastwall-nested</code>. The standard class blocks workload-created user namespaces; the nested class opts into pod-level user namespace behavior while keeping the Copy Fail, Dirty Frag, and Fragnesia surface denies.</p>
+        <p class="lead">This demo proves both OpenShift workload classes: standard <code>blastwall</code> and nested <code>blastwall-nested</code>. The standard class blocks workload-created user namespaces; the nested class opts into pod-level user namespace behavior while keeping the Dirty Frag, Fragnesia, and Copy Fail surface denies.</p>
 
         <section id="demo-player">
           <h2>OpenShift/SPO Demo</h2>
@@ -61,7 +61,6 @@
 
         <section id="sequence">
           <h2>Execution Sequence</h2>
-          <p>The public cast uses <code>scripts/blastwall-openshift-spo-demo/run-demo.sh</code>. It keeps the CLI proof watchable by typing each important <code>oc</code> command before execution while preserving the readiness, SCC, workload, and probe output.</p>
           <pre><code class="language-bash">oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2
 
 oc apply -k openshift/spo
@@ -210,7 +209,7 @@ nested_profile: passed</code></pre>
             <li>SPO can carry both Blastwall workload classes as Kubernetes custom resources.</li>
             <li>SCC selection can move only approved service accounts into <code>blastwall_.process</code> or <code>blastwallnested_.process</code>.</li>
             <li>The OpenShift workload path keeps pod MCS categories instead of forcing the RHEL login-domain context.</li>
-            <li>The nested class allows pod-level user namespace behavior without reopening xfrm, RxRPC, AF_ALG, BPF, packet socket, or io_uring.</li>
+            <li>The nested class allows pod-level user namespace behavior without reopening xfrm, RxRPC, Fragnesia AF_ALG, BPF, packet socket, or io_uring.</li>
           </ul>
         </section>
       </article>
@@ -219,7 +218,7 @@ nested_profile: passed</code></pre>
         <section class="context-block context-block--meta">
           <h2>Demo</h2>
           <p class="context-kicker">CLI proof path</p>
-          <p class="context-copy">Record from an SPO-enabled OpenShift cluster with <code>openshift/spo/scripts/record-openshift-spo-demo.sh</code>; it delegates to the operator-paced runner under <code>scripts/blastwall-openshift-spo-demo/</code>.</p>
+          <p class="context-copy">Record from an SPO-enabled OpenShift cluster with <code>openshift/spo/scripts/record-openshift-spo-demo.sh</code>.</p>
         </section>
         <section class="toc-block">
           <h2>On This Page</h2>

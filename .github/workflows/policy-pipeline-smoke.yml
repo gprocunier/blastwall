@@ -10,11 +10,11 @@ on:
       policy_version:
         description: Candidate Blastwall policy version
         required: false
-        default: "0.5.2"
+        default: "0.6.1"
       policy_release:
         description: Candidate Blastwall policy release
         required: false
-        default: "1"
+        default: "0.rc1"
       check_spo_apply_validate:
         description: Require the apply_validate_spo_policy_crs node and evidence
         required: false
@@ -128,6 +128,10 @@ jobs:
           grep -F 'spo_sccs' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'blastwall-confined' /tmp/blastwall-policy-pipeline-render-spo.log
           grep -F 'blastwall-nested' /tmp/blastwall-policy-pipeline-render-spo.log
+          ! grep -F 'blastwall-strange' /tmp/blastwall-policy-pipeline-render-spo.log
+          ! grep -F 'blastwall-nested-strange' /tmp/blastwall-policy-pipeline-render-spo.log
+          ! grep -F 'blastwallstrange' /tmp/blastwall-policy-pipeline-render-spo.log
+          ! grep -F 'blastwallnestedstrange' /tmp/blastwall-policy-pipeline-render-spo.log
           awx jobs get "${render_spo_id}" -f json |
             tee /tmp/blastwall-policy-pipeline-render-spo-job.json |
             jq -e '
@@ -151,6 +155,8 @@ jobs:
             grep -F 'spo_policy_bundle_sha256' /tmp/blastwall-policy-pipeline-apply-spo.log
             grep -F 'standard_profile: passed' /tmp/blastwall-policy-pipeline-apply-spo.log
             grep -F 'nested_profile: passed' /tmp/blastwall-policy-pipeline-apply-spo.log
+            ! grep -F 'standard-strange_profile: passed' /tmp/blastwall-policy-pipeline-apply-spo.log
+            ! grep -F 'nested-strange_profile: passed' /tmp/blastwall-policy-pipeline-apply-spo.log
           else
             echo "Skipping apply_validate_spo_policy_crs assertions: not requested"
           fi
@@ -162,15 +168,26 @@ jobs:
 
           awx jobs stdout "${verify_id}" | tee /tmp/blastwall-policy-pipeline-verify.log
           grep -F 'blastwall_u:blastwall_r:blastwall_t:s0' /tmp/blastwall-policy-pipeline-verify.log
-          grep -E 'SKIP: could not create AF_ALG socket|BLOCKED:' /tmp/blastwall-policy-pipeline-verify.log
-          grep -F 'Dirty Frag NETLINK_XFRM' /tmp/blastwall-policy-pipeline-verify.log
-          grep -F 'Dirty Frag AF_RXRPC' /tmp/blastwall-policy-pipeline-verify.log
-          grep -F 'Fragnesia AF_ALG' /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'BLOCKED: AF_ALG socket creation denied' \
+            /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'BLOCKED: AF_ALG authencesn bind denied with EPERM' \
+            /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'BLOCKED: io_uring_setup denied with errno' \
+            /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'BLOCKED: Dirty Frag NETLINK_XFRM socket creation denied with errno' \
+            /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'BLOCKED: Dirty Frag AF_RXRPC socket creation denied with errno' \
+            /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'BLOCKED: Fragnesia AF_ALG socket creation denied with errno' \
+            /tmp/blastwall-policy-pipeline-verify.log
 
           awx jobs stdout "${promote_id}" | tee /tmp/blastwall-policy-pipeline-promote.log
           grep -F 'policy_pipeline_promotion' /tmp/blastwall-policy-pipeline-promote.log
-          grep -F 'blastwall:state=active;rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
-          grep -E 'rpm_sha256=[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'blastwall:v=2' /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'rpm=blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -E 'registry_sha256=[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -E 'policy_sha256=[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-promote.log
+          grep -F 'profiles=base' /tmp/blastwall-policy-pipeline-promote.log
 
           awx jobs stdout "${preflight_id}" | tee /tmp/blastwall-policy-pipeline-preflight.log
           grep -E 'All assertions passed|selected_hosts|candidate_hosts' /tmp/blastwall-policy-pipeline-preflight.log

@@ -1,0 +1,609 @@
+schema: blastwall.profile/v1
+version: 1
+
+targets:
+  rhel-login:
+    description: RHEL login path using blastwall_u:blastwall_r:blastwall_t:s0.
+    mechanism: selinux-cil-deny
+    subject_type: blastwall_t
+    min_rhel: "9.4"
+  ocp-spo-standard:
+    description: OpenShift standard workload path using Security Profiles Operator.
+    mechanism: spo-raw-selinux-profile
+    usage_source: status.usage
+  ocp-spo-nested:
+    description: OpenShift nested workload path using Security Profiles Operator.
+    mechanism: spo-raw-selinux-profile
+    usage_source: status.usage
+
+permission_sets:
+  socket_all:
+    - accept
+    - append
+    - bind
+    - connect
+    - create
+    - getattr
+    - getopt
+    - ioctl
+    - listen
+    - lock
+    - map
+    - name_bind
+    - read
+    - recv_msg
+    - recvfrom
+    - relabelfrom
+    - relabelto
+    - send_msg
+    - sendto
+    - setattr
+    - setopt
+    - shutdown
+    - write
+  netlink_xfrm_socket_all:
+    - accept
+    - append
+    - bind
+    - connect
+    - create
+    - getattr
+    - getopt
+    - ioctl
+    - listen
+    - lock
+    - map
+    - name_bind
+    - nlmsg_read
+    - nlmsg_write
+    - read
+    - recv_msg
+    - recvfrom
+    - relabelfrom
+    - relabelto
+    - send_msg
+    - sendto
+    - setattr
+    - setopt
+    - shutdown
+    - write
+  bpf_basic:
+    - map_create
+    - map_read
+    - map_write
+    - prog_load
+    - prog_run
+  capability2_bpf:
+    - bpf
+  user_namespace_create:
+    - create
+  io_uring_basic:
+    - cmd
+    - override_creds
+    - sqpoll
+  selfprotect_policy:
+    - security_load_policy
+    - semanage_execute
+    - setsebool_execute
+    - load_policy_execute
+    - selinux_config_write
+
+scopes:
+  alg_socket:
+    description: Deny AF_ALG sockets for Blastwall automation subjects.
+    status: active
+    object_class: alg_socket
+    class_presence: required
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-alg-socket-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-copyfail-afalg.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  bpf:
+    description: Deny BPF map and program operations for Blastwall automation subjects.
+    status: active
+    object_class: bpf
+    class_presence: required
+    permission_set: bpf_basic
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-bpf-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-bpf-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  capability2_bpf:
+    description: Deny capability2 bpf privilege for Blastwall automation subjects.
+    status: active
+    object_class: capability2
+    class_presence: required
+    permission_set: capability2_bpf
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-bpf-deny.cil
+        validation:
+          type: static_check
+          evidence_source: tests/policy_static.py
+          required_for_release: false
+          expected: FAIL_UNKNOWN
+          note: RHEL CIL is combined with bpf; no dedicated capability2_bpf runtime probe exists yet.
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: static_check
+          evidence_source: tests/openshift/validate_spo_manifests.py
+          required_for_release: false
+          expected: FAIL_UNKNOWN
+          note: Static SPO validation confirms the capability2 bpf deny surface.
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: static_check
+          evidence_source: tests/openshift/validate_spo_manifests.py
+          required_for_release: false
+          expected: FAIL_UNKNOWN
+          note: Static SPO validation confirms the nested capability2 bpf deny surface.
+  packet_socket:
+    description: Deny AF_PACKET sockets for Blastwall automation subjects.
+    status: active
+    object_class: packet_socket
+    class_presence: required
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-packet-socket-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-packet-socket-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  userns:
+    description: Deny user namespace creation for Blastwall automation subjects.
+    status: active
+    object_class: user_namespace
+    class_presence: optional
+    permission_set: user_namespace_create
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-userns-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-userns-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  io_uring:
+    description: Deny io_uring operations for Blastwall automation subjects.
+    status: active
+    object_class: io_uring
+    class_presence: optional
+    permission_set: io_uring_basic
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-io-uring-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-io-uring-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  xfrm:
+    description: Deny NETLINK_XFRM sockets for Blastwall automation subjects.
+    status: active
+    object_class: netlink_xfrm_socket
+    class_presence: required
+    permission_set: netlink_xfrm_socket_all
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-xfrm-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-dirtyfrag-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  rxrpc:
+    description: Deny AF_RXRPC sockets for Blastwall automation subjects.
+    status: active
+    object_class: rxrpc_socket
+    class_presence: required
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-rxrpc-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-dirtyfrag-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/10-rawselinuxprofile-blastwall.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/11-rawselinuxprofile-blastwall-nested.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  selfprotect:
+    description: Deny Blastwall automation subjects from weakening SELinux policy.
+    status: active
+    object_class: policy_selfprotect
+    class_presence: required
+    permission_set: selfprotect_policy
+    evidence:
+      present: BLOCKED
+      absent: FAIL_MISSING_CLASS_REQUIRED
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-policy-selfprotect.cil
+        validation:
+          type: playbook
+          evidence_source: poc-calabi/35-test-self-protection.yml
+          required_for_release: true
+          expected: BLOCKED
+  xdp_socket:
+    description: Lab-only dry-run denial for AF_XDP sockets.
+    status: dry-run
+    object_class: xdp_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  tipc_socket:
+    description: Lab-only dry-run denial for AF_TIPC sockets.
+    status: dry-run
+    object_class: tipc_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  can_socket:
+    description: Lab-only dry-run denial for AF_CAN sockets.
+    status: dry-run
+    object_class: can_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  bluetooth_socket:
+    description: Lab-only dry-run denial for AF_BLUETOOTH sockets.
+    status: dry-run
+    object_class: bluetooth_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  nfc_socket:
+    description: Lab-only dry-run denial for AF_NFC sockets.
+    status: dry-run
+    object_class: nfc_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  kcm_socket:
+    description: Lab-only dry-run denial for AF_KCM sockets.
+    status: dry-run
+    object_class: kcm_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+  rds_socket:
+    description: Lab-only dry-run denial for AF_RDS sockets.
+    status: dry-run
+    object_class: rds_socket
+    class_presence: optional
+    permission_set: socket_all
+    evidence:
+      present: BLOCKED
+      absent: SKIP_ABSENT
+    target_support:
+      rhel-login:
+        artifact: policy/blastwall-strange-socket-v1-deny.cil
+        validation:
+          type: safe_probe
+          probe: tests/trigger-strange-socket-v1-deny.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-standard:
+        artifact: openshift/spo/strange-socket-v1/12-rawselinuxprofile-blastwall-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+      ocp-spo-nested:
+        artifact: openshift/spo/strange-socket-v1/13-rawselinuxprofile-blastwall-nested-strange.yaml
+        validation:
+          type: safe_probe
+          probe: tests/openshift/blastwall_spo_probe.py
+          required_for_release: true
+          expected: BLOCKED
+
+profiles:
+  base:
+    description: Current Blastwall deny posture.
+    status: active
+    scopes:
+      - alg_socket
+      - bpf
+      - capability2_bpf
+      - packet_socket
+      - userns
+      - io_uring
+      - xfrm
+      - rxrpc
+      - selfprotect
+  strange-socket-v1:
+    description: Lab-only dry-run first-wave unusual socket-family extension.
+    status: dry-run
+    lifecycle: lab-only-dry-run
+    extends:
+      - base
+    scopes:
+      - xdp_socket
+      - tipc_socket
+      - can_socket
+      - bluetooth_socket
+      - nfc_socket
+      - kcm_socket
+      - rds_socket
+
+variants:
+  base-nested:
+    description: OpenShift nested workload variant of base.
+    status: active
+    base_profile: base
+    remove:
+      - userns
+    targets:
+      - ocp-spo-nested
+    reason: OpenShift nested workloads require pod-level user namespace behavior.

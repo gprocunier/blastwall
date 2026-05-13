@@ -3,6 +3,11 @@
 ; chains (Google research).  CVE-2025-38617 uses userns to obtain
 ; CAP_NET_RAW unprivileged.  Automation identities should never create
 ; user namespaces.
+;
+; Wrapped in an optional block so OpenShift/container runtimes that make the
+; user namespace class unreachable through seccomp or kernel configuration can
+; report explicit absent evidence instead of pretending to have SELinux proof.
 
-(deny blastwall_t self (user_namespace (create)))
-(neverallow blastwall_t self (user_namespace (create)))
+(optional blastwall_userns_deny
+  (deny blastwall_t self (user_namespace (create)))
+  (neverallow blastwall_t self (user_namespace (create))))

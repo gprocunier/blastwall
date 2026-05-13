@@ -38,6 +38,8 @@ The GitHub Pages site is the best entry point:
 | Understand the 2-minute model | [`Architecture`](https://gprocunier.github.io/blastwall/architecture.html) |
 | Understand where policy comes from and how it is maintained | [`Day 2 Operations`](https://gprocunier.github.io/blastwall/day2-operations.html) |
 | Understand the OpenShift workload path | [`OpenShift/SPO`](https://gprocunier.github.io/blastwall/openshift-spo.html) |
+| Understand the v2 experimental architecture | [`v2 Experimental README`](v2-experimental-README.md) |
+| Review v2 release semantics and backlog | [`Release Notes`](https://gprocunier.github.io/blastwall/blastwall-v2/release-notes.md) |
 | Watch the operator-facing proof | [`AAP Demo`](https://gprocunier.github.io/blastwall/aap-demo.html) |
 | Inspect the bootstrap and host-local mechanics | [`Ansible Demo`](https://gprocunier.github.io/blastwall/demo.html) |
 | Reproduce the AAP recording | [`AAP Lab`](https://gprocunier.github.io/blastwall/quick-demo.html) |
@@ -84,6 +86,7 @@ preflight selection, workflow node status, and managed-host verification output.
 | `execution-environment/` | AAP execution environment definition. |
 | `poc-calabi/` | Calabi lab overlay used to record and replay the proof. |
 | `docs/` | GitHub Pages documentation and recordings. |
+| `docs/blastwall-v2/` | v2 profile model, marker contract, release notes, developer guide, checkpoints, and backlog. |
 
 ## Requirements
 
@@ -101,6 +104,26 @@ Install collection dependencies with:
 ansible-galaxy collection install -r collections/requirements.yml
 ```
 
+## Local Validation
+
+Run the fast local release checks with:
+
+```bash
+make test-fast
+```
+
+Run the full local suite, including Playwright documentation rendering, with:
+
+```bash
+make test
+```
+
+SELinux policy compilation requires the platform policy development Makefile.
+Use `make policy-check` or `make policy-build` only on hosts with
+`selinux-policy-devel` installed. RPM release artifacts are built through
+`playbooks/build-policy-rpm.yml` on a RHEL-capable bastion or AAP target; the
+root `make rpm` target documents that boundary rather than packaging locally.
+
 ## Documentation Shape
 
 The docs intentionally separate reader needs:
@@ -110,6 +133,9 @@ The docs intentionally separate reader needs:
   a baseline disposition, and how new CVEs become tested deny scopes.
 - `openshift-spo.html` explains the OpenShift workload confinement path with
   Security Profiles Operator, SCC selection, and safe node validation.
+- `blastwall-v2/release-notes.md` freezes the v2 profile semantics, including
+  the stable `base` and `base-nested` profiles and the dry-run
+  `strange-socket-v1` profile.
 - demo pages explain what the recordings prove.
 - lab pages guide replay from a prepared environment.
 - comparison and threat-model pages review scope fit, assumptions, attack

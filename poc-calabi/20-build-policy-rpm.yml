@@ -302,7 +302,7 @@
 
           %changelog
           * Fri May 08 2026 Blastwall PoC <root@localhost> - 0.5.2-1
-          - Add Dirty Frag / Fragnesia xfrm, AF_ALG, and RxRPC evidence scopes
+          - Add Dirty Frag xfrm and RxRPC deny scopes
 
           * Sat May 03 2026 Blastwall PoC <root@localhost> - 0.5.0-1
           - Add io_uring deny scope with optional block for kernel compat (CVE-2026-43006)

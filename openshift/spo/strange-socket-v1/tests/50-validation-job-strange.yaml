@@ -1,0 +1,118 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: blastwall-strange-spo-validation
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: validation
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall-strange
+    blastwall.io/policy-profile: strange-socket-v1
+  annotations:
+    openshift.io/required-scc: blastwall-strange
+    blastwall.io/source: openshift/spo/tests
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: blastwall-strange-spo-validation
+        blastwall.io/profile: openshift-spo
+        blastwall.io/workload-class: blastwall-strange
+        blastwall.io/policy-profile: strange-socket-v1
+      annotations:
+        openshift.io/required-scc: blastwall-strange
+    spec:
+      restartPolicy: Never
+      serviceAccountName: blastwall-strange-runner
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: registry.access.redhat.com/ubi9/python-312:latest
+          command:
+            - python3
+            - /opt/blastwall/blastwall_spo_probe.py
+          env:
+            - name: BLASTWALL_EXPECTED_SELINUX_TYPE
+              value: __BLASTWALL_SPO_STRANGE_SELINUX_TYPE__
+            - name: BLASTWALL_PROFILE_CLASS
+              value: standard-strange
+            - name: BLASTWALL_STRANGE_SOCKET_V1
+              value: "true"
+          volumeMounts:
+            - name: probe
+              mountPath: /opt/blastwall
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: probe
+          configMap:
+            name: blastwall-spo-probe
+            defaultMode: 0555
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: blastwall-nested-strange-spo-validation
+  namespace: blastwall-workloads
+  labels:
+    app.kubernetes.io/name: blastwall
+    app.kubernetes.io/component: validation
+    blastwall.io/profile: openshift-spo
+    blastwall.io/workload-class: blastwall-nested-strange
+    blastwall.io/policy-profile: strange-socket-v1
+  annotations:
+    openshift.io/required-scc: blastwall-nested-strange
+    blastwall.io/source: openshift/spo/tests
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: blastwall-nested-strange-spo-validation
+        blastwall.io/profile: openshift-spo
+        blastwall.io/workload-class: blastwall-nested-strange
+        blastwall.io/policy-profile: strange-socket-v1
+      annotations:
+        openshift.io/required-scc: blastwall-nested-strange
+    spec:
+      hostUsers: false
+      restartPolicy: Never
+      serviceAccountName: blastwall-nested-strange-runner
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: registry.access.redhat.com/ubi9/python-312:latest
+          command:
+            - python3
+            - /opt/blastwall/blastwall_spo_probe.py
+          env:
+            - name: BLASTWALL_EXPECTED_SELINUX_TYPE
+              value: __BLASTWALL_SPO_NESTED_STRANGE_SELINUX_TYPE__
+            - name: BLASTWALL_PROFILE_CLASS
+              value: nested-strange
+            - name: BLASTWALL_STRANGE_SOCKET_V1
+              value: "true"
+          volumeMounts:
+            - name: probe
+              mountPath: /opt/blastwall
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: probe
+          configMap:
+            name: blastwall-spo-probe
+            defaultMode: 0555

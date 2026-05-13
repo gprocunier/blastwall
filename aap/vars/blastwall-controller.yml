@@ -136,6 +136,9 @@ blastwall_aap_job_templates:
 
 blastwall_aap_workflow: Blastwall runtime verification
 blastwall_aap_policy_pipeline_workflow: Blastwall policy pipeline
+blastwall_aap_verify_target_group: >-
+  {{ lookup('env', 'BLASTWALL_AAP_VERIFY_TARGET_GROUP') |
+  default('blastwall_profile_base', true) }}
 blastwall_aap_policy_pipeline_candidate_group: >-
   {{ lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
   default('blastwall_policy_stale', true) }}

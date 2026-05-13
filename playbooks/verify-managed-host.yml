@@ -1,6 +1,6 @@
 ---
 - name: Verify Blastwall managed-host confinement
-  hosts: "{{ blastwall_verify_target_hosts | default('blastwall_policy_current') }}"
+  hosts: "{{ blastwall_verify_target_hosts | default('blastwall_profile_base') }}"
   gather_facts: false
   vars:
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
@@ -28,6 +28,34 @@
       {{ playbook_dir }}/../tests/trigger-userns-deny.py
     blastwall_dirtyfrag_trigger_path: >-
       {{ playbook_dir }}/../tests/trigger-dirtyfrag-deny.py
+    blastwall_strange_socket_v1_trigger_path: >-
+      {{ playbook_dir }}/../tests/trigger-strange-socket-v1-deny.py
+    blastwall_allow_dry_run_profiles: >-
+      {{
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES |
+        default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) |
+        bool
+      }}
+    blastwall_required_profiles_env: >-
+      {{
+        BLASTWALL_REQUIRED_POLICY_PROFILES |
+        default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true)
+      }}
+    required_blastwall_profiles: >-
+      {{
+        (blastwall_required_profiles_env.split(',') | map('trim') | reject('equalto', '') | list)
+        if blastwall_required_profiles_env | length > 0
+        else ['base']
+      }}
+    blastwall_strange_socket_v1_requested: "{{ 'strange-socket-v1' in required_blastwall_profiles }}"
+    blastwall_strange_socket_v1_legacy_dry_run_raw: >-
+      {{
+        BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN |
+        default(lookup('env', 'BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN') | default('', true), true)
+      }}
+    blastwall_strange_socket_v1_legacy_dry_run_set: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | string | length > 0 }}"
+    blastwall_strange_socket_v1_legacy_dry_run: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | bool }}"
+    blastwall_enable_strange_socket_v1_dry_run: "{{ blastwall_strange_socket_v1_requested | bool and blastwall_allow_dry_run_profiles | bool }}"
   tasks:
     - name: Require Kerberos inputs for target SSH
       ansible.builtin.assert:
@@ -38,6 +66,22 @@
         fail_msg: >-
           Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for GSSAPI
           target SSH.
+      run_once: true
+      delegate_to: localhost
+
+    - name: Assert strange-socket-v1 dry-run intent is consistent
+      ansible.builtin.assert:
+        that:
+          - not blastwall_strange_socket_v1_requested | bool or blastwall_allow_dry_run_profiles | bool
+          - >-
+            not blastwall_strange_socket_v1_legacy_dry_run_set | bool or
+            (blastwall_strange_socket_v1_legacy_dry_run | bool) == (blastwall_enable_strange_socket_v1_dry_run | bool)
+        fail_msg: >-
+          strange-socket-v1 requires canonical dry-run intent:
+          include strange-socket-v1 in BLASTWALL_REQUIRED_POLICY_PROFILES and set
+          BLASTWALL_ALLOW_DRY_RUN_PROFILES=true. If legacy
+          BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN is set, it must agree with the
+          derived profile intent.
       run_once: true
       delegate_to: localhost
 
@@ -99,8 +143,22 @@
       ansible.builtin.command: /tmp/trigger-copyfail-afalg.py
       register: blastwall_trigger
       changed_when: false
-      failed_when:
-        - blastwall_trigger.rc not in [0, 77]
+      failed_when: false
+
+    - name: Evaluate AF_ALG probe output
+      ansible.builtin.set_fact:
+        blastwall_af_alg_probe_output: "{{ blastwall_trigger.stdout | default('') | trim + '\n' + blastwall_trigger.stderr | default('') | trim }}"
+
+    - name: Assert AF_ALG evidence is blocked
+      ansible.builtin.assert:
+        that:
+          - >
+            (blastwall_trigger.rc == 0 and 'BLOCKED:' in blastwall_af_alg_probe_output)
+            and 'FAIL_UNKNOWN' not in blastwall_af_alg_probe_output
+        fail_msg: >-
+          AF_ALG confinement check did not return blocked evidence:
+          rc={{ blastwall_trigger.rc }}.
+          output={{ blastwall_af_alg_probe_output }}
 
     - name: Show AF_ALG trigger result
       ansible.builtin.debug:
@@ -157,12 +215,26 @@
         dest: /tmp/trigger-io-uring-deny.py
         mode: "0755"
 
-    - name: Verify io_uring_setup is blocked (may SKIP on older kernels)
+    - name: Verify io_uring_setup is blocked
       ansible.builtin.command: /tmp/trigger-io-uring-deny.py
       register: blastwall_io_uring_trigger
       changed_when: false
-      failed_when:
-        - blastwall_io_uring_trigger.rc == 1
+      failed_when: false
+
+    - name: Evaluate io_uring trigger output
+      ansible.builtin.set_fact:
+        blastwall_io_uring_probe_output: "{{ blastwall_io_uring_trigger.stdout | default('') | trim + '\n' + blastwall_io_uring_trigger.stderr | default('') | trim }}"
+
+    - name: Assert io_uring evidence is blocked
+      ansible.builtin.assert:
+        that:
+          - >
+            (blastwall_io_uring_trigger.rc == 0 and 'BLOCKED:' in blastwall_io_uring_probe_output)
+            and 'FAIL_UNKNOWN' not in blastwall_io_uring_probe_output
+        fail_msg: >-
+          io_uring confinement check did not return blocked evidence:
+          rc={{ blastwall_io_uring_trigger.rc }}.
+          output={{ blastwall_io_uring_probe_output }}
 
     - name: Show io_uring trigger result
       ansible.builtin.debug:
@@ -182,3 +254,21 @@
     - name: Show Dirty Frag / Fragnesia trigger result
       ansible.builtin.debug:
         var: blastwall_dirtyfrag_trigger.stdout
+
+    - name: Copy strange-socket-v1 trigger to target
+      ansible.builtin.copy:
+        src: "{{ blastwall_strange_socket_v1_trigger_path }}"
+        dest: /tmp/trigger-strange-socket-v1-deny.py
+        mode: "0755"
+      when: blastwall_enable_strange_socket_v1_dry_run | bool
+
+    - name: Verify strange-socket-v1 socket creation is blocked or absent
+      ansible.builtin.command: /tmp/trigger-strange-socket-v1-deny.py
+      register: blastwall_strange_socket_v1_trigger
+      changed_when: false
+      when: blastwall_enable_strange_socket_v1_dry_run | bool
+
+    - name: Show strange-socket-v1 trigger result
+      ansible.builtin.debug:
+        var: blastwall_strange_socket_v1_trigger.stdout
+      when: blastwall_enable_strange_socket_v1_dry_run | bool

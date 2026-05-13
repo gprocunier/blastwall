@@ -139,9 +139,15 @@ flowchart TD
 
 Credential smoke is a Controller-side check that the injected `Blastwall IdM
 Runtime` credential can authenticate and read the expected IdM state before the
-inventory sync and preflight depend on it. Preflight then uses the synced IdM
-inventory groups as input and fails closed when no host is eligible for
-verification.
+inventory sync and preflight depend on it. The runtime verify preflight target is
+profile-aware and defaults to `blastwall_profile_base` (resolved from
+`BLASTWALL_AAP_VERIFY_TARGET_GROUP`) in the run workflow.
+
+For a strange-socket dry-run, set the verify target to
+`blastwall_profile_strange_socket_v1` explicitly.
+
+Preflight then uses the synced IdM inventory groups as input and fails closed
+when no host is eligible for verification.
 
 Policy installation and marker publication are bootstrap work. The recorded AAP
 workflow starts after that handoff: preflight proves IdM, HBAC, sudo, and policy
@@ -155,6 +161,11 @@ The IdM inventory source groups hosts with current policy markers into
 The Calabi AAP fixture adds `stale-blastwall-01.workshop.lan` as an IdM-only
 stale host so the demo visibly shows selection without requiring a second
 managed VM. Verification still targets only `blastwall_policy_current`.
+
+Candidate RPM install/verify/promotion is controlled by a separate
+`BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP` host cohort, which keeps policy-pipeline
+candidate execution and stale/candidate staging distinct from profile-aware runtime/preflight
+selection.
 
 The marker set currently expected by preflight is:
 

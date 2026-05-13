@@ -12,9 +12,8 @@ Neither test performs an exploit.  Each attempts a minimal bpf(2)
 syscall and checks whether SELinux denies it with EACCES or EPERM.
 
 Exit codes:
-    0   both paths blocked (policy working)
-    1   at least one path succeeded (policy is NOT protecting)
-   77   bpf syscall not available on this kernel
+    0   both paths blocked
+    1   at least one path succeeded, is absent, or returned unknown evidence
 """
 
 import ctypes
@@ -58,8 +57,8 @@ def try_map_create(libc, nr_bpf):
     if err in (errno.EACCES, errno.EPERM):
         return f"errno {err}"
     if err == errno.ENOSYS:
-        return "SKIP"
-    return "INFO"
+        return "FAIL_MISSING_CLASS_REQUIRED"
+    return "FAIL_UNKNOWN"
 
 def try_prog_load(libc, nr_bpf):
     """Attempt BPF_PROG_LOAD with a minimal program (CVE-2026-31525 entry point).
@@ -108,27 +107,27 @@ def try_prog_load(libc, nr_bpf):
     if err in (errno.EACCES, errno.EPERM):
         return f"errno {err}"
     if err == errno.ENOSYS:
-        return "SKIP"
-    return "INFO"
+        return "FAIL_MISSING_CLASS_REQUIRED"
+    return "FAIL_UNKNOWN"
 
 def main():
     nr_bpf = get_nr_bpf()
     if nr_bpf is None:
-        print("SKIP: unsupported architecture %s" % os.uname().machine)
-        sys.exit(77)
+        print("FAIL_MISSING_CLASS_REQUIRED: unsupported architecture %s" % os.uname().machine)
+        sys.exit(1)
 
     libc_name = ctypes.util.find_library("c")
     if not libc_name:
-        print("SKIP: cannot find libc")
-        sys.exit(77)
+        print("FAIL_UNKNOWN: cannot find libc")
+        sys.exit(1)
     libc = ctypes.CDLL(libc_name, use_errno=True)
 
     map_result = try_map_create(libc, nr_bpf)
     prog_result = try_prog_load(libc, nr_bpf)
 
-    if map_result == "SKIP" and prog_result == "SKIP":
-        print("SKIP: bpf syscall not available")
-        sys.exit(77)
+    if map_result == "FAIL_MISSING_CLASS_REQUIRED" and prog_result == "FAIL_MISSING_CLASS_REQUIRED":
+        print("FAIL_MISSING_CLASS_REQUIRED: bpf syscall not available")
+        sys.exit(1)
 
     failed = False
     if map_result.startswith("errno "):
@@ -136,16 +135,24 @@ def main():
     elif map_result == "FAIL":
         print("FAIL: bpf(BPF_MAP_CREATE) succeeded - policy is NOT denying BPF map creation")
         failed = True
+    elif map_result == "FAIL_UNKNOWN":
+        print("FAIL_UNKNOWN: bpf(BPF_MAP_CREATE) returned unexpected errno")
+        failed = True
     else:
         print("%s: bpf(BPF_MAP_CREATE) - %s" % (map_result, map_result))
+        failed = True
 
     if prog_result.startswith("errno "):
         print(f"BLOCKED: bpf(BPF_PROG_LOAD) denied with {prog_result}   [CVE-2026-31525]")
     elif prog_result == "FAIL":
         print("FAIL: bpf(BPF_PROG_LOAD) succeeded - policy is NOT denying BPF program loading")
         failed = True
+    elif prog_result == "FAIL_UNKNOWN":
+        print("FAIL_UNKNOWN: bpf(BPF_PROG_LOAD) returned unexpected errno")
+        failed = True
     else:
         print("%s: bpf(BPF_PROG_LOAD) - %s" % (prog_result, prog_result))
+        failed = True
 
     sys.exit(1 if failed else 0)
 

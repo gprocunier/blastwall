@@ -570,9 +570,9 @@
           template: Blastwall preflight
         - identifier: verify_managed_host
           template: Blastwall verify managed host
-          limit: blastwall_policy_current
+          limit: "{{ blastwall_aap_verify_target_group }}"
           extra_data:
-            blastwall_verify_target_hosts: blastwall_policy_current
+            blastwall_verify_target_hosts: "{{ blastwall_aap_verify_target_group }}"
 
     - name: Remove stale bootstrap workflow nodes from verification workflow
       awx.awx.workflow_job_template_node:

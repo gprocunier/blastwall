@@ -18,8 +18,14 @@ def main() -> int:
     try:
         sock = socket.socket(AF_ALG, socket.SOCK_SEQPACKET, 0)
     except OSError as exc:
-        print(f"SKIP: could not create AF_ALG socket: {exc}", file=sys.stderr)
-        return 77
+        if exc.errno in (errno.EACCES, errno.EPERM):
+            print(f"BLOCKED: AF_ALG socket creation denied with errno {exc.errno}")
+            return 0
+        if exc.errno in (errno.EAFNOSUPPORT, errno.EPROTONOSUPPORT):
+            print(f"FAIL_MISSING_CLASS_REQUIRED: could not create AF_ALG socket: {exc}", file=sys.stderr)
+            return 1
+        print(f"FAIL_UNKNOWN: could not create AF_ALG socket: {exc}", file=sys.stderr)
+        return 1
 
     try:
         # Python exposes AF_ALG bind as a tuple: (type, name).
@@ -32,12 +38,12 @@ def main() -> int:
         return 1
     except OSError as exc:
         # ENOENT/EINVAL can mean the algorithm is unavailable or patched out.
-        print(f"INFO: bind did not reach success path: {exc}")
-        return 0
+        print(f"FAIL_UNKNOWN: bind did not reach blocked evidence path: {exc}")
+        return 1
     finally:
         sock.close()
 
-    print("FAIL: authencesn AF_ALG bind succeeded")
+    print("FAIL_ALLOWED: authencesn AF_ALG bind succeeded")
     return 1
 
 
