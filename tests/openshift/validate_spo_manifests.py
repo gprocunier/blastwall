@@ -229,6 +229,15 @@ for expected in [
     if expected not in apply_validate_playbook:
         fail(f"playbooks/apply-validate-spo-policy-crs.yml is missing {expected}")
 
+probe_harness = (ROOT / "tests" / "openshift" / "blastwall_spo_probe.py").read_text(encoding="utf-8")
+probe_configmap = (SPO / "40-test-harness-configmap.yaml").read_text(encoding="utf-8")
+for path_name, text in [
+    ("tests/openshift/blastwall_spo_probe.py", probe_harness),
+    ("openshift/spo/40-test-harness-configmap.yaml", probe_configmap),
+]:
+    if "_profile: {'passed' if overall == 'PASS' else 'failed'}" not in text:
+        fail(f"{path_name} does not emit AAP validation summary markers")
+
 if RENDERED_BUNDLE.exists():
     bundle_docs = read_yaml_documents(RENDERED_BUNDLE)
     for kind, name in [

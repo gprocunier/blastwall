@@ -183,6 +183,7 @@ def main() -> int:
     print(f"SELinux context: {context}")
     for result in results:
         print(f"{result.status}: {result.name}: {result.detail}")
+    print(f"{PROFILE_CLASS}_profile: {'passed' if overall == 'PASS' else 'failed'}")
     print(json.dumps({
         "overall": overall,
         "profile_class": PROFILE_CLASS,

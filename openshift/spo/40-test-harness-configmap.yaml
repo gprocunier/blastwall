@@ -158,6 +158,7 @@ data:
     print(f"SELinux context: {context}")
     for item in results:
         print(f"{item['status']}: {item['name']}: {item['detail']}")
+    print(f"{PROFILE_CLASS}_profile: {'passed' if overall == 'PASS' else 'failed'}")
     print(json.dumps({
         "overall": overall,
         "profile_class": PROFILE_CLASS,
