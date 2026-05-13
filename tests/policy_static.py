@@ -87,14 +87,29 @@ for policy, marker in dirtyfrag_scopes.items():
         if marker not in path.read_text(encoding="utf-8"):
             fail(f"{path.relative_to(ROOT)} does not require {marker}")
 
-if not (ROOT / "tests" / "trigger-dirtyfrag-deny.py").exists():
+dirtyfrag_probe_path = ROOT / "tests" / "trigger-dirtyfrag-deny.py"
+if not dirtyfrag_probe_path.exists():
     fail("tests/trigger-dirtyfrag-deny.py is missing")
+dirtyfrag_probe = dirtyfrag_probe_path.read_text(encoding="utf-8")
+for required in ["Fragnesia AF_ALG", "FAIL_MISSING_CLASS_REQUIRED", "FAIL_UNKNOWN", "FAIL_ALLOWED"]:
+    if required not in dirtyfrag_probe:
+        fail(f"tests/trigger-dirtyfrag-deny.py does not enforce {required} evidence")
 
 xfrm_policy = (POLICY / "blastwall-xfrm-deny.cil").read_text(encoding="utf-8")
+if "Fragnesia" not in xfrm_policy:
+    fail("blastwall-xfrm-deny.cil does not document Fragnesia coverage")
 if " nlmsg " in xfrm_policy or "\nnlmsg " in xfrm_policy:
     fail("blastwall-xfrm-deny.cil uses invalid generic nlmsg permission")
 
-print("PASS: Dirty Frag policy scopes are wired into markers and tests")
+for workflow in [
+    ROOT / ".github" / "workflows" / "lab-smoke.yml",
+    ROOT / ".github" / "workflows" / "policy-pipeline-smoke.yml",
+]:
+    workflow_text = workflow.read_text(encoding="utf-8")
+    if "Fragnesia AF_ALG" not in workflow_text:
+        fail(f"{workflow.relative_to(ROOT)} does not assert Fragnesia AF_ALG evidence")
+
+print("PASS: Dirty Frag / Fragnesia policy scopes are wired into markers and tests")
 
 aap_config = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
 controller_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")

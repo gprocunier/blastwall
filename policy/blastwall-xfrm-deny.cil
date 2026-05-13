@@ -1,7 +1,7 @@
 ; Deny XFRM/IPsec control-plane access for the blastwall automation domain.
-; Dirty Frag's xfrm-ESP path registers XFRM security associations before
-; triggering ESP processing.  Privileged automation should not create or drive
-; NETLINK_XFRM state as a default capability.
+; Dirty Frag and Fragnesia both rely on attacker-controlled XFRM/ESP state
+; before reaching ESP processing.  Privileged automation should not create or
+; drive NETLINK_XFRM state as a default capability.
 
 (deny blastwall_t self (netlink_xfrm_socket
   (accept append bind connect create getattr getopt ioctl listen lock map

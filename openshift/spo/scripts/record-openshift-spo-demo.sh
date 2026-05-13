@@ -9,4 +9,4 @@ cd "${REPO_ROOT}"
 asciinema rec --overwrite \
   --title "blastwall OpenShift/SPO standard and nested workload classes" \
   docs/blastwall-openshift-spo.cast \
-  --command scripts/blastwall-openshift-spo-demo/run-demo.sh
+  --command openshift/spo/scripts/openshift-spo-cli-demo.sh

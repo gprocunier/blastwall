@@ -143,7 +143,7 @@ data:
         probe_socket("NETLINK_XFRM", socket.AF_NETLINK, socket.SOCK_RAW, 6),
         probe_socket("AF_RXRPC", getattr(socket, "AF_RXRPC", 33), socket.SOCK_DGRAM, 0),
         probe_socket("AF_PACKET", socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003)),
-        probe_socket("AF_ALG", getattr(socket, "AF_ALG", 38), socket.SOCK_SEQPACKET, 0),
+        probe_socket("Fragnesia AF_ALG", getattr(socket, "AF_ALG", 38), socket.SOCK_SEQPACKET, 0),
         userns_result,
         probe_bpf(),
         probe_io_uring_setup(),

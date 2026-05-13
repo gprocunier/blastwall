@@ -84,3 +84,4 @@ jobs:
           grep -E 'SKIP: could not create AF_ALG socket|BLOCKED:' /tmp/blastwall-aap-verify.log
           grep -F 'Dirty Frag NETLINK_XFRM' /tmp/blastwall-aap-verify.log
           grep -F 'Dirty Frag AF_RXRPC' /tmp/blastwall-aap-verify.log
+          grep -F 'Fragnesia AF_ALG' /tmp/blastwall-aap-verify.log

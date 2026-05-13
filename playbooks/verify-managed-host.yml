@@ -168,17 +168,17 @@
       ansible.builtin.debug:
         var: blastwall_io_uring_trigger.stdout
 
-    - name: Copy Dirty Frag trigger to target
+    - name: Copy Dirty Frag / Fragnesia trigger to target
       ansible.builtin.copy:
         src: "{{ blastwall_dirtyfrag_trigger_path }}"
         dest: /tmp/trigger-dirtyfrag-deny.py
         mode: "0755"
 
-    - name: Verify Dirty Frag xfrm and RxRPC entry points are blocked
+    - name: Verify Dirty Frag / Fragnesia entry points are blocked
       ansible.builtin.command: /tmp/trigger-dirtyfrag-deny.py
       register: blastwall_dirtyfrag_trigger
       changed_when: false
 
-    - name: Show Dirty Frag trigger result
+    - name: Show Dirty Frag / Fragnesia trigger result
       ansible.builtin.debug:
         var: blastwall_dirtyfrag_trigger.stdout

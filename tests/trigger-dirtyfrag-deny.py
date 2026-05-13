@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Safe Dirty Frag entry-point probe for Blastwall verification.
+"""Safe Dirty Frag / Fragnesia entry-point probe for Blastwall verification.
 
-This probe does not run Dirty Frag exploit logic.  It only tries to open the
-kernel entry points the public write-up relies on: NETLINK_XFRM for the
-xfrm-ESP path and AF_RXRPC for the RxRPC path.  Blastwall should deny both for
-the confined automation domain.  If AF_RXRPC is absent from the kernel, that
-side is reported as SKIP.
+This probe does not run exploit logic.  It only tries to open kernel entry
+points used by the public Dirty Frag and Fragnesia write-ups: NETLINK_XFRM for
+the xfrm-ESP control plane, AF_RXRPC for the RxRPC path, and AF_ALG for
+Fragnesia's AES helper.  Blastwall should deny each surface for the confined
+automation domain.  AF_RXRPC and AF_ALG are required release surfaces, so
+absence is reported as FAIL_MISSING_CLASS_REQUIRED rather than skipped.
 
 Exit codes:
-    0   BLOCKED/SKIP - no Dirty Frag entry point was reachable
-    1   FAIL         - at least one entry point was reachable
+    0   BLOCKED      - no Dirty Frag / Fragnesia entry point was reachable
+    1   FAIL_*       - at least one required entry point was reachable or unknown
 """
 
 import errno
@@ -19,6 +20,7 @@ import sys
 
 NETLINK_XFRM = getattr(socket, "NETLINK_XFRM", 6)
 AF_RXRPC = getattr(socket, "AF_RXRPC", 33)
+AF_ALG = getattr(socket, "AF_ALG", 38)
 
 
 def check_socket(label, family, socktype, proto, skip_errnos=()):
@@ -32,13 +34,13 @@ def check_socket(label, family, socktype, proto, skip_errnos=()):
         return "failed"
     except OSError as exc:
         if exc.errno in skip_errnos:
-            print(f"SKIP: {label} unavailable on this kernel: {exc}")
-            return "skipped"
-        print(f"INFO: {label} did not reach success path: {exc}")
-        return "blocked"
+            print(f"FAIL_MISSING_CLASS_REQUIRED: {label} unavailable on this kernel: {exc}")
+            return "failed"
+        print(f"FAIL_UNKNOWN: {label} failed with unexpected errno: {exc}")
+        return "failed"
 
     sock.close()
-    print(f"FAIL: {label} socket creation succeeded")
+    print(f"FAIL_ALLOWED: {label} socket creation succeeded")
     return "failed"
 
 
@@ -54,6 +56,13 @@ def main() -> int:
             "Dirty Frag AF_RXRPC",
             AF_RXRPC,
             socket.SOCK_DGRAM,
+            0,
+            skip_errnos=(errno.EAFNOSUPPORT, errno.EPROTONOSUPPORT, errno.ENOPROTOOPT),
+        ),
+        check_socket(
+            "Fragnesia AF_ALG",
+            AF_ALG,
+            socket.SOCK_SEQPACKET,
             0,
             skip_errnos=(errno.EAFNOSUPPORT, errno.EPROTONOSUPPORT, errno.ENOPROTOOPT),
         ),

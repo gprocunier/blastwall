@@ -165,6 +165,7 @@ jobs:
           grep -E 'SKIP: could not create AF_ALG socket|BLOCKED:' /tmp/blastwall-policy-pipeline-verify.log
           grep -F 'Dirty Frag NETLINK_XFRM' /tmp/blastwall-policy-pipeline-verify.log
           grep -F 'Dirty Frag AF_RXRPC' /tmp/blastwall-policy-pipeline-verify.log
+          grep -F 'Fragnesia AF_ALG' /tmp/blastwall-policy-pipeline-verify.log
 
           awx jobs stdout "${promote_id}" | tee /tmp/blastwall-policy-pipeline-promote.log
           grep -F 'policy_pipeline_promotion' /tmp/blastwall-policy-pipeline-promote.log

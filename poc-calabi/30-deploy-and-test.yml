@@ -115,7 +115,7 @@
         dest: "{{ blastwall_io_uring_probe_path }}"
         mode: "0755"
 
-    - name: Install safe Dirty Frag probe
+    - name: Install safe Dirty Frag / Fragnesia probe
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../tests/trigger-dirtyfrag-deny.py"
         dest: "{{ blastwall_dirtyfrag_probe_path }}"
@@ -329,7 +329,7 @@
       failed_when:
         - blastwall_io_uring_probe.rc == 1
 
-    - name: Run safe Dirty Frag xfrm and RxRPC probe as mapped automation user
+    - name: Run safe Dirty Frag / Fragnesia probe as mapped automation user
       ansible.builtin.command:
         argv: "{{ blastwall_ssh_base + [blastwall_dirtyfrag_probe_path] }}"
       register: blastwall_dirtyfrag_probe

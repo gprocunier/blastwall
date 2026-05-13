@@ -93,13 +93,39 @@ oc apply -k "${repo_root}/openshift/spo" >/dev/null
 oc -n "${profile_namespace}" wait --for=condition=ready rawselinuxprofile/blastwall --timeout=180s >/dev/null
 oc -n "${profile_namespace}" wait --for=condition=ready rawselinuxprofile/blastwallnested --timeout=180s >/dev/null
 
-mapfile -t nodes < <(
+node_json="$(
   if [[ -n "${selector}" ]]; then
-    oc get nodes -l "${selector}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+    oc get nodes -l "${selector}" -o json
   else
-    oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+    oc get nodes -o json
   fi
+)"
+
+mapfile -t skipped_nodes < <(
+  jq -r '
+    .items[]
+    | select(
+        ((.spec.unschedulable // false) == true)
+        or (([.status.conditions[] | select(.type == "Ready")][0].status // "False") != "True")
+      )
+    | .metadata.name
+  ' <<<"${node_json}"
 )
+
+mapfile -t nodes < <(
+  jq -r '
+    .items[]
+    | select(
+        ((.spec.unschedulable // false) == false)
+        and (([.status.conditions[] | select(.type == "Ready")][0].status // "False") == "True")
+      )
+    | .metadata.name
+  ' <<<"${node_json}"
+)
+
+for skipped_node in "${skipped_nodes[@]}"; do
+  echo "SKIP: ${skipped_node}: node is not Ready and schedulable"
+done
 
 if [[ ${#nodes[@]} -eq 0 ]]; then
   echo "SKIP: no nodes matched selector '${selector:-all}'"

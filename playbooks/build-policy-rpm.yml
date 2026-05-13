@@ -233,7 +233,7 @@
 
           %changelog
           * Fri May 08 2026 Blastwall Policy Pipeline <blastwall@example.com> - {{ blastwall_policy_version }}-{{ blastwall_policy_release }}
-          - Add Dirty Frag xfrm and RxRPC deny scopes
+          - Add Dirty Frag / Fragnesia xfrm, AF_ALG, and RxRPC evidence scopes
 
           * Thu May 07 2026 Blastwall Policy Pipeline <blastwall@example.com> - 0.5.1-1
           - Rebuild from versioned Git policy source through the Day 2 pipeline

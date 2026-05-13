@@ -3,6 +3,21 @@ set -euo pipefail
 
 command -v oc >/dev/null
 
+assert_can_i() {
+  local expected="$1"
+  shift
+  set +e
+  local actual
+  actual="$(oc auth can-i "$@" 2>/dev/null)"
+  local rc=$?
+  set -e
+  if [[ "${rc}" -gt 1 ]]; then
+    return "${rc}"
+  fi
+  echo "${actual}"
+  [[ "${actual}" == "${expected}" ]]
+}
+
 echo "Blastwall OpenShift/SPO demo"
 echo "1. Verify SPO RawSelinuxProfile schema"
 oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2
@@ -22,15 +37,15 @@ echo
 echo "4. Confirm SCC and service account binding"
 oc get scc blastwall-confined -o jsonpath='{.seLinuxContext.seLinuxOptions.type}{"\n"}'
 oc get scc blastwall-nested -o jsonpath='{.seLinuxContext.seLinuxOptions.type}{" userNamespaceLevel="}{.userNamespaceLevel}{"\n"}'
-oc auth can-i use scc/blastwall-confined \
+assert_can_i yes use scc/blastwall-confined \
   --as system:serviceaccount:blastwall-workloads:blastwall-runner \
-  -n blastwall-workloads 2>/dev/null
-oc auth can-i use scc/blastwall-nested \
+  -n blastwall-workloads
+assert_can_i yes use scc/blastwall-nested \
   --as system:serviceaccount:blastwall-workloads:blastwall-nested-runner \
-  -n blastwall-workloads 2>/dev/null
-oc auth can-i use scc/blastwall-nested \
+  -n blastwall-workloads
+assert_can_i no use scc/blastwall-nested \
   --as system:serviceaccount:blastwall-workloads:blastwall-runner \
-  -n blastwall-workloads 2>/dev/null
+  -n blastwall-workloads
 
 echo
 echo "5. Run standard and nested example workloads under required SCCs"
