@@ -179,6 +179,10 @@ for playbook in [
     if "default('blastwall_policy_stale')" not in playbook.read_text(encoding="utf-8"):
         fail(f"{playbook.relative_to(ROOT)} does not default policy pipeline hosts to stale")
 
+install_policy = (ROOT / "playbooks" / "install-policy-rpm.yml").read_text(encoding="utf-8")
+if "--oldpackage" not in install_policy:
+    fail("playbooks/install-policy-rpm.yml cannot downgrade newer RC packages back to main")
+
 if "blastwall_verify_target_hosts | default('blastwall_policy_current')" not in (
     ROOT / "playbooks" / "verify-managed-host.yml"
 ).read_text(encoding="utf-8"):
