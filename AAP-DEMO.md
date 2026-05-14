@@ -143,8 +143,17 @@ inventory sync and preflight depend on it. The runtime verify preflight target i
 profile-aware and defaults to `blastwall_profile_base` (resolved from
 `BLASTWALL_AAP_VERIFY_TARGET_GROUP`) in the run workflow.
 
-For a strange-socket dry-run, set the verify target to
-`blastwall_profile_strange_socket_v1` explicitly.
+Use this rollout split:
+
+- For stale host repair rollouts, set `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP`
+  to `blastwall_policy_candidate`.
+- For base/current verification, set `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP` to
+  `blastwall_profile_base` (or an equivalent curated lab cohort), and keep
+  `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.
+- For base-current to strange-socket dry-run rollout, set
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` or use an
+  equivalent curated base-current lab cohort, then verify after promotion with
+  `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
 
 Preflight then uses the synced IdM inventory groups as input and fails closed
 when no host is eligible for verification.

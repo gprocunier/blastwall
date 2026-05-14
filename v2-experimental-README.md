@@ -135,6 +135,17 @@ The v2 AAP model separates two targeting controls:
 - `BLASTWALL_AAP_VERIFY_TARGET_GROUP` selects hosts that should be verified for
   the required runtime profile, defaulting to `blastwall_profile_base`.
 
+Use these runbook values:
+
+- Stale host remediation uses `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_policy_candidate`.
+- Base/current verification uses `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base`
+  (or a curated lab base cohort), with
+  `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.
+- Base-current to strange-socket dry-run rollout uses
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` or a curated
+  base-current lab cohort, then verifies after promotion with
+  `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
+
 This avoids a common release trap: treating every stale host as a safe policy
 candidate, or treating every policy candidate as already suitable for runtime
 verification.

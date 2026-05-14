@@ -60,9 +60,17 @@ calls `tools/blastwall_marker.py check` for parser-backed validation.
 
 Candidate staging for policy promotion is intentionally cohort-based and is
 controlled separately by `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP`. This is
-kept distinct from preflight targeting; for strange-socket dry-run rollout in
-the Calabi lab, use an explicit lab cohort in that variable rather than
-overloading the base profile group.
+kept distinct from preflight targeting:
+
+- Stale host remediation uses
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_policy_candidate`.
+- Base/current verification uses
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` (or an
+  explicit curated base cohort), and `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.
+- Base-current to strange-socket dry-run rollout uses
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` (or an
+  explicit curated base-current lab cohort), then verifies after promotion with
+  `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
 
 Current preflight behavior is fail-closed for all of these:
 
@@ -75,11 +83,13 @@ Current preflight behavior is fail-closed for all of these:
 - v2 scope set that does not exactly match expanded profile scopes.
 - v1 marker evidence when any required profile is not `base`.
 
-An equivalent environment example:
+A typical environment pairing is:
 
 ```text
 BLASTWALL_REQUIRED_POLICY_PROFILES=base,strange-socket-v1
 BLASTWALL_ALLOW_DRY_RUN_PROFILES=true
+BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base
+BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1
 ```
 
 The playbook passes that through `--required-profiles-csv`, `--expected-registry-sha256`,

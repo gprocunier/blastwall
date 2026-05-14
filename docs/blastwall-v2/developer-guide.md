@@ -45,7 +45,7 @@ contract in `policy/profiles.yml`.
 For OpenShift/SPO targets, add or update `RawSelinuxProfile` manifests and keep
 runtime binding based on `RawSelinuxProfile.status.usage`.
 
-Release marker semantics for current RC (RC1j):
+Release marker semantics for current RC (RC1k):
 
 - Production RHEL markers use `state=active` claims with `profiles=base`.
   OpenShift nested workloads use the `base-nested` registry variant through the
@@ -152,7 +152,7 @@ Then do a sanitization pass:
 - remove or gate rerun-only behavior
 - keep lab-only flags explicit
 - keep dry-run profile activation explicit
-- keep current RC (RC1j) non-goals (`KVM`, `seccomp`, and `BPF LSM`) explicit in release docs
+- keep current RC (RC1k) non-goals (`KVM`, `seccomp`, and `BPF LSM`) explicit in release docs
 - verify defaults still represent fresh-deploy behavior
 - record deferred work instead of hiding it in comments or local scripts
 

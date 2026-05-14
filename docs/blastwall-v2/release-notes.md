@@ -24,7 +24,7 @@ Use this split when publishing artifacts:
   selection, registry/drift checks, and OpenShift/SPO status-derived usage.
 - `0.6.1-0.rc1`: lab release candidate for `strange-socket-v1` dry-run
   validation.
-- RC1j (current): release-semantics consolidation for marker and strange OpenShift
+- RC1k (current): release-semantics consolidation for marker and strange OpenShift
   compatibility behavior on the same `0.6.1-0.rc1` RPM identity.
 
 Do not publish a stable artifact that changes profile membership without
@@ -48,7 +48,7 @@ The v2 control plane adds:
   candidate install, verification, marker promotion, inventory sync, and
   post-promotion preflight.
 
-## RC1j Release Semantics
+## RC1k Release Semantics
 
 - Production RHEL release path is marker-driven and uses `state=active` with
   `profiles=base`. Nested OpenShift behavior uses the `base-nested` registry
@@ -114,7 +114,7 @@ SPO now has an explicit usage-to-SCC mode for this release:
 `status.usage` to `seLinuxOptions.type` binding was rejected in the Calabi OCP
 4.20 lab and is non-default until future validated clusters prove otherwise.
 
-OpenShift/SPO release-decision record (RC1j):
+OpenShift/SPO release-decision record (RC1k):
 
 - OCP 4.20 / SPO 0.10
   - `RawSelinuxProfile`: `blastwall` / `blastwallnested` / `blastwallstrange` /

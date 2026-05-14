@@ -16,7 +16,7 @@ required before promoting `strange-socket-v1` into the default posture:
 - Validate at least one additional supported RHEL generation if the target
   release promise spans more than the current lab endpoint.
 
-## RC1j Release-Semantics Decisions
+## RC1k Release-Semantics Decisions
 
 - Production RHEL marker path is `state=active` with `profiles=base`, and must be
   accepted by normal preflight without dry-run opt-in toggles. Nested OpenShift
@@ -29,7 +29,7 @@ required before promoting `strange-socket-v1` into the default posture:
 - `readOnlyRootFilesystem: false` is documented as a validation-image posture for
   runtime probes and SCC validation jobs only; it is not a broad production
   recommendation.
-- Keep `KVM`, `seccomp`, and `BPF LSM` as RC1j roadmap
+- Keep `KVM`, `seccomp`, and `BPF LSM` as RC1k roadmap
   entries only; no production intent is claimed yet.
 
 ## Split-Domain Work

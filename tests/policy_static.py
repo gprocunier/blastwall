@@ -218,6 +218,13 @@ for key, expression in rendered_inventory_groups.items():
     except Exception as exc:
         fail(f"tools/render_inventory_profile_groups.py renders invalid Jinja for {key}: {exc}")
 
+profile_stale_expr = rendered_inventory_groups.get("blastwall_policy_stale")
+profile_candidate_expr = rendered_inventory_groups.get("blastwall_policy_candidate")
+if profile_candidate_expr is None:
+    fail("tools/render_inventory_profile_groups.py is missing blastwall_policy_candidate")
+if re.sub(r"\s+", "", profile_candidate_expr) != re.sub(r"\s+", "", profile_stale_expr or ""):
+    fail("generic blastwall_policy_candidate must be generated from the stale policy cohort")
+
 profile_base_expr = rendered_inventory_groups.get("blastwall_profile_base")
 if profile_base_expr is None:
     fail("tools/render_inventory_profile_groups.py is missing blastwall_profile_base")
@@ -284,6 +291,8 @@ for path_name, inventory_text in [
         if not isinstance(actual_expr, str):
             fail(f"{path_name} is missing rendered group expression {key}")
         actual_normalized = re.sub(r"\s+", "", actual_expr)
+        if path_name == "poc-calabi/aap/inventory/blastwall-idm.yml" and key == "blastwall_policy_candidate":
+            expected_expr = f"idm_fqdn == 'mirror-registry.workshop.lan' and\n(\n{expected_expr}\n)"
         expected_normalized = re.sub(r"\s+", "", expected_expr)
         if actual_normalized != expected_normalized:
             fail(f"{path_name} has stale expression for {key}")
@@ -552,4 +561,6 @@ for rc_doc in rc_frontmatter_docs:
     docs_path = ROOT / "docs" / "blastwall-v2" / rc_doc
     docs_text = docs_path.read_text(encoding="utf-8").lower()
     if "rc1e" in docs_text:
-        fail(f"{docs_path.relative_to(ROOT)} still contains stale RC1e wording; use RC1h/current-RC language")
+        fail(f"{docs_path.relative_to(ROOT)} still contains stale RC1e wording; use RC1k/current-RC language")
+    if "rc1j" in docs_text:
+        fail(f"{docs_path.relative_to(ROOT)} still contains stale RC1j wording; use RC1k/current-RC language")

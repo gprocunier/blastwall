@@ -4,9 +4,13 @@
 from pathlib import Path
 import importlib.util
 import json
+import os
 import re
+import subprocess
 import sys
+import tempfile
 from jinja2 import Environment
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +80,55 @@ def substitute_placeholders(value, registry_hash: str, policy_hash: str):
     return value
 
 
+def run_ansible_inventory(allow_dry_run_profiles: bool) -> dict[str, list[str]]:
+    with tempfile.TemporaryDirectory(prefix="blastwall-inventory-") as inventory_dir:
+        inventory_path = Path(inventory_dir)
+        static_inventory = {
+            "all": {
+                "hosts": {
+                    host["name"]: {
+                        "idm_fqdn": host["name"],
+                        "idm_userclass": host.get("idm_userclass", []),
+                    }
+                    for host in fixture["hosts"]
+                }
+            }
+        }
+        constructed_inventory = {
+            "plugin": "ansible.builtin.constructed",
+            "strict": False,
+            "groups": rendered_group_expressions,
+        }
+        (inventory_path / "01-hosts.yml").write_text(
+            yaml.safe_dump(static_inventory, sort_keys=False),
+            encoding="utf-8",
+        )
+        (inventory_path / "02-blastwall-groups.yml").write_text(
+            yaml.safe_dump(constructed_inventory, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        env = os.environ.copy()
+        env["BLASTWALL_ALLOW_DRY_RUN_PROFILES"] = "true" if allow_dry_run_profiles else "false"
+        env["BLASTWALL_PROFILE_REGISTRY_SHA256"] = registry_hash
+        env["BLASTWALL_REQUIRED_POLICY_MARKER"] = marker.DEFAULT_RPM
+        result = subprocess.run(
+            ["ansible-inventory", "-i", str(inventory_path), "--list"],
+            check=False,
+            capture_output=True,
+            env=env,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            fail(f"ansible-inventory failed: {result.stderr.strip()}")
+        inventory = json.loads(result.stdout)
+        return {
+            group: sorted(inventory.get(group, {}).get("hosts", []))
+            for group in inventory_groups
+        }
+
+
 registry = marker.load_registry()
 registry_hash = marker.registry_sha256()
 policy_hash = "a" * 64
@@ -90,14 +143,22 @@ modes = (
     ("default", False),
     ("allow_dry_run", True),
 )
+policy_groups = (
+    "blastwall_policy_current",
+    "blastwall_policy_stale",
+    "blastwall_profile_base",
+    "blastwall_profile_strange_socket_v1",
+)
+inventory_groups = (
+    "blastwall_policy_current",
+    "blastwall_policy_stale",
+    "blastwall_policy_candidate",
+    "blastwall_profile_base",
+    "blastwall_profile_strange_socket_v1",
+)
 
 actual = {
-    mode: {
-        "blastwall_policy_current": [],
-        "blastwall_policy_stale": [],
-        "blastwall_profile_base": [],
-        "blastwall_profile_strange_socket_v1": [],
-    }
+    mode: {group: [] for group in policy_groups}
     for mode, _ in modes
 }
 
@@ -128,13 +189,19 @@ for mode, allow_dry_run in modes:
                 actual[mode]["blastwall_profile_strange_socket_v1"].append(host["name"])
 
 rendered_group_expressions = renderer.render_profile_group_expressions()
-inventory_actual = {
+for required_inventory_group in inventory_groups:
+    if required_inventory_group not in rendered_group_expressions:
+        fail(f"rendered inventory groups are missing {required_inventory_group}")
+
+inventory_expected = {
     mode: {
-        "blastwall_policy_current": [],
-        "blastwall_policy_stale": [],
-        "blastwall_profile_base": [],
-        "blastwall_profile_strange_socket_v1": [],
+        **mode_expected[mode],
+        "blastwall_policy_candidate": mode_expected[mode]["blastwall_policy_stale"],
     }
+    for mode, _ in modes
+}
+inventory_actual = {
+    mode: {group: [] for group in inventory_groups}
     for mode, _ in modes
 }
 
@@ -162,10 +229,35 @@ if actual != mode_expected:
     print(json.dumps({"actual": actual, "expected": mode_expected}, indent=2), file=sys.stderr)
     raise SystemExit(1)
 
-if inventory_actual != mode_expected:
+if inventory_actual != inventory_expected:
     print("FAIL: rendered inventory group expression mismatch", file=sys.stderr)
     print(
-        json.dumps({"actual": inventory_actual, "expected": mode_expected}, indent=2),
+        json.dumps({"actual": inventory_actual, "expected": inventory_expected}, indent=2),
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+ansible_inventory_actual = {
+    mode: run_ansible_inventory(allow_dry_run)
+    for mode, allow_dry_run in modes
+}
+ansible_inventory_expected = {
+    mode: {
+        group: sorted(hosts)
+        for group, hosts in inventory_expected[mode].items()
+    }
+    for mode, _ in modes
+}
+if ansible_inventory_actual != ansible_inventory_expected:
+    print("FAIL: ansible-inventory profile grouping mismatch", file=sys.stderr)
+    print(
+        json.dumps(
+            {
+                "actual": ansible_inventory_actual,
+                "expected": ansible_inventory_expected,
+            },
+            indent=2,
+        ),
         file=sys.stderr,
     )
     raise SystemExit(1)

@@ -194,6 +194,7 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
     return {
         "blastwall_policy_current": profile_current,
         "blastwall_policy_stale": profile_stale,
+        "blastwall_policy_candidate": profile_stale,
         "blastwall_profile_base": profile_base,
         "blastwall_profile_strange_socket_v1": profile_strange,
     }
