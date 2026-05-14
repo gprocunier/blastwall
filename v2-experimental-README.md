@@ -145,8 +145,10 @@ Use these runbook values:
   (or a curated lab base cohort), with
   `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.
 - Base-current to strange-socket dry-run rollout uses
-  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` or a curated
-  base-current lab cohort, then verifies after promotion with
+  a curated base-current lab cohort for
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP`, sets
+  `BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP` to the same cohort, then
+  verifies after promotion with
   `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
 
 This avoids a common release trap: treating every stale host as a safe policy

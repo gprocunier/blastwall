@@ -153,16 +153,19 @@ Use this rollout split:
   `blastwall_profile_base` (or an equivalent curated lab cohort), and keep
   `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.
 - For base-current to strange-socket dry-run rollout, set
-  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` or use an
-  equivalent curated base-current lab cohort, set
+  `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP` to a curated base-current lab
+  cohort that remains addressable after promotion, set
+  `BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP` to that same cohort, set
   `BLASTWALL_REQUIRED_POLICY_PROFILES=base,strange-socket-v1` and
   `BLASTWALL_ALLOW_DRY_RUN_PROFILES=true`, render/apply OpenShift/SPO with
   `BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1=true` and
   `BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1=true`, then verify after promotion
   with `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
 
-Preflight then uses the synced IdM inventory groups as input and fails closed
-when no host is eligible for verification.
+Preflight normally uses the synced IdM inventory profile groups and fails
+closed when no host is eligible for verification. The policy-pipeline
+post-promotion gate may target the just-promoted cohort directly and then run
+the parser-backed marker check with the workflow's required-profile variables.
 
 Policy installation and marker publication are bootstrap work. The recorded AAP
 workflow starts after that handoff: preflight proves IdM, HBAC, sudo, and policy
