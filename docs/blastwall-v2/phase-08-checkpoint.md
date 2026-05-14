@@ -3,6 +3,31 @@
 Date: 2026-05-11
 Branch: `blastwall-v2-phase-08-rc1k`
 
+## RC1k Closure Update
+
+Date: 2026-05-14
+
+The final closure patch keeps the Phase 08 scope frozen and addresses the
+Calabi/AAP release-gate wiring found in external review:
+
+- Calabi Controller configuration now defaults project sync to
+  `blastwall-v2-phase-08-rc1k` through `BLASTWALL_PROJECT_BRANCH`, while keeping
+  `BLASTWALL_PROJECT_URL` overrideable.
+- `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP` is overrideable and defaults to
+  the Calabi candidate cohort.
+- The Calabi selection fixture defaults the stale seed host to the same
+  `mirror-registry.workshop.lan` host selected by `blastwall_policy_candidate`.
+- RPM dry-run strange-socket activation uses explicit boolean coercion in the
+  module list and install command path.
+- OpenShift/SPO strange render/apply toggles accept AAP workflow extra vars as
+  Ansible variables, with environment fallback preserved.
+- OpenShift/SPO apply validation removes all prior validation jobs before
+  applying the selected base or dry-run strange validation set, so stale failed
+  jobs do not pollute operator evidence.
+
+This update does not add new deny scopes, marker grammar, OpenShift/SPO
+profiles, or strange-socket production promotion.
+
 ## Release Decision
 
 `base` and `base-nested` are release-stable v2 profile semantics.
@@ -98,6 +123,69 @@ BLASTWALL_POLICY_VERSION=0.6.1 BLASTWALL_POLICY_RELEASE=0.rc1 \
 # PASS; bundle sha256:
 # 60b7d8803deaa44d34fb81e46beda7aac64ce4abeea90169777789f110d02d38
 ```
+
+Additional RC1k closure validation:
+
+```bash
+python3 tests/policy_static.py
+python3 tests/inventory_grouping.py
+python3 -m pytest -q tests
+npm run test:policy
+npm run test:openshift
+make test-fast
+ansible-playbook --syntax-check -i localhost, poc-calabi/aap/20-configure-controller.yml
+ansible-playbook --syntax-check -i localhost, poc-calabi/aap/25-seed-selection-fixture.yml
+ansible-playbook --syntax-check -i localhost, playbooks/install-policy-rpm.yml
+npm run test:docs
+git diff --check
+# PASS locally on 2026-05-14
+```
+
+Calabi live gate note:
+
+- Correct boundary remains workstation staging, `virt-01` jump, then
+  bastion-local execution.
+- Calabi connectivity was restored on 2026-05-14: `virt-01`, bastion,
+  OpenShift API, AAP, SPO, and mirror registry were reachable; all six
+  OpenShift nodes reported `Ready`; worker MCP settled to updated and
+  non-degraded.
+- `poc-calabi/aap/00-aap-readiness.yml` passed, including OpenShift admin
+  access, AAP gateway readiness, mirror registry TLS/API readiness, pull-secret
+  coverage, and an in-namespace pull of
+  `mirror-registry.workshop.lan:8443/init/bootstrap-toolbox:latest`.
+- `poc-calabi/aap/20-configure-controller.yml` passed and live Controller API
+  state showed project `Blastwall` syncing
+  `https://github.com/gprocunier/blastwall.git` branch
+  `blastwall-v2-phase-08-rc1k`; project update `1263` succeeded at revision
+  `8f8b3e6f6cb4496bb25848cdd5fc6097e3e989d0`.
+- AAP policy pipeline workflow `1293`, launched as `blastwall-demo`, passed
+  with project sync, inventory sync, RPM build, candidate install,
+  OpenShift/SPO render, OpenShift/SPO apply validation, managed-host
+  verification, marker promotion, post-promotion inventory sync, and preflight
+  all successful.
+- AAP runtime verification workflow `1326`, launched as `blastwall-demo`,
+  passed with project sync, credential smoke, inventory sync, preflight, and
+  managed-host verification all successful.
+- Managed-host verification on `mirror-registry.workshop.lan` produced blocked
+  evidence for AF_ALG, BPF map/program load, AF_PACKET, user namespace,
+  io_uring, Dirty Frag NETLINK_XFRM, Dirty Frag AF_RXRPC, and Fragnesia
+  AF_ALG probes.
+- OpenShift/SPO AAP apply validation used the Calabi
+  `calabi-ocp420-rawprofile-underscore` mode and validated
+  `blastwall.process` -> `blastwall_.process` and
+  `blastwallnested.process` -> `blastwallnested_.process`.
+- Staged direct dry-run strange OpenShift/SPO validation passed from the
+  bastion checkout with Ansible extra vars only:
+  `BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1=true` and
+  `BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1=true`. Bundle sha256 was
+  `8d28745c909fa37967a72703d5a0445f2ef39613a0e53d46ae7ac095222cbc5a`; usage
+  strings were `blastwall.process`, `blastwallnested.process`,
+  `blastwallstrange.process`, and `blastwallnestedstrange.process`; hydrated SCC
+  types were the derived underscore forms; validation summaries passed for
+  standard, nested, standard-strange, and nested-strange.
+- AAP project sync consumes the published branch revision. The direct staged
+  strange SPO run validates the unpushed closure patch; rerun the full AAP
+  strange workflow after the branch revision containing this patch is pushed.
 
 Calabi validation inherited from Phase 07:
 

@@ -10,7 +10,12 @@
     blastwall_policy_release: >-
       {{ BLASTWALL_POLICY_RELEASE | default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('0.rc1', true), true) }}
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
-    blastwall_spo_include_strange_socket_v1: "{{ (lookup('env', 'BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1') | default('false', true) | bool) }}"
+    blastwall_spo_include_strange_socket_v1: >-
+      {{
+        BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1 |
+        default(lookup('env', 'BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1') | default('false', true), true) |
+        bool
+      }}
     blastwall_spo_profiles_base:
       - blastwall
       - blastwall-nested

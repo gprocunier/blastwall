@@ -459,6 +459,7 @@ for expected in [
     "blastwall_spo_bundle_sha256",
     "policy_nevra",
     "BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1",
+    "BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1 |",
 ]:
     if expected not in render_playbook:
         fail(f"playbooks/render-spo-policy-crs.yml is missing {expected}")
@@ -475,6 +476,8 @@ for expected in [
     "standard_profile: passed",
     "nested_profile: passed",
     "BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1",
+    "BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1 |",
+    "blastwall_spo_all_validation_jobs",
     "blastwall.io/policy-profile",
     "spo_policy_apply_validate",
     "status.usage",

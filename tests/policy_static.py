@@ -198,6 +198,7 @@ if "default('blastwall_profile_base', true)" not in controller_vars:
 calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").read_text(encoding="utf-8")
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
 calabi_eigenstate = (ROOT / "poc-calabi" / "inventory-eigenstate.yml").read_text(encoding="utf-8")
+calabi_seed_fixture = (ROOT / "poc-calabi" / "aap" / "25-seed-selection-fixture.yml").read_text(encoding="utf-8")
 if "idm_description" in calabi_eigenstate:
     fail("poc-calabi/inventory-eigenstate.yml still references idm_description in hostvars")
 generic_inventory = (ROOT / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
@@ -300,8 +301,6 @@ for path_name, inventory_text in [
 print("PASS: inventory profile grouping expressions are generated from policy/profiles")
 if "idm_userclass" not in calabi_eigenstate:
     fail("poc-calabi/inventory-eigenstate.yml does not include idm_userclass")
-if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: blastwall_policy_candidate" not in calabi_config:
-    fail("Calabi AAP configuration does not use the candidate group for policy upgrades")
 if "BLASTWALL_AAP_VERIFY_TARGET_GROUP" not in calabi_config:
     fail("Calabi AAP configuration does not pass the managed-host verify target group")
 if "BLASTWALL_IDM_ADMIN_PRINCIPAL" not in calabi_config or "BLASTWALL_IDM_ADMIN_PASSWORD" not in calabi_config:
@@ -310,6 +309,58 @@ if "default(calabi_aap_runtime_password.stdout, true)" not in calabi_config:
     fail("Calabi IdM admin credential does not default to the AAP runtime secret")
 if "blastwall_policy_candidate:" not in calabi_inventory:
     fail("Calabi AAP inventory does not define blastwall_policy_candidate")
+if "BLASTWALL_PROJECT_BRANCH" not in calabi_config:
+    fail("Calabi AAP configuration does not pass BLASTWALL_PROJECT_BRANCH")
+project_url_env_pattern = re.compile(
+    r"BLASTWALL_PROJECT_URL:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_PROJECT_URL['\"]\s*\)\s*\|\s*default\("
+    r"\s*['\"]https://github\.com/gprocunier/blastwall\.git['\"]\s*,\s*true\s*\)\s*\}\}",
+    re.MULTILINE,
+)
+if not project_url_env_pattern.search(calabi_config):
+    fail(
+        "Calabi AAP configuration does not default BLASTWALL_PROJECT_URL to "
+        "the upstream Blastwall project via env override"
+    )
+project_branch_env_pattern = re.compile(
+    r"BLASTWALL_PROJECT_BRANCH:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_PROJECT_BRANCH['\"]\s*\)\s*\|\s*default\("
+    r"\s*['\"]blastwall-v2-phase-08-rc1k['\"]\s*,\s*true\s*\)\s*\}\}",
+    re.MULTILINE,
+)
+if not project_branch_env_pattern.search(calabi_config):
+    fail(
+        "Calabi AAP configuration does not default BLASTWALL_PROJECT_BRANCH to "
+        "blastwall-v2-phase-08-rc1k via env override"
+    )
+candidate_group_pattern = re.compile(
+    r"BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP['\"]\s*\)\s*"
+    r"\|\s*default\(\s*['\"]blastwall_policy_candidate['\"]\s*,\s*true\s*\)\s*\}\}",
+    re.MULTILINE,
+)
+if not candidate_group_pattern.search(calabi_config):
+    fail(
+        "Calabi AAP configuration does not env-override BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP "
+        "to blastwall_policy_candidate"
+    )
+
+stale_host_match = re.search(
+    r"calabi_blastwall_stale_host:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_STALE_HOST['\"]\s*\)\s*"
+    r"\|\s*default\(\s*['\"]([^'\"]+)['\"]\s*,\s*true\s*\)\s*\}\}",
+    calabi_seed_fixture,
+    re.MULTILINE,
+)
+if not stale_host_match:
+    fail("Calabi AAP seed-selection fixture does not define BLASTWALL_STALE_HOST default")
+
+candidate_host_match = re.search(
+    r"blastwall_policy_candidate:\s*>\-[^\n]*\n\s*idm_fqdn\s*==\s*['\"]([^'\"]+)['\"]",
+    calabi_inventory,
+    re.MULTILINE,
+)
+if not candidate_host_match:
+    fail("Calabi AAP inventory does not define blastwall_policy_candidate FQDN guard")
+
+if stale_host_match.group(1) != candidate_host_match.group(1):
+    fail("Calabi AAP seed stale host default diverges from inventory blastwall_policy_candidate host filter")
 
 for template, limit in [
     ("Blastwall build policy RPM", "limit: \"{{ blastwall_aap_policy_pipeline_candidate_group }}\""),
@@ -390,6 +441,16 @@ for path_name, text in [
         and "derived dry-run profile intent" not in text
     ):
         fail(f"{path_name} uses legacy dry-run intent without canonical mismatch protection")
+if re.search(r"\{%[^\n]*if\s+blastwall_enable_strange_socket_v1_dry_run\s*%\}", install_policy):
+    fail("playbooks/install-policy-rpm.yml uses blastwall_enable_strange_socket_v1_dry_run in an if without | bool")
+if re.search(
+    r"blastwall_policy_dry_run_modules\s+if\s+blastwall_enable_strange_socket_v1_dry_run\s*else",
+    install_policy,
+) and not re.search(
+    r"blastwall_policy_dry_run_modules\s+if\s+blastwall_enable_strange_socket_v1_dry_run\s*\|\s*bool\s*else",
+    install_policy,
+):
+    fail("playbooks/install-policy-rpm.yml uses blastwall_enable_strange_socket_v1_dry_run in module inclusion without | bool")
 
 for required in [
     "BLASTWALL_REQUIRED_POLICY_PROFILES",

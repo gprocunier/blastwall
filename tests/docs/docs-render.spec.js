@@ -21,6 +21,8 @@ const pages = [
   "threat-model.html"
 ];
 
+const sitemapPages = pages.filter((pagePath) => pagePath !== "poc-flow.html");
+
 const viewports = [
   { name: "desktop-ultrawide", width: 1920, height: 1000 },
   { name: "desktop-wide", width: 1440, height: 1000 },
@@ -341,6 +343,22 @@ test.describe("GitHub Pages rendering", () => {
 
     expect(pageErrors).toEqual([]);
     await expect(page.locator(".site-brand__title")).toBeVisible();
+  });
+
+  test("sitemap exposes canonical indexable pages", () => {
+    const sitemap = readText(path.join(docsRoot, "sitemap.xml"));
+    const robots = readText(path.join(docsRoot, "robots.txt"));
+    const locs = Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g), (match) => match[1]);
+    const expectedLocs = sitemapPages.map((pagePath) =>
+      pagePath === "index.html" ? "https://blastwall.org/" : `https://blastwall.org/${pagePath}`
+    );
+
+    expect(sitemap).toContain('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"');
+    expect(locs).toEqual(expectedLocs);
+    expect(sitemap).not.toContain("www.blastwall.org");
+    expect(sitemap).not.toContain("blastwall.org/blastwall.org");
+    expect(sitemap).not.toContain("poc-flow.html");
+    expect(robots).toContain("Sitemap: https://blastwall.org/sitemap.xml");
   });
 
   test("local and repository hash links resolve", async () => {

@@ -9,7 +9,7 @@
   vars:
     calabi_blastwall_stale_host: >-
       {{ lookup('env', 'BLASTWALL_STALE_HOST') |
-      default('stale-blastwall-01.workshop.lan', true) }}
+      default('mirror-registry.workshop.lan', true) }}
     calabi_blastwall_stale_marker: >-
       blastwall:state=active;rpm=blastwall-selinux-0.4.0-1;rpm_sha256=2222222222222222222222222222222222222222222222222222222222222222;alg=deny;bpf=deny;self=deny
   tasks:

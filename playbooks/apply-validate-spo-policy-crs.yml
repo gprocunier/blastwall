@@ -7,7 +7,12 @@
     blastwall_spo_bundle_content: "{{ blastwall_spo_bundle_yaml | default('', true) }}"
     blastwall_spo_bundle_source_path: "{{ blastwall_spo_bundle_path | default('AAP workflow artifact', true) }}"
     blastwall_spo_bundle_hash: "{{ blastwall_spo_bundle_sha256 | default('', true) }}"
-    blastwall_spo_validate_strange_socket_v1: "{{ (lookup('env', 'BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1') | default('false', true) | bool) }}"
+    blastwall_spo_validate_strange_socket_v1: >-
+      {{
+        BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1 |
+        default(lookup('env', 'BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1') | default('false', true), true) |
+        bool
+      }}
     blastwall_spo_selinux_type_resolution_mode_default: "calabi-ocp420-rawprofile-underscore"
     blastwall_spo_selinux_type_resolution_mode_effective: "{{ blastwall_spo_selinux_type_resolution_mode | default(blastwall_spo_selinux_type_resolution_mode_default, true) }}"
     blastwall_spo_profile_namespace: blastwall-spo
@@ -45,6 +50,7 @@
         expected_type_placeholder: __BLASTWALL_SPO_NESTED_STRANGE_SELINUX_TYPE__
         summary: "nested-strange_profile: passed"
     blastwall_spo_validation_jobs: "{{ blastwall_spo_validation_jobs_base + (blastwall_spo_validate_strange_socket_v1 | ternary(blastwall_spo_validation_jobs_strange, [])) }}"
+    blastwall_spo_all_validation_jobs: "{{ blastwall_spo_validation_jobs_base + blastwall_spo_validation_jobs_strange }}"
     blastwall_spo_validation_summaries_base:
       - standard_profile: passed
       - nested_profile: passed
@@ -122,7 +128,7 @@
         name: "{{ item.name }}"
         wait: true
         wait_timeout: 120
-      loop: "{{ blastwall_spo_validation_jobs }}"
+      loop: "{{ blastwall_spo_all_validation_jobs }}"
 
     - name: Apply rendered OpenShift/SPO bundle prerequisites
       kubernetes.core.k8s:

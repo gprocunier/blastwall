@@ -64,7 +64,7 @@
         ['blastwall'] +
         blastwall_policy_support_modules +
         blastwall_policy_cil_modules +
-        (blastwall_policy_dry_run_modules if blastwall_enable_strange_socket_v1_dry_run else [])
+        (blastwall_policy_dry_run_modules if blastwall_enable_strange_socket_v1_dry_run | bool else [])
       }}
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
     ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
@@ -178,7 +178,7 @@
         {% for module in blastwall_policy_cil_modules %}
         {{ blastwall_policy_package_dir }}/{{ module }}.cil
         {% endfor %}
-        {% if blastwall_enable_strange_socket_v1_dry_run %}
+        {% if blastwall_enable_strange_socket_v1_dry_run | bool %}
         {% for module in blastwall_policy_dry_run_modules %}
         {{ blastwall_policy_package_dir }}/dry-run/{{ module }}.cil
         {% endfor %}

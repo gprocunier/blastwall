@@ -63,7 +63,15 @@
         BLASTWALL_AAP_VERIFY_TARGET_GROUP: >-
           {{ lookup('env', 'BLASTWALL_AAP_VERIFY_TARGET_GROUP') |
           default('blastwall_profile_base', true) }}
-        BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: blastwall_policy_candidate
+        BLASTWALL_PROJECT_URL: >-
+          {{ lookup('env', 'BLASTWALL_PROJECT_URL') |
+          default('https://github.com/gprocunier/blastwall.git', true) }}
+        BLASTWALL_PROJECT_BRANCH: >-
+          {{ lookup('env', 'BLASTWALL_PROJECT_BRANCH') |
+          default('blastwall-v2-phase-08-rc1k', true) }}
+        BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: >-
+          {{ lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
+          default('blastwall_policy_candidate', true) }}
         BLASTWALL_IDM_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
         BLASTWALL_IDM_ADMIN_PASSWORD: >-
           {{ lookup('env', 'IPA_ADMIN_PASSWORD') |

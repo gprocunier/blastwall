@@ -64,6 +64,9 @@ kept distinct from preflight targeting:
 
 - Stale host remediation uses
   `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_policy_candidate`.
+  In the Calabi fixture that candidate group is pinned to
+  `mirror-registry.workshop.lan`; use `BLASTWALL_STALE_HOST` only when a demo
+  recording needs a separate rejected fixture host.
 - Base/current verification uses
   `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` (or an
   explicit curated base cohort), and `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.

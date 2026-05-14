@@ -138,6 +138,9 @@ The v2 AAP model separates two targeting controls:
 Use these runbook values:
 
 - Stale host remediation uses `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_policy_candidate`.
+  In Calabi, that candidate cohort is the `mirror-registry.workshop.lan`
+  policy-pipeline target by default; `BLASTWALL_STALE_HOST` is only for a
+  separate rejected demo fixture.
 - Base/current verification uses `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base`
   (or a curated lab base cohort), with
   `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.

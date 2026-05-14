@@ -34,7 +34,9 @@ The intended objects are:
 - Organization: `Blastwall`
 - Project: `Blastwall`
 - Project URL: `https://github.com/gprocunier/blastwall.git`
-- Project branch: `main`
+- Project branch: `main` for the generic Controller assets. The Calabi RC gate
+  overrides this with `BLASTWALL_PROJECT_BRANCH`, and the current Calabi overlay
+  defaults that value to `blastwall-v2-phase-08-rc1k`.
 - Execution Environment: `Blastwall EE`
 - Inventory: `Blastwall IdM Inventory`
 - Inventory source: `inventory/blastwall-idm.yml`
@@ -152,8 +154,12 @@ Use this rollout split:
   `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_base`.
 - For base-current to strange-socket dry-run rollout, set
   `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP=blastwall_profile_base` or use an
-  equivalent curated base-current lab cohort, then verify after promotion with
-  `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
+  equivalent curated base-current lab cohort, set
+  `BLASTWALL_REQUIRED_POLICY_PROFILES=base,strange-socket-v1` and
+  `BLASTWALL_ALLOW_DRY_RUN_PROFILES=true`, render/apply OpenShift/SPO with
+  `BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1=true` and
+  `BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1=true`, then verify after promotion
+  with `BLASTWALL_AAP_VERIFY_TARGET_GROUP=blastwall_profile_strange_socket_v1`.
 
 Preflight then uses the synced IdM inventory groups as input and fails closed
 when no host is eligible for verification.
@@ -167,9 +173,13 @@ and proves the confined runtime behavior on current hosts.
 
 The IdM inventory source groups hosts with current policy markers into
 `blastwall_policy_current` and unsuitable hosts into `blastwall_policy_stale`.
-The Calabi AAP fixture adds `stale-blastwall-01.workshop.lan` as an IdM-only
-stale host so the demo visibly shows selection without requiring a second
-managed VM. Verification still targets only `blastwall_policy_current`.
+The Calabi policy-pipeline candidate group is pinned to
+`mirror-registry.workshop.lan`, so the AAP selection fixture now seeds that same
+host by default when intentionally preparing a stale remediation run. If a
+recording needs a separate rejected fixture for audience visibility, set
+`BLASTWALL_STALE_HOST=stale-blastwall-01.workshop.lan` before running
+`poc-calabi/aap/25-seed-selection-fixture.yml`. Runtime verification still
+targets the profile-aware current group, not every policy-pipeline candidate.
 
 Candidate RPM install/verify/promotion is controlled by a separate
 `BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP` host cohort, which keeps policy-pipeline
