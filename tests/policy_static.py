@@ -196,6 +196,13 @@ if "BLASTWALL_AAP_VERIFY_TARGET_GROUP" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not expose the AAP verify target group")
 if "default('blastwall_profile_base', true)" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not default AAP verify targeting to blastwall_profile_base")
+controller_post_promotion_group_pattern = re.compile(
+    r"blastwall_aap_post_promotion_preflight_target_group:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
+    r"\|\s*default\(\s*['\"]['\"]\s*,\s*true\s*\)\s*\}\}",
+    re.MULTILINE,
+)
+if not controller_post_promotion_group_pattern.search(controller_vars):
+    fail("aap/vars/blastwall-controller.yml must default post-promotion preflight targeting to the profile-derived group")
 
 calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").read_text(encoding="utf-8")
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
@@ -347,13 +354,13 @@ if not candidate_group_pattern.search(calabi_config):
     )
 post_promotion_group_pattern = re.compile(
     r"BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
-    r"\|\s*default\(\s*['\"]blastwall_policy_candidate['\"]\s*,\s*true\s*\)\s*\}\}",
+    r"\|\s*default\(\s*['\"]['\"]\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not post_promotion_group_pattern.search(calabi_config):
     fail(
-        "Calabi AAP configuration does not env-override BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP "
-        "to blastwall_policy_candidate"
+        "Calabi AAP configuration must default BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP "
+        "to the profile-derived group"
     )
 
 stale_host_match = re.search(

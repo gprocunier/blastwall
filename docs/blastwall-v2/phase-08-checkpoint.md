@@ -24,9 +24,9 @@ Calabi/AAP release-gate wiring found in external review:
 - OpenShift/SPO apply validation removes all prior validation jobs before
   applying the selected base or dry-run strange validation set, so stale failed
   jobs do not pollute operator evidence.
-- Policy-pipeline post-promotion preflight can target the just-promoted
-  candidate cohort before running the parser-backed marker check, which avoids
-  relying on dry-run inventory grouping that cannot receive workflow extra vars.
+- Policy-pipeline post-promotion preflight defaults to profile-derived targeting
+  after marker promotion, while retaining an explicit override for curated
+  cohorts that must remain addressable across promotion.
 
 This update does not add new deny scopes, marker grammar, OpenShift/SPO
 profiles, or strange-socket production promotion.
