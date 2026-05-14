@@ -665,6 +665,8 @@
             blastwall_policy_pipeline_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: post_promotion_preflight
           template: Blastwall preflight
+          extra_data:
+            blastwall_preflight_target_group_override: "{{ blastwall_aap_post_promotion_preflight_target_group }}"
 
     - name: Ensure policy pipeline OpenShift apply validation node exists when configured
       awx.awx.workflow_job_template_node:

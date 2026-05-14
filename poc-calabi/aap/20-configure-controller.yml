@@ -72,6 +72,9 @@
         BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: >-
           {{ lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
           default('blastwall_policy_candidate', true) }}
+        BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP: >-
+          {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP') |
+          default('blastwall_policy_candidate', true) }}
         BLASTWALL_IDM_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
         BLASTWALL_IDM_ADMIN_PASSWORD: >-
           {{ lookup('env', 'IPA_ADMIN_PASSWORD') |

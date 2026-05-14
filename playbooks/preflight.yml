@@ -70,9 +70,24 @@
         if blastwall_strange_socket_v1_requested | bool
         else 'blastwall_profile_base'
       }}
+    blastwall_preflight_target_group_override_raw: >-
+      {{
+        blastwall_preflight_target_group_override |
+        default(
+          BLASTWALL_PREFLIGHT_TARGET_GROUP |
+          default(lookup('env', 'BLASTWALL_PREFLIGHT_TARGET_GROUP') | default('', true), true),
+          true
+        )
+      }}
+    blastwall_preflight_effective_group: >-
+      {{
+        blastwall_preflight_target_group_override_raw
+        if blastwall_preflight_target_group_override_raw | length > 0
+        else blastwall_profile_preflight_group
+      }}
     blastwall_fail_on_stale_policy: true
     blastwall_target_hosts: >-
-      {{ groups[blastwall_profile_preflight_group] | default([]) }}
+      {{ groups[blastwall_preflight_effective_group] | default([]) }}
     blastwall_stale_hosts: >-
       {{ groups['blastwall_policy_stale'] | default([]) }}
     blastwall_candidate_hosts: >-

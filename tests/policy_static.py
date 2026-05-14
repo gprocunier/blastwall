@@ -190,6 +190,8 @@ for required in [
 
 if "BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not expose a policy pipeline candidate group")
+if "BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP" not in controller_vars:
+    fail("aap/vars/blastwall-controller.yml does not expose a post-promotion preflight target group")
 if "BLASTWALL_AAP_VERIFY_TARGET_GROUP" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not expose the AAP verify target group")
 if "default('blastwall_profile_base', true)" not in controller_vars:
@@ -311,6 +313,8 @@ if "blastwall_policy_candidate:" not in calabi_inventory:
     fail("Calabi AAP inventory does not define blastwall_policy_candidate")
 if "BLASTWALL_PROJECT_BRANCH" not in calabi_config:
     fail("Calabi AAP configuration does not pass BLASTWALL_PROJECT_BRANCH")
+if "BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP" not in calabi_config:
+    fail("Calabi AAP configuration does not pass the post-promotion preflight target group")
 project_url_env_pattern = re.compile(
     r"BLASTWALL_PROJECT_URL:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_PROJECT_URL['\"]\s*\)\s*\|\s*default\("
     r"\s*['\"]https://github\.com/gprocunier/blastwall\.git['\"]\s*,\s*true\s*\)\s*\}\}",
@@ -339,6 +343,16 @@ candidate_group_pattern = re.compile(
 if not candidate_group_pattern.search(calabi_config):
     fail(
         "Calabi AAP configuration does not env-override BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP "
+        "to blastwall_policy_candidate"
+    )
+post_promotion_group_pattern = re.compile(
+    r"BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
+    r"\|\s*default\(\s*['\"]blastwall_policy_candidate['\"]\s*,\s*true\s*\)\s*\}\}",
+    re.MULTILINE,
+)
+if not post_promotion_group_pattern.search(calabi_config):
+    fail(
+        "Calabi AAP configuration does not env-override BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP "
         "to blastwall_policy_candidate"
     )
 
@@ -492,6 +506,8 @@ for required in [
     "blastwall_base_scope_csv: alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect",
     "strange-socket-v1",
     "blastwall_profile_preflight_group:",
+    "blastwall_preflight_target_group_override",
+    "blastwall_preflight_effective_group:",
     "blastwall_profile_base",
     "blastwall_profile_strange_socket_v1",
 ]:
@@ -499,6 +515,8 @@ for required in [
         fail(f"playbooks/preflight.yml is missing profile preflight check: {required}")
 if "groups['blastwall_policy_current']" in preflight:
     fail("playbooks/preflight.yml must select profile-specific groups, not blastwall_policy_current")
+if "blastwall_preflight_target_group_override: \"{{ blastwall_aap_post_promotion_preflight_target_group }}\"" not in aap_config:
+    fail("AAP policy pipeline post-promotion preflight cannot override the target group")
 
 print("PASS: AAP policy pipeline targets stale candidates before promotion")
 
