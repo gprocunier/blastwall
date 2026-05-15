@@ -78,6 +78,9 @@ if module_version != policy_version:
 for usermanage_interface in ["usermanage_run_groupadd", "usermanage_run_useradd"]:
     if f"{usermanage_interface}(blastwall_t, blastwall_r)" not in te_source:
         fail(f"policy/blastwall.te must allow {usermanage_interface} for ordinary automation corpus user management")
+for systemd_interface in ["init_reload_services", "systemd_exec_systemctl"]:
+    if f"{systemd_interface}(blastwall_t)" not in te_source:
+        fail(f"policy/blastwall.te must allow {systemd_interface} for ordinary automation corpus service management")
 
 match = re.search(r"^DENY_POLICIES\s*:=\s*(.+)$", makefile, re.MULTILINE)
 if not match:

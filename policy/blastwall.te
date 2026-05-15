@@ -17,6 +17,8 @@ userdom_admin_user_template(blastwall)
 typealias blastwall_t alias blastwall_root_local_t;
 
 optional_policy(`
+	init_reload_services(blastwall_t)
+	systemd_exec_systemctl(blastwall_t)
 	usermanage_run_groupadd(blastwall_t, blastwall_r)
 	usermanage_run_useradd(blastwall_t, blastwall_r)
 ')
