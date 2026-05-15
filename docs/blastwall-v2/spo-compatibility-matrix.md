@@ -16,15 +16,23 @@ OCP version: `4.20`
 
 SPO version: `0.10`
 
-Date: inherited live evidence from prior Phase 08 checkpoint; this local pass
-adds fail-closed guards but does not rerun the cluster jobs.
+Date: 2026-05-15 live Calabi replay on branch
+`blastwall-v2-phase-08-rc1k`, commit
+`4dca61afba413383ebe48f1b07a1c413bb1affb1`.
+
+Evidence:
+
+- Base and nested:
+  `/tmp/blastwall-phase08-rc1k-live-20260515T034134Z/gate10-spo-base-apply-validate.log`
+- Strange dry-run:
+  `/tmp/blastwall-phase08-rc1k-live-20260515T034134Z/gate11-spo-strange-apply-validate.log`
 
 | RawSelinuxProfile | Observed status.usage | SCC type used | Admitted pod context | Validation class | Result |
 |---|---|---|---|---|---|
-| `blastwall` | `blastwall.process` | `blastwall_.process` | `blastwall_.process` | standard | PASS in Calabi evidence |
-| `blastwallnested` | `blastwallnested.process` | `blastwallnested_.process` | `blastwallnested_.process` | nested | PASS in Calabi evidence |
-| `blastwallstrange` | `blastwallstrange.process` | `blastwallstrange_.process` | `blastwallstrange_.process` | standard-strange | PASS in lab opt-in evidence |
-| `blastwallnestedstrange` | `blastwallnestedstrange.process` | `blastwallnestedstrange_.process` | `blastwallnestedstrange_.process` | nested-strange | PASS in lab opt-in evidence |
+| `blastwall` | `blastwall.process` | `blastwall_.process` | `blastwall_.process` | standard | PASS |
+| `blastwallnested` | `blastwallnested.process` | `blastwallnested_.process` | `blastwallnested_.process` | nested | PASS |
+| `blastwallstrange` | `blastwallstrange.process` | `blastwallstrange_.process` | `blastwallstrange_.process` | standard-strange | PASS |
+| `blastwallnestedstrange` | `blastwallnestedstrange.process` | `blastwallnestedstrange_.process` | `blastwallnestedstrange_.process` | nested-strange | PASS |
 
 ## Non-Default Mode
 

@@ -1,18 +1,22 @@
 # Base Automation Corpus Replay Report
 
-Status: `HOLD: corpus defined, Calabi replay not rerun in this local pass`
+Status: `PASS: replayed in live Calabi lab`
 
 Branch: `blastwall-v2-phase-08-rc1k`
 
-Source commit: `6ec0f9e5759a8c83f75f6c38cb1ec7257b382334`
+Source commit:
+`4dca61afba413383ebe48f1b07a1c413bb1affb1`
 
 Corpus playbook: `tests/corpus/base_automation_corpus.yml`
 
+Live evidence:
+`/tmp/blastwall-phase08-rc1k-live-20260515T034134Z/gate09-base-corpus-after-systemd-policy.log`
+
 ## Scope
 
-The base corpus is designed to prove that ordinary privileged automation still
-works under the `blastwall_u:blastwall_r:blastwall_t:s0` login context. It does
-not add policy allow rules and does not promote `strange-socket-v1`.
+The base corpus proves that ordinary privileged automation still works under the
+`blastwall_u:blastwall_r:blastwall_t:s0` login context. It does not promote
+`strange-socket-v1`.
 
 Covered operations:
 
@@ -24,44 +28,50 @@ Covered operations:
 - localhost HTTP request with non-fatal handling
 - cleanup of lab-created files and user
 
-## Required Live Evidence
+## Live Evidence
 
-- Host: `TBD from Calabi replay`
-- RPM NEVRA: `TBD from Calabi replay`
-- Marker: `TBD from Calabi replay`
-- SELinux context: `TBD from Calabi replay`
-- Tasks passed: `TBD from Calabi replay`
-- Tasks failed: `TBD from Calabi replay`
-- AVCs observed: `TBD from Calabi replay`
-- Compatibility exceptions: `TBD from Calabi replay`
-- Policy changes requested: none from local remediation
+- Host: `mirror-registry.workshop.lan`
+- RPM NEVRA: `blastwall-selinux-0.6.1-0.rc1.noarch`
+- Marker:
+  `blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486;policy_sha256=4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2;profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect`
+- SELinux context: `blastwall_u:blastwall_r:blastwall_t:s0`
+- Tasks passed: `16`
+- Tasks failed: `0`
+- AVCs observed: none required for the final passing replay
+- Compatibility exceptions: none
+- Policy changes requested by replay:
+  - allow standard user/group management transitions from `blastwall_t`
+  - allow standard systemd lifecycle management needed by `daemon-reload`
 
-## Failure Triage Rule
+## Failure Triage
 
-If the corpus fails, classify the failure before changing policy:
+The first live replay failed before final pass and was classified as a real
+compatibility issue, not a stale-lab artifact:
 
-- expected security denial
-- missing lab setup
-- real compatibility issue
-- unrelated task failure
+- `useradd` could not open `/etc/gshadow` under `blastwall_t`, while the same
+  target operation succeeded as unconfined `cloud-user`.
+- `systemctl daemon-reload` was denied under `blastwall_t`, while the same
+  target operation succeeded as unconfined `cloud-user`.
 
-Real compatibility issues require a written decision before policy change:
-split identity/domain, adjust the corpus expectation, or adjust profile policy
-with explicit rationale.
+The policy fix uses standard RHEL reference-policy interfaces in
+`policy/blastwall.te` rather than ad hoc raw allow rules. Static guards in
+`tests/policy_static.py` now require those interfaces.
 
 ## Local Validation
-
-Local validation can prove structure and syntax only. It does not satisfy the
-Calabi replay gate by itself.
 
 ```bash
 ansible-playbook --syntax-check -i localhost, tests/corpus/base_automation_corpus.yml
 # PASS
+
+python3 tests/policy_static.py
+# PASS
+
+python3 -m pytest -q tests
+# 65 passed
 ```
 
 ## Decision
 
-The corpus artifact exists and is ready for Calabi replay. Stable release claims
-remain blocked until the playbook runs through the same SSH, SSSD, PAM, and
-SELinux path as normal Blastwall automation and the live evidence fields above
-are completed.
+The base corpus gate is complete for the Calabi Phase 08 RC path. It validates
+the same SSH, SSSD, PAM, sudo, and SELinux login path used by normal Blastwall
+automation.

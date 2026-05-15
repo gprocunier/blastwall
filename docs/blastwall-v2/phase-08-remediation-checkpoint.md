@@ -19,10 +19,10 @@ profile names were introduced.
 | 02 preflight safety and targeting | COMPLETE locally | main thread | `playbooks/preflight.yml`, static tests |
 | 03 inventory resilience and monitoring | COMPLETE locally | main thread | `tools/audit_blastwall_inventory.py`, audit playbook |
 | 04 rollback recoverability | COMPLETE locally | main thread | deploy rescue verification and marker states |
-| 05 base automation corpus replay | ARTIFACT READY, LIVE HOLD | main thread | `base-corpus-replay-report.md` |
-| 06 OpenShift/SPO compatibility | COMPLETE locally, LIVE HOLD | main thread | `spo-compatibility-matrix.md` |
+| 05 base automation corpus replay | COMPLETE live | main thread | `base-corpus-replay-report.md` |
+| 06 OpenShift/SPO compatibility | COMPLETE live | main thread | `spo-compatibility-matrix.md` |
 | 07 operator docs and governance | COMPLETE locally | main thread | one-page summary, runbook, decision tree, governance docs |
-| 08 Calabi gate and release decision | HOLD | main thread | `phase-08-calabi-final-checkpoint.md` |
+| 08 Calabi gate and release decision | COMPLETE live, release approval pending | main thread | `phase-08-calabi-final-checkpoint.md` |
 
 ## Implemented Remediation
 
@@ -41,8 +41,12 @@ profile names were introduced.
   current-to-stale detection.
 - Deploy rollback verifies post-rescue module and login-context state and then
   publishes `failed`, `rollback-active`, or `rollback-failed` marker evidence.
-- The base automation corpus playbook exists and records the required SELinux
-  context before running ordinary automation tasks.
+- The base automation corpus playbook records the required SELinux context and
+  now passes live through package, file/template, user-management, systemd, URI,
+  and cleanup tasks.
+- `policy/blastwall.te` now includes standard RHEL reference-policy interfaces
+  for local user/group management and systemd lifecycle management needed by
+  ordinary privileged automation under `blastwall_t`.
 - OpenShift/SPO validation now fails closed on unknown `status.usage` shapes and
   records validation class evidence.
 - Operator docs now cover the summary, troubleshooting path, inventory decision
@@ -107,10 +111,14 @@ Phase 03: the control plane cannot lose track of hosts without an observable sig
 
 Phase 04: a failed deploy creates an incident signal, not ambiguity.
 
-Phase 05: base corpus is defined, but live operability remains a Calabi gate.
+Phase 05: base corpus passed through the live Calabi SSH, SSSD, PAM, sudo, and
+SELinux path.
 
-Phase 06: OpenShift evidence is bounded to the exact proven cluster/SPO behavior.
+Phase 06: OpenShift evidence is bounded to the exact proven Calabi OCP 4.20/SPO
+0.10 cluster behavior and was replayed live on this branch.
 
 Phase 07: project operation no longer depends only on maintainer memory.
 
-Phase 08: HOLD until live Calabi gates are rerun on this branch after remediation.
+Phase 08: live Calabi gates passed on commit
+`4dca61afba413383ebe48f1b07a1c413bb1affb1`; stable release approval remains a
+separate maintainer decision.

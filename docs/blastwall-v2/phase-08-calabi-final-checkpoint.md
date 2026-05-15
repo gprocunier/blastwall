@@ -4,56 +4,86 @@ Date: 2026-05-15
 
 Branch: `blastwall-v2-phase-08-rc1k`
 
-Commit under local remediation: `6ec0f9e5759a8c83f75f6c38cb1ec7257b382334`
+Final validated commit:
+`4dca61afba413383ebe48f1b07a1c413bb1affb1`
 
-Decision: `HOLD: operational blocker`
+Decision: `PASS: live Calabi gates complete; stable sign-off still separate`
 
-## Reason
+Evidence directory:
+`/tmp/blastwall-phase08-rc1k-live-20260515T034134Z` on the Calabi bastion.
 
-This local remediation pass changed marker publication, hash semantics,
-preflight bypass behavior, inventory anomaly detection, rollback signaling,
-OpenShift/SPO fail-closed validation, and operator evidence. Those changes need
-fresh Calabi end-to-end evidence before any stable or RC approval.
+## Live Gate Results
 
-## Required Calabi Gates
+- Gate 1 branch and source identity: `PASS`
+  - AAP project `Blastwall` on branch `blastwall-v2-phase-08-rc1k`
+  - AAP project revision:
+    `4dca61afba413383ebe48f1b07a1c413bb1affb1`
+  - Evidence: `gate12-aap-source-identity-final.json`
+- Gate 2 inventory classification fixtures: `PASS`
+  - Base mode selected `mirror-registry.workshop.lan` for `base`.
+  - Dry-run mode selected `base,strange-socket-v1` only after matching marker
+    evidence.
+  - The stale fixture host remained fail-closed in marker parse error grouping.
+- Gate 3 base AAP verification: `PASS`
+  - Workflow `1532`, verify job `1545`
+  - No `FAIL_ALLOWED`, `FAIL_UNKNOWN`, or
+    `FAIL_MISSING_CLASS_REQUIRED` evidence.
+- Gate 4 policy pipeline base path: `PASS`
+  - Workflow `1675`
+  - Jobs `1676`, `1677`, `1680`, `1684`, `1685`, `1689`, `1693`,
+    `1697`, and `1700` all successful.
+- Gate 5 RHEL strange-socket dry-run path: `PASS`
+  - Workflow `1549`
+  - Dry-run module `blastwall-strange-socket-v1-deny` installed only for the
+    explicit dry-run run and removed when base mode was restored.
+- Gate 6 rollback simulation: `PASS`
+  - Controlled failure produced rollback marker evidence and restored policy
+    state.
+  - Evidence: `gate06-rollback-controlled-failure.log`,
+    `gate06-rollback-idm-marker.log`
+- Gate 7 base automation corpus replay: `PASS`
+  - Evidence: `gate09-base-corpus-after-systemd-policy.log`
+  - Corpus completed under
+    `blastwall_u:blastwall_r:blastwall_t:s0` on
+    `mirror-registry.workshop.lan`.
+- Gate 8 OpenShift/SPO base and nested: `PASS`
+  - Evidence: `gate10-spo-base-render.log`,
+    `gate10-spo-base-apply-validate.log`
+  - `status.usage` values `blastwall.process` and
+    `blastwallnested.process` were converted to derived SCC types
+    `blastwall_.process` and `blastwallnested_.process`.
+- Gate 9 OpenShift/SPO strange dry-run: `PASS`
+  - Evidence: `gate11-spo-strange-render.log`,
+    `gate11-spo-strange-apply-validate.log`
+  - Standard, nested, standard-strange, and nested-strange validation jobs all
+    passed with the Calabi OCP 4.20/SPO 0.10 derived-type mode.
 
-- Gate 1 branch and source identity: `PENDING`
-- Gate 2 inventory classification fixtures: `PENDING`
-- Gate 3 base AAP verification: `PENDING`
-- Gate 4 policy pipeline base path: `PENDING`
-- Gate 5 RHEL strange-socket dry-run path: `PENDING`
-- Gate 6 rollback simulation: `PENDING`
-- Gate 7 base automation corpus replay: `PENDING`
-- Gate 8 OpenShift/SPO base and nested: `PENDING`
-- Gate 9 OpenShift/SPO strange dry-run: `PENDING`
+## Final Target State
 
-## Local Artifacts
+- Target host: `mirror-registry.workshop.lan`
+- RPM: `blastwall-selinux-0.6.1-0.rc1.noarch`
+- Marker:
+  `blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486;policy_sha256=4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2;profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect`
+- Active modules exclude `blastwall-strange-socket-v1-deny` in final base
+  mode.
 
-- Remediation checkpoint:
-  `docs/blastwall-v2/phase-08-remediation-checkpoint.md`
-- Base corpus report:
-  `docs/blastwall-v2/base-corpus-replay-report.md`
-- OpenShift/SPO matrix:
-  `docs/blastwall-v2/spo-compatibility-matrix.md`
-- Inventory audit tool:
-  `tools/audit_blastwall_inventory.py`
-- Inventory audit playbook:
-  `playbooks/audit-inventory-membership.yml`
-- Installed policy hash helper:
-  `tools/blastwall_policy_hash.py`
+## Live Findings Resolved During Gate
 
-## Unresolved Risks
+- The base corpus exposed two real compatibility gaps in ordinary privileged
+  automation under `blastwall_t`:
+  - local user/group management needed standard `useradd_t` and `groupadd_t`
+    transitions.
+  - systemd lifecycle management needed standard `systemctl` execution and
+    `init_t:system reload` access.
+- Both were implemented through RHEL reference-policy interfaces in
+  `policy/blastwall.te`, guarded by `tests/policy_static.py`, rebuilt through
+  AAP, and replayed successfully.
 
-- The base automation corpus has not been replayed through the live Calabi
-  SSH, SSSD, PAM, and SELinux path after this remediation patch.
-- Rollback marker behavior has static and syntax coverage only until a
-  controlled failure is forced in Calabi.
-- OpenShift/SPO fail-closed usage guards need a fresh validation job run on the
-  live cluster.
-- AAP workflow evidence must prove post-promotion preflight still derives the
-  profile group after marker promotion.
+## Remaining Release Decisions
 
-## Exit Decision
-
-Hold publication until the Calabi gates above pass or a narrower
-`REFERENCE ONLY: not stable` decision is explicitly accepted.
+- Stable publication still requires human release approval and ownership
+  assignment.
+- OpenShift claims remain version-bounded to the observed Calabi OCP 4.20/SPO
+  0.10 behavior.
+- `strange-socket-v1` remains lab-only dry-run evidence, not a default stable
+  RHEL profile.
