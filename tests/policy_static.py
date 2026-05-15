@@ -15,6 +15,7 @@ POLICY = ROOT / "policy"
 PLAYBOOKS = ROOT / "playbooks"
 PROFILE_REGISTRY_SHA256 = hashlib.sha256((ROOT / "policy" / "profiles.yml").read_bytes()).hexdigest()
 RENDER_INVENTORY_GROUPS = ROOT / "tools" / "render_inventory_profile_groups.py"
+DEPLOY_POLICY_PLAYBOOK = PLAYBOOKS / "deploy-policy.yml"
 
 
 def fail(message: str) -> None:
@@ -60,6 +61,24 @@ def select_match_string_arguments(text: str):
                 literal.append(char)
             index += 1
         yield raw_prefix, "".join(literal)
+
+
+def walk_playbook_tasks(tasks, inside_rescue: bool = False):
+    if not tasks:
+        return
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        yield task, inside_rescue
+
+        for key in ("block", "always", "rescue"):
+            nested_tasks = task.get(key)
+            if isinstance(nested_tasks, list):
+                yield from walk_playbook_tasks(
+                    nested_tasks,
+                    inside_rescue or key == "rescue",
+                )
 
 
 makefile = (POLICY / "Makefile").read_text(encoding="utf-8")
@@ -292,8 +311,9 @@ if not strange_profiles or not strange_scopes:
     fail("could not derive canonical strange-socket-v1 emission profile fields")
 if f"profiles={strange_profiles}" not in normalized_profile_base:
     fail("rendered blastwall_profile_base misses canonical profiles=base,strange-socket-v1 branch")
-if f"scopes={strange_scopes}" not in normalized_profile_base:
-    fail("rendered blastwall_profile_base does not include canonical strange-socket-v1 scope sequence")
+for strange_scope in strange_scopes.split(","):
+    if strange_scope not in normalized_profile_base:
+        fail(f"rendered blastwall_profile_base does not include strange-socket-v1 scope {strange_scope}")
 
 for path_name, inventory_text in [
     ("inventory/blastwall-idm.yml", generic_inventory),
@@ -549,6 +569,7 @@ for path_name, text in [
     validation_indices = [index for index in validation_indices if index != -1]
     validation_index = min(validation_indices) if validation_indices else -1
     publish_indices = [
+        text.find("Publish active Blastwall host marker to IdM"),
         text.find("Publish Blastwall host marker to IdM"),
         text.find("Publish verified Blastwall host marker to IdM"),
     ]
@@ -827,3 +848,45 @@ for rc_doc in rc_frontmatter_docs:
         fail(f"{docs_path.relative_to(ROOT)} still contains stale RC1e wording; use RC1k/current-RC language")
     if "rc1j" in docs_text:
         fail(f"{docs_path.relative_to(ROOT)} still contains stale RC1j wording; use RC1k/current-RC language")
+
+deploy_policy = yaml.safe_load(DEPLOY_POLICY_PLAYBOOK.read_text(encoding="utf-8"))
+if not isinstance(deploy_policy, list) or not deploy_policy:
+    fail(f"{DEPLOY_POLICY_PLAYBOOK.relative_to(ROOT)} must be a non-empty playbook document list")
+deploy_tasks = deploy_policy[0].get("tasks", [])
+if not isinstance(deploy_tasks, list):
+    fail(f"{DEPLOY_POLICY_PLAYBOOK.relative_to(ROOT)} is missing a task list")
+
+deploy_marker_fallbacks = {
+    "Publish active Blastwall host marker with FreeIPA CLI fallback": "Publish active Blastwall host marker to IdM with collection",
+    "Publish failed Blastwall host marker with FreeIPA CLI fallback": "Publish failed Blastwall host marker with collection",
+}
+
+for fallback_name, collection_name in deploy_marker_fallbacks.items():
+    seen_fallback = False
+    seen_fallback_in_rescue = False
+    seen_fallback_outside_rescue = False
+    seen_collection = False
+
+    for task, in_rescue in walk_playbook_tasks(deploy_tasks):
+        task_name = task.get("name")
+        if not isinstance(task_name, str):
+            continue
+        if task_name == fallback_name:
+            seen_fallback = True
+            if in_rescue:
+                seen_fallback_in_rescue = True
+            else:
+                seen_fallback_outside_rescue = True
+        if task_name == collection_name:
+            seen_collection = True
+
+    if not seen_fallback:
+        fail(f"deploy-policy.yml missing required fallback marker publication task: {fallback_name}")
+    if not seen_fallback_in_rescue:
+        fail(f"deploy-policy.yml fallback marker task must be in a rescue block: {fallback_name}")
+    if seen_fallback_outside_rescue:
+        fail(f"deploy-policy.yml fallback marker task appears outside rescue: {fallback_name}")
+    if not seen_collection:
+        fail(f"deploy-policy.yml missing required collection marker publication task: {collection_name}")
+
+print("PASS: deploy-policy marker publication fallbacks are guarded by rescue blocks")

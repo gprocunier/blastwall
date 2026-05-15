@@ -179,6 +179,34 @@ class BlastwallMarkerTests(unittest.TestCase):
         self.assertFalse(parsed.suitable, parsed.errors)
         self.assertTrue(any("marker scopes unknown to registry" in error for error in parsed.errors), parsed.errors)
 
+    def test_v2_marker_accepts_unknown_fields(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        text = f"{text};notes=inventory-test;origin=option-a"
+        parsed = self.parse(text)
+        self.assertTrue(parsed.suitable, parsed.errors)
+        self.assertEqual(parsed.profiles, {"base"})
+
+    def test_v2_marker_accepts_reordered_scopes(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        expected_scopes = ",".join(self.registry["profiles"]["base"]["scopes"])
+        text = text.replace(
+            f"scopes={expected_scopes}",
+            "scopes=rxrpc,xfrm,selfprotect,io_uring,userns,packet_socket,capability2_bpf,bpf,alg_socket",
+        )
+        parsed = self.parse(text)
+        self.assertTrue(parsed.suitable, parsed.errors)
+        self.assertEqual(parsed.scopes, marker.expand_profiles(self.registry, {"base"}))
+
     def test_required_profiles_parse_regardless_of_marker_order(self) -> None:
         text = marker.emit_marker_v2(
             registry=self.registry,

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 from textwrap import dedent
@@ -45,6 +46,22 @@ def _jinja_string(value: str) -> str:
     return json.dumps(value)
 
 
+def _scope_membership_pattern(scopes: list[str]) -> str:
+    unique_scopes: list[str] = []
+    for scope in scopes:
+        if scope and scope not in unique_scopes:
+            unique_scopes.append(scope)
+    if not unique_scopes:
+        return ".*"
+    scope_union = "|".join(re.escape(scope) for scope in unique_scopes)
+    presence_checks = "".join(
+        f"(?=(?:{re.escape(scope)}|[^;]*,{re.escape(scope)})(?:,|(?=;|$)))"
+        for scope in unique_scopes
+    )
+    scope_list = f"(?:{scope_union})(?:,(?:{scope_union}))*"
+    return f"{presence_checks}{scope_list}"
+
+
 def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str) -> str:
     rpm_expr = (
         "(BLASTWALL_REQUIRED_POLICY_MARKER | "
@@ -56,18 +73,25 @@ def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str
         "default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | "
         f"default({_jinja_string(registry_hash)}, true), true) | regex_escape)"
     )
+    scope_list = [scope for scope in fields["scopes"].split(",") if scope]
+    scope_pattern = _scope_membership_pattern(scope_list)
+
     pattern_expr = " ~ ".join(
         [
-            _jinja_string(
-                f"^blastwall:v=2;state={state};target={fields['target']};rpm="
-            ),
+            _jinja_string("^"),
+            _jinja_string("(?=.*(?:^blastwall:|;)v=2(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)state={re.escape(state)}(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)target={re.escape(fields['target'])}(?:;|$))"),
+            _jinja_string("(?=.*(?:^blastwall:|;)rpm="),
             rpm_expr,
-            _jinja_string(";registry_sha256="),
+            _jinja_string("(?:;|$))"),
+            _jinja_string("(?=.*(?:^blastwall:|;)registry_sha256="),
             registry_expr,
-            _jinja_string(
-                ";policy_sha256=[0-9a-f]{64};"
-                f"profiles={fields['profiles']};scopes={fields['scopes']}$"
-            ),
+            _jinja_string("(?:;|$))"),
+            _jinja_string("(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)profiles={fields['profiles']}(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)scopes={scope_pattern}(?=;|$))"),
+            _jinja_string("blastwall:"),
         ]
     )
     return (

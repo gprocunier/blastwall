@@ -11,6 +11,24 @@
       "idm_userclass": "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect"
     },
     {
+      "name": "v2-base-current-unknown-field.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect;notes=inventory-order-test;owner=regression"
+      ]
+    },
+    {
+      "name": "v2-base-current-reordered-scopes.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=selfprotect,rxrpc,xfrm,io_uring,userns,packet_socket,capability2_bpf,bpf,alg_socket"
+      ]
+    },
+    {
+      "name": "base-with-missing-scope.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc"
+      ]
+    },
+    {
       "name": "v1-base-compat.example.com",
       "idm_userclass": [
         "blastwall:state=active;rpm=blastwall-selinux-0.5.2-1;rpm_sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny"
@@ -97,10 +115,13 @@
       "blastwall_policy_current": [
         "v2-base-current.example.com",
         "v2-base-current-string-userclass.example.com",
+        "v2-base-current-unknown-field.example.com",
+        "v2-base-current-reordered-scopes.example.com",
         "v1-base-compat.example.com",
         "non-string-list-userclass.example.com"
       ],
       "blastwall_policy_stale": [
+        "base-with-missing-scope.example.com",
         "v2-strange-socket-lab-active.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
         "v2-strange-socket-noncanonical-order.example.com",
@@ -120,6 +141,7 @@
         "non-string-list-userclass.example.com"
       ],
       "blastwall_inventory_marker_parse_error": [
+        "base-with-missing-scope.example.com",
         "v2-strange-socket-lab-active.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
         "v2-strange-socket-noncanonical-order.example.com",
@@ -133,6 +155,8 @@
       "blastwall_profile_base": [
         "v2-base-current.example.com",
         "v2-base-current-string-userclass.example.com",
+        "v2-base-current-unknown-field.example.com",
+        "v2-base-current-reordered-scopes.example.com",
         "v1-base-compat.example.com",
         "non-string-list-userclass.example.com"
       ],
@@ -142,11 +166,14 @@
       "blastwall_policy_current": [
         "v2-base-current.example.com",
         "v2-base-current-string-userclass.example.com",
+        "v2-base-current-unknown-field.example.com",
+        "v2-base-current-reordered-scopes.example.com",
         "v1-base-compat.example.com",
         "v2-strange-socket-lab-active.example.com",
         "non-string-list-userclass.example.com"
       ],
       "blastwall_policy_stale": [
+        "base-with-missing-scope.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
         "v2-strange-socket-noncanonical-order.example.com",
         "stale-registry-hash.example.com",
@@ -165,6 +192,7 @@
         "non-string-list-userclass.example.com"
       ],
       "blastwall_inventory_marker_parse_error": [
+        "base-with-missing-scope.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
         "v2-strange-socket-noncanonical-order.example.com",
         "stale-registry-hash.example.com",
@@ -177,6 +205,8 @@
       "blastwall_profile_base": [
         "v2-base-current.example.com",
         "v2-base-current-string-userclass.example.com",
+        "v2-base-current-unknown-field.example.com",
+        "v2-base-current-reordered-scopes.example.com",
         "v1-base-compat.example.com",
         "v2-strange-socket-lab-active.example.com",
         "non-string-list-userclass.example.com"

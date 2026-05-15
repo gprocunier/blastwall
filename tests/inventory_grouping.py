@@ -212,6 +212,7 @@ for mode, allow_dry_run in modes:
                 actual[mode]["blastwall_profile_strange_socket_v1"].append(host["name"])
 
 rendered_group_expressions = renderer.render_profile_group_expressions()
+
 for required_inventory_group in inventory_groups:
     if required_inventory_group not in rendered_group_expressions:
         fail(f"rendered inventory groups are missing {required_inventory_group}")
@@ -255,7 +256,13 @@ if actual != mode_expected:
 if inventory_actual != inventory_expected:
     print("FAIL: rendered inventory group expression mismatch", file=sys.stderr)
     print(
-        json.dumps({"actual": inventory_actual, "expected": inventory_expected}, indent=2),
+        json.dumps(
+            {
+                "actual": inventory_actual,
+                "expected": inventory_expected,
+            },
+            indent=2,
+        ),
         file=sys.stderr,
     )
     raise SystemExit(1)
