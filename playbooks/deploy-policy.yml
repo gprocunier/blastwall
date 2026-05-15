@@ -508,6 +508,37 @@
           become: false
           when: blastwall_update_idm_marker | bool
 
+        - name: Publish Blastwall host marker with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            printf '%s\n' "${BLASTWALL_OLD_MARKERS}" | while IFS= read -r marker; do
+              [ -n "${marker}" ] || continue
+              ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
+            done
+            ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${BLASTWALL_MARKER}" >/dev/null || true
+            ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${BLASTWALL_MARKER}" >/dev/null
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+            IPA_PASSWORD: "{{ ipa_password }}"
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+            BLASTWALL_HOST: "{{ inventory_hostname }}"
+            BLASTWALL_MARKER: "{{ blastwall_policy_marker.stdout }}"
+            BLASTWALL_OLD_MARKERS: >-
+              {{
+                blastwall_existing_userclass_values
+                | select('match', '^blastwall:')
+                | join('\n')
+              }}
+          changed_when: true
+          no_log: true
+          delegate_to: localhost
+          become: false
+          when: blastwall_update_idm_marker | bool
+
       rescue:
         - name: Roll back newly staged Blastwall policy modules
           ansible.builtin.command:
@@ -634,6 +665,41 @@
             - blastwall_deploy_rollback_on_failure | bool
             - blastwall_rollback_verification is not failed
 
+        - name: Publish rollback-active Blastwall host marker with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            printf '%s\n' "${BLASTWALL_OLD_MARKERS}" | while IFS= read -r marker; do
+              [ -n "${marker}" ] || continue
+              ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
+            done
+            ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${BLASTWALL_MARKER}" >/dev/null || true
+            ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${BLASTWALL_MARKER}" >/dev/null
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+            IPA_PASSWORD: "{{ ipa_password }}"
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+            BLASTWALL_HOST: "{{ inventory_hostname }}"
+            BLASTWALL_MARKER: "{{ blastwall_policy_rollback_active_marker.stdout }}"
+            BLASTWALL_OLD_MARKERS: >-
+              {{
+                blastwall_existing_userclass_values
+                | select('match', '^blastwall:')
+                | join('\n')
+              }}
+          changed_when: true
+          no_log: true
+          delegate_to: localhost
+          become: false
+          failed_when: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is not failed
+
         - name: Publish rollback-failed Blastwall host marker to IdM
           freeipa.ansible_freeipa.ipahost:
             ipaadmin_principal: "{{ ipa_principal }}"
@@ -651,6 +717,41 @@
             - blastwall_deploy_rollback_on_failure | bool
             - blastwall_rollback_verification is failed
 
+        - name: Publish rollback-failed Blastwall host marker with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            printf '%s\n' "${BLASTWALL_OLD_MARKERS}" | while IFS= read -r marker; do
+              [ -n "${marker}" ] || continue
+              ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
+            done
+            ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${BLASTWALL_MARKER}" >/dev/null || true
+            ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${BLASTWALL_MARKER}" >/dev/null
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+            IPA_PASSWORD: "{{ ipa_password }}"
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+            BLASTWALL_HOST: "{{ inventory_hostname }}"
+            BLASTWALL_MARKER: "{{ blastwall_policy_rollback_failed_marker.stdout }}"
+            BLASTWALL_OLD_MARKERS: >-
+              {{
+                blastwall_existing_userclass_values
+                | select('match', '^blastwall:')
+                | join('\n')
+              }}
+          changed_when: true
+          no_log: true
+          delegate_to: localhost
+          become: false
+          failed_when: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is failed
+
         - name: Publish failed Blastwall host marker to IdM when rollback is disabled
           freeipa.ansible_freeipa.ipahost:
             ipaadmin_principal: "{{ ipa_principal }}"
@@ -659,6 +760,40 @@
             description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
             userclass: "{{ blastwall_preserved_userclass_values + [blastwall_policy_failed_marker.stdout] }}"
             state: present
+          no_log: true
+          delegate_to: localhost
+          become: false
+          failed_when: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - not blastwall_deploy_rollback_on_failure | bool
+
+        - name: Publish failed Blastwall host marker with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            printf '%s\n' "${BLASTWALL_OLD_MARKERS}" | while IFS= read -r marker; do
+              [ -n "${marker}" ] || continue
+              ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
+            done
+            ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${BLASTWALL_MARKER}" >/dev/null || true
+            ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${BLASTWALL_MARKER}" >/dev/null
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+            IPA_PASSWORD: "{{ ipa_password }}"
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+            BLASTWALL_HOST: "{{ inventory_hostname }}"
+            BLASTWALL_MARKER: "{{ blastwall_policy_failed_marker.stdout }}"
+            BLASTWALL_OLD_MARKERS: >-
+              {{
+                blastwall_existing_userclass_values
+                | select('match', '^blastwall:')
+                | join('\n')
+              }}
+          changed_when: true
           no_log: true
           delegate_to: localhost
           become: false

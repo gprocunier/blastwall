@@ -618,7 +618,6 @@ if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_pr
 print("PASS: AAP policy pipeline targets stale candidates before promotion")
 
 collection_backed_marker_paths = [
-    ROOT / "playbooks" / "deploy-policy.yml",
     ROOT / "poc-calabi" / "aap" / "25-seed-selection-fixture.yml",
 ]
 
@@ -638,6 +637,8 @@ if "userclass:" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not write host userClass markers")
 if "ipa host-mod" in promotion and "FreeIPA CLI fallback" not in promotion:
     fail("playbooks/promote-policy-rpm.yml uses ipa host-mod without a named fallback boundary")
+if "ipa host-mod" in deploy_policy and "FreeIPA CLI fallback" not in deploy_policy:
+    fail("playbooks/deploy-policy.yml uses ipa host-mod without a named fallback boundary")
 if "blastwall_marker_emit_command" not in promotion:
     fail("playbooks/promote-policy-rpm.yml should define blastwall_marker_emit_command for helper-based marker generation")
 if (
@@ -720,7 +721,7 @@ if (
 ):
     fail("marker playbooks keep old raw failed marker payload variable instead of using helper stdout consistently")
 
-print("PASS: IdM marker writes use FreeIPA collection modules")
+print("PASS: IdM marker writes use FreeIPA collection modules with bounded fallbacks")
 
 workflow = (ROOT / ".github" / "workflows" / "policy-pipeline-smoke.yml").read_text(encoding="utf-8")
 if "SPO_APPLY_VALIDATE" not in workflow:
