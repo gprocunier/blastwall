@@ -75,6 +75,9 @@ if not module_match:
 module_version = module_match.group(1).strip()
 if module_version != policy_version:
     fail(f"policy/blastwall.te version {module_version} does not match policy/Makefile VERSION {policy_version}")
+for usermanage_interface in ["usermanage_run_groupadd", "usermanage_run_useradd"]:
+    if f"{usermanage_interface}(blastwall_t, blastwall_r)" not in te_source:
+        fail(f"policy/blastwall.te must allow {usermanage_interface} for ordinary automation corpus user management")
 
 match = re.search(r"^DENY_POLICIES\s*:=\s*(.+)$", makefile, re.MULTILINE)
 if not match:
