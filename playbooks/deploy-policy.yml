@@ -308,6 +308,12 @@
             chdir: "{{ blastwall_policy_dir }}"
             target: install
 
+        - name: Remove Blastwall dry-run policy modules when not requested
+          community.general.make:
+            chdir: "{{ blastwall_policy_dir }}"
+            target: uninstall-dry-run
+          when: not blastwall_enable_strange_socket_v1_dry_run | bool
+
         - name: Install Blastwall dry-run policy modules
           community.general.make:
             chdir: "{{ blastwall_policy_dir }}"

@@ -185,6 +185,18 @@
         {% endif %}
       changed_when: true
 
+    - name: Remove dry-run SELinux policy modules when not requested
+      ansible.builtin.command:
+        argv:
+          - semodule
+          - -r
+          - "{{ item }}"
+      loop: "{{ blastwall_policy_dry_run_modules }}"
+      register: blastwall_remove_dry_run_modules
+      changed_when: blastwall_remove_dry_run_modules.rc == 0
+      failed_when: false
+      when: not blastwall_enable_strange_socket_v1_dry_run | bool
+
     - name: Install Blastwall SELinux login context from RPM payload
       ansible.builtin.copy:
         src: "{{ blastwall_policy_package_dir }}/contexts/{{ blastwall_selinux_user }}"
@@ -266,6 +278,14 @@
           - item in (blastwall_semodule_list.stdout_lines | map('split') | map('first') | list)
         fail_msg: "SELinux module {{ item }} is not installed."
       loop: "{{ blastwall_policy_modules }}"
+
+    - name: Validate dry-run SELinux policy modules are absent when not requested
+      ansible.builtin.assert:
+        that:
+          - item not in (blastwall_semodule_list.stdout_lines | map('split') | map('first') | list)
+        fail_msg: "Dry-run SELinux module {{ item }} is installed without dry-run intent."
+      loop: "{{ blastwall_policy_dry_run_modules }}"
+      when: not blastwall_enable_strange_socket_v1_dry_run | bool
 
     - name: Validate candidate RPM is installed
       ansible.builtin.command:

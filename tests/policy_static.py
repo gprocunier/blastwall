@@ -518,6 +518,8 @@ for required in [
 
 if "target: install-dry-run" not in deploy_policy:
     fail("playbooks/deploy-policy.yml does not install dry-run modules through policy/Makefile install-dry-run")
+if "target: uninstall-dry-run" not in deploy_policy or "not blastwall_enable_strange_socket_v1_dry_run | bool" not in deploy_policy:
+    fail("playbooks/deploy-policy.yml does not remove dry-run modules when dry-run intent is absent")
 for required_source_install in [
     "blastwall_policy_dry_run_modules",
     "blastwall_policy_modules_effective",
@@ -569,6 +571,10 @@ if "artifact_sha256" not in install_policy or "policy_rpm_sha256" not in install
     fail("playbooks/install-policy-rpm.yml does not expose both artifact_sha256 and policy_rpm_sha256 evidence")
 if "blastwall_policy_dry_run_modules" not in install_policy or "dry-run/{{ module }}.cil" not in install_policy:
     fail("playbooks/install-policy-rpm.yml does not install the dry-run RPM module when enabled")
+if "Remove dry-run SELinux policy modules when not requested" not in install_policy:
+    fail("playbooks/install-policy-rpm.yml does not remove dry-run modules when dry-run intent is absent")
+if "Dry-run SELinux module {{ item }} is installed without dry-run intent" not in install_policy:
+    fail("playbooks/install-policy-rpm.yml does not assert dry-run modules are absent in base mode")
 if "--oldpackage" not in install_policy:
     fail("playbooks/install-policy-rpm.yml does not allow replaying an RC candidate RPM with the same NEVRA")
 
