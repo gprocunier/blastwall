@@ -30,9 +30,16 @@
     blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
     blastwall_policy_marker_rpm_sha256: >-
       {{ blastwall_policy_rpm_sha256 | default(lookup('env', 'BLASTWALL_POLICY_RPM_SHA256') | default('', true), true) }}
+    blastwall_policy_artifact_sha256: "{{ blastwall_policy_marker_rpm_sha256 }}"
     blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
     blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
-    blastwall_policy_sha256: "{{ blastwall_policy_marker_rpm_sha256 }}"
+    blastwall_policy_module_sha256: >-
+      {{
+        blastwall_policy_sha256 |
+        default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true)
+      }}
+    blastwall_failure_policy_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    blastwall_marker_policy_sha256: "{{ blastwall_policy_module_sha256 | default(blastwall_failure_policy_sha256, true) }}"
     blastwall_allow_dry_run_profiles: >-
       {{
         BLASTWALL_ALLOW_DRY_RUN_PROFILES |
@@ -86,7 +93,7 @@
       --allow-dry-run-profiles
       {% endif %}
       --rpm={{ blastwall_policy_nevra }}
-      --policy-sha256={{ blastwall_policy_sha256 }}
+      --policy-sha256={{ blastwall_marker_policy_sha256 }}
       {% for profile in required_blastwall_profiles %}
       --profile={{ profile }}
       {% endfor %}
@@ -100,11 +107,12 @@
           - ipa_principal | length > 0
           - ipa_password | length > 0
           - not blastwall_update_idm_marker | bool or blastwall_policy_marker_rpm_sha256 is match('^[0-9a-f]{64}$')
+          - not blastwall_update_idm_marker | bool or blastwall_policy_module_sha256 is match('^[0-9a-f]{64}$')
           - not blastwall_update_idm_marker | bool or blastwall_profile_registry_sha256 is match('^[0-9a-f]{64}$')
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_PRINCIPAL, IPA_PASSWORD,
-          and a 64-character BLASTWALL_POLICY_RPM_SHA256 value for the FreeIPA
-          host marker update.
+          64-character BLASTWALL_POLICY_RPM_SHA256, and 64-character
+          BLASTWALL_POLICY_SHA256 values for the FreeIPA host marker update.
       run_once: true
       delegate_to: localhost
 
@@ -166,6 +174,40 @@
       changed_when: false
       delegate_to: localhost
       become: false
+      when: blastwall_update_idm_marker | bool
+
+    - name: Pre-validate promoted Blastwall marker before IdM publication
+      ansible.builtin.command:
+        argv: "{{ blastwall_marker_check_argv }}"
+        stdin: "{{ [blastwall_policy_marker.stdout] | to_json }}"
+      register: blastwall_policy_marker_check
+      changed_when: false
+      failed_when: blastwall_policy_marker_check.rc != 0
+      delegate_to: localhost
+      become: false
+      vars:
+        blastwall_marker_check_argv: >-
+          {{
+            [
+              ansible_playbook_python | default('/usr/bin/python3'),
+              playbook_dir ~ '/../tools/blastwall_marker.py',
+              'check',
+              '--registry',
+              blastwall_profile_registry_path,
+              '--expected-registry-sha256',
+              blastwall_profile_registry_sha256,
+              '--expected-policy-sha256',
+              blastwall_policy_module_sha256,
+              '--accepted-rpm',
+              blastwall_policy_nevra,
+              '--expected-target',
+              'rhel-login',
+              '--required-profiles-csv',
+              required_blastwall_profiles | join(','),
+              '--markers-stdin'
+            ]
+            + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+          }}
       when: blastwall_update_idm_marker | bool
 
     - name: Publish verified Blastwall host marker to IdM

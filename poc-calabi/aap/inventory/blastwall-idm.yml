@@ -26,151 +26,220 @@ groups:
   blastwall_policy_current: >-
     idm_userclass is defined and
     (
-          (idm_userclass | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
     or
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';')))
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
             and
-            ((idm_userclass | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'alg=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'bpf=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'self=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'pkt=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'userns=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'iou=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'xfrm=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'rxrpc=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
           )
     or
     (
-          (lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false') | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
           and
-          (idm_userclass | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
         )
     )
   blastwall_policy_stale: >-
     idm_userclass is not defined or not (
-          (idm_userclass | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
     or
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';')))
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
             and
-            ((idm_userclass | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'alg=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'bpf=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'self=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'pkt=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'userns=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'iou=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'xfrm=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'rxrpc=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
           )
     or
     (
-          (lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false') | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
           and
-          (idm_userclass | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
         )
     )
   blastwall_policy_candidate: >-
     idm_fqdn == 'mirror-registry.workshop.lan' and
-    (  idm_userclass is not defined or not (
-            (idm_userclass | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
-      or
-      (
+    (
+    idm_userclass is not defined or not (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
+    or
+    (
 
-              ('rpm=blastwall-selinux-0.5.2-1' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';')))
-              and
-              ((idm_userclass | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
-              and
-              'state=active' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'alg=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'bpf=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'self=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'pkt=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'userns=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'iou=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'xfrm=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-              and
-              'rxrpc=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
-            )
-      or
-      (
-            (lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false') | bool)
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
             and
-            (idm_userclass | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            and
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
           )
+    or
+    (
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          and
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+        )
+    )
+    )
+  blastwall_inventory_schema_error: >-
+    idm_userclass is defined and
+    (
+      idm_userclass is none
+      or idm_userclass is mapping
+      or (idm_userclass is not string and idm_userclass is not sequence)
+      or (
+        idm_userclass is sequence
+        and idm_userclass is not string
+        and (idm_userclass | select('string') | list | length) != (idm_userclass | list | length)
       )
+    )
+  blastwall_inventory_marker_parse_error: >-
+    not (
+    idm_userclass is defined and
+    (
+      idm_userclass is none
+      or idm_userclass is mapping
+      or (idm_userclass is not string and idm_userclass is not sequence)
+      or (
+        idm_userclass is sequence
+        and idm_userclass is not string
+        and (idm_userclass | select('string') | list | length) != (idm_userclass | list | length)
+      )
+    )
+    )
+    and
+    (
+      (idm_userclass is string and idm_userclass is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass is not string and (idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0)
+    )
+    and
+    not (
+    idm_userclass is defined and
+    (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
+    or
+    (
+
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
+            and
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            and
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            and
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+          )
+    or
+    (
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          and
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+        )
+    )
     )
   blastwall_profile_base: >-
     idm_userclass is defined and
     (
-          (idm_userclass | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect$") | list | length) > 0
     or
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';')))
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
             and
-            ((idm_userclass | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'alg=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'bpf=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'self=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'pkt=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'userns=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'iou=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'xfrm=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
             and
-            'rxrpc=deny' in ((idm_userclass | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
           )
     or
     (
-          (lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false') | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
           and
-          (idm_userclass | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
         )
     )
   blastwall_profile_strange_socket_v1: >-
     idm_userclass is defined and
     (
-            (lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false') | bool)
+            (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
             and
-          (idm_userclass | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true) | regex_escape) ~ ";registry_sha256=" ~ (lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^blastwall:v=2;state=lab-active;target=rhel-login;rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ ";registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ ";policy_sha256=[0-9a-f]{64};profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket$") | list | length) > 0
         )

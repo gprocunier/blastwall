@@ -1,0 +1,117 @@
+---
+- name: Audit Blastwall inventory membership
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    blastwall_inventory_source: >-
+      {{ BLASTWALL_INVENTORY_SOURCE |
+      default(lookup('env', 'BLASTWALL_INVENTORY_SOURCE') | default('inventory/blastwall-idm.yml', true), true) }}
+    blastwall_inventory_json_path: >-
+      {{ BLASTWALL_INVENTORY_JSON |
+      default(lookup('env', 'BLASTWALL_INVENTORY_JSON') | default('', true), true) }}
+    blastwall_inventory_audit_previous: >-
+      {{ BLASTWALL_INVENTORY_AUDIT_PREVIOUS |
+      default(lookup('env', 'BLASTWALL_INVENTORY_AUDIT_PREVIOUS') | default('/var/tmp/blastwall-inventory-audit-previous.json', true), true) }}
+    blastwall_inventory_audit_report: >-
+      {{ BLASTWALL_INVENTORY_AUDIT_REPORT |
+      default(lookup('env', 'BLASTWALL_INVENTORY_AUDIT_REPORT') | default('/var/tmp/blastwall-inventory-audit-report.json', true), true) }}
+    blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
+    blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
+    blastwall_allow_dry_run_profiles: >-
+      {{
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES |
+        default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) |
+        bool
+      }}
+    blastwall_required_profiles_env: >-
+      {{
+        BLASTWALL_REQUIRED_POLICY_PROFILES |
+        default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true)
+      }}
+    blastwall_required_profile_csv: >-
+      {{
+        blastwall_required_profiles_env
+        if blastwall_required_profiles_env | length > 0
+        else 'base'
+      }}
+    blastwall_fail_on_current_to_stale: >-
+      {{
+        BLASTWALL_FAIL_ON_CURRENT_TO_STALE |
+        default(lookup('env', 'BLASTWALL_FAIL_ON_CURRENT_TO_STALE') | default('true', true), true) |
+        bool
+      }}
+  tasks:
+    - name: Capture ansible-inventory output when no JSON path is supplied
+      ansible.builtin.command:
+        argv:
+          - ansible-inventory
+          - -i
+          - "{{ blastwall_inventory_source }}"
+          - --list
+      register: blastwall_inventory_runtime
+      changed_when: false
+      when: blastwall_inventory_json_path | length == 0
+
+    - name: Write runtime inventory JSON for audit
+      ansible.builtin.copy:
+        dest: /tmp/blastwall-inventory-runtime.json
+        mode: "0600"
+        content: "{{ blastwall_inventory_runtime.stdout }}"
+      when: blastwall_inventory_json_path | length == 0
+
+    - name: Check previous inventory audit snapshot
+      ansible.builtin.stat:
+        path: "{{ blastwall_inventory_audit_previous }}"
+      register: blastwall_inventory_previous_snapshot
+
+    - name: Run Blastwall inventory audit
+      ansible.builtin.command:
+        argv: "{{ blastwall_inventory_audit_argv }}"
+      register: blastwall_inventory_audit
+      changed_when: false
+      failed_when: blastwall_inventory_audit.rc != 0
+      vars:
+        blastwall_inventory_effective_json: >-
+          {{
+            blastwall_inventory_json_path
+            if blastwall_inventory_json_path | length > 0
+            else '/tmp/blastwall-inventory-runtime.json'
+          }}
+        blastwall_inventory_audit_argv: >-
+          {{
+            [
+              ansible_playbook_python | default('/usr/bin/python3'),
+              playbook_dir ~ '/../tools/audit_blastwall_inventory.py',
+              '--inventory-json',
+              blastwall_inventory_effective_json,
+              '--registry',
+              blastwall_profile_registry_path,
+              '--expected-registry-sha256',
+              blastwall_profile_registry_sha256,
+              '--required-profiles-csv',
+              blastwall_required_profile_csv
+            ]
+            + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+            + (['--previous', blastwall_inventory_audit_previous] if blastwall_inventory_previous_snapshot.stat.exists | default(false) else [])
+            + (['--fail-on-current-to-stale'] if blastwall_fail_on_current_to_stale | bool else [])
+          }}
+
+    - name: Write Blastwall inventory audit report
+      ansible.builtin.copy:
+        dest: "{{ blastwall_inventory_audit_report }}"
+        mode: "0644"
+        content: "{{ blastwall_inventory_audit.stdout }}\n"
+
+    - name: Refresh previous inventory audit snapshot
+      ansible.builtin.copy:
+        dest: "{{ blastwall_inventory_audit_previous }}"
+        mode: "0644"
+        content: "{{ blastwall_inventory_audit.stdout }}\n"
+
+    - name: Report Blastwall inventory audit summary
+      ansible.builtin.debug:
+        msg:
+          blastwall_inventory_audit: passed
+          report: "{{ blastwall_inventory_audit_report }}"
+          summary: "{{ blastwall_inventory_audit.stdout | from_json }}"

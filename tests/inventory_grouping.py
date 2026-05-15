@@ -146,6 +146,8 @@ modes = (
 policy_groups = (
     "blastwall_policy_current",
     "blastwall_policy_stale",
+    "blastwall_inventory_schema_error",
+    "blastwall_inventory_marker_parse_error",
     "blastwall_profile_base",
     "blastwall_profile_strange_socket_v1",
 )
@@ -153,6 +155,8 @@ inventory_groups = (
     "blastwall_policy_current",
     "blastwall_policy_stale",
     "blastwall_policy_candidate",
+    "blastwall_inventory_schema_error",
+    "blastwall_inventory_marker_parse_error",
     "blastwall_profile_base",
     "blastwall_profile_strange_socket_v1",
 )
@@ -166,9 +170,26 @@ for mode, allow_dry_run in modes:
     for host in fixture["hosts"]:
         if "description" in host:
             fail("fixture host entries should use idm_userclass, not description")
-        markers = host.get("idm_userclass", [])
+        raw_userclass = host.get("idm_userclass", [])
+        schema_error = (
+            raw_userclass is None
+            or isinstance(raw_userclass, dict)
+            or (
+                not isinstance(raw_userclass, (str, list, tuple))
+            )
+            or (
+                isinstance(raw_userclass, list)
+                and any(not isinstance(item, str) for item in raw_userclass)
+            )
+        )
+        if schema_error:
+            actual[mode]["blastwall_inventory_schema_error"].append(host["name"])
+        markers = raw_userclass
         if isinstance(markers, str):
             markers = [markers]
+        if not isinstance(markers, list):
+            markers = []
+        markers = [item for item in markers if isinstance(item, str)]
         parsed = [
             marker.parse_marker(
                 raw,
@@ -183,6 +204,8 @@ for mode, allow_dry_run in modes:
         current = any(result.suitable and "base" in result.profiles for result in parsed)
         group = "blastwall_policy_current" if current else "blastwall_policy_stale"
         actual[mode][group].append(host["name"])
+        if markers and not current and not schema_error:
+            actual[mode]["blastwall_inventory_marker_parse_error"].append(host["name"])
         if current:
             actual[mode]["blastwall_profile_base"].append(host["name"])
             if any(result.suitable and "strange-socket-v1" in result.profiles for result in parsed):

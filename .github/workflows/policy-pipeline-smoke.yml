@@ -165,6 +165,8 @@ jobs:
           grep -F 'policy_pipeline_install' /tmp/blastwall-policy-pipeline-install.log
           grep -F 'blastwall-selinux-${{ inputs.policy_version }}-${{ inputs.policy_release }}' /tmp/blastwall-policy-pipeline-install.log
           grep -E 'policy_rpm_sha256.*[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-install.log
+          grep -E 'artifact_sha256.*[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-install.log
+          grep -E 'policy_sha256.*[0-9a-f]{64}' /tmp/blastwall-policy-pipeline-install.log
 
           awx jobs stdout "${verify_id}" | tee /tmp/blastwall-policy-pipeline-verify.log
           grep -F 'blastwall_u:blastwall_r:blastwall_t:s0' /tmp/blastwall-policy-pipeline-verify.log

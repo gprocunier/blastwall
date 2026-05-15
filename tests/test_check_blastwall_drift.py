@@ -150,6 +150,16 @@ spec:
         )
         self.assert_error_contains(registry, "extra map")
 
+    def test_cil_parse_error_is_reported_explicitly(self) -> None:
+        registry = copy.deepcopy(self.registry)
+        registry["scopes"]["alg_socket"]["target_support"]["rhel-login"]["artifact"] = (
+            self.write_temp_root_artifact(
+                suffix=".cil",
+                content="(deny blastwall_t self (alg_socket (create read))\n",
+            )
+        )
+        self.assert_error_contains(registry, "FAIL_CIL_PARSE_ERROR")
+
     def test_checked_profile_must_be_documented(self) -> None:
         registry = copy.deepcopy(self.registry)
         registry["profiles"]["undocumented-profile"] = {

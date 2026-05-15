@@ -136,8 +136,8 @@ def _atom_set(value: Any) -> set[str]:
 def _rule_permission_sets(policy: str, rule: str, object_class: str) -> list[set[str]]:
     try:
         forms = _parse_cil_forms(policy)
-    except ValueError:
-        return []
+    except ValueError as exc:
+        raise ValueError(f"FAIL_CIL_PARSE_ERROR: {exc}") from exc
 
     permissions: list[set[str]] = []
     for form in forms:
@@ -163,7 +163,14 @@ def _check_exact_permissions(
     label: str,
 ) -> None:
     for rule in ["deny", "neverallow"]:
-        rule_sets = _rule_permission_sets(policy, rule, object_class)
+        try:
+            rule_sets = _rule_permission_sets(policy, rule, object_class)
+        except ValueError as exc:
+            result.fail(
+                f"scope {scope_name} target {target_name} {label} parse error "
+                f"for {object_class}: {exc} in {rel}"
+            )
+            continue
         if not rule_sets:
             result.fail(
                 f"scope {scope_name} target {target_name} {label} lacks {rule} permissions "

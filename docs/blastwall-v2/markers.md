@@ -14,7 +14,12 @@ Rules:
 - `profiles=` is the operator-facing claim.
 - `scopes=` is retained for debugging and drift checks.
 - `registry_sha256=` is the SHA-256 of `policy/profiles.yml` at marker emission time.
-- `policy_sha256=` is the verified policy RPM artifact hash for the RHEL login path.
+- `policy_sha256=` is the canonical hash of the installed Blastwall policy
+  payload that was activated on the host. It is computed by
+  `tools/blastwall_policy_hash.py` from payload path, mode, size, and content
+  digest. It is not the RPM artifact hash.
+- RPM/package identity is still recorded in pipeline evidence as
+  `artifact_sha256` and `policy_rpm_sha256`.
 - A v2 marker is unsuitable if any of these fail: parsing, required fields, hash format,
   RPM allow-list, target match, unknown profile/scope names, stale
   `registry_sha256`, malformed scope sets, or required profile coverage.
@@ -134,7 +139,7 @@ BLASTWALL_REQUIRED_POLICY_PROFILES=base
 Example accepted marker:
 
 ```text
-blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=<current-profiles-sha256>;policy_sha256=<policy-rpm-sha256>;profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect
+blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=<current-profiles-sha256>;policy_sha256=<installed-policy-payload-sha256>;profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect
 ```
 
 ### Required profiles: `base,strange-socket-v1`
@@ -146,5 +151,5 @@ BLASTWALL_REQUIRED_POLICY_PROFILES=base,strange-socket-v1
 Example accepted dry-run marker (scopes include all base + inherited strange socket scopes):
 
 ```text
-blastwall:v=2;state=lab-active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=<current-profiles-sha256>;policy_sha256=<policy-rpm-sha256>;profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket
+blastwall:v=2;state=lab-active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256=<current-profiles-sha256>;policy_sha256=<installed-policy-payload-sha256>;profiles=base,strange-socket-v1;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect,bluetooth_socket,can_socket,kcm_socket,nfc_socket,rds_socket,tipc_socket,xdp_socket
 ```

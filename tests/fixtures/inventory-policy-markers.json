@@ -7,6 +7,10 @@
       ]
     },
     {
+      "name": "v2-base-current-string-userclass.example.com",
+      "idm_userclass": "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect"
+    },
+    {
       "name": "v1-base-compat.example.com",
       "idm_userclass": [
         "blastwall:state=active;rpm=blastwall-selinux-0.5.2-1;rpm_sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;alg=deny;bpf=deny;self=deny;pkt=deny;userns=deny;iou=deny;xfrm=deny;rxrpc=deny"
@@ -69,13 +73,32 @@
     {
       "name": "missing-marker.example.com",
       "idm_userclass": []
+    },
+    {
+      "name": "null-userclass.example.com",
+      "idm_userclass": null
+    },
+    {
+      "name": "dict-userclass.example.com",
+      "idm_userclass": {
+        "unexpected": "shape"
+      }
+    },
+    {
+      "name": "non-string-list-userclass.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect",
+        7
+      ]
     }
   ],
   "expected": {
     "default": {
       "blastwall_policy_current": [
         "v2-base-current.example.com",
-        "v1-base-compat.example.com"
+        "v2-base-current-string-userclass.example.com",
+        "v1-base-compat.example.com",
+        "non-string-list-userclass.example.com"
       ],
       "blastwall_policy_stale": [
         "v2-strange-socket-lab-active.example.com",
@@ -87,19 +110,41 @@
         "unknown-scope.example.com",
         "malformed-marker.example.com",
         "old-rpm.example.com",
-        "missing-marker.example.com"
+        "missing-marker.example.com",
+        "null-userclass.example.com",
+        "dict-userclass.example.com"
+      ],
+      "blastwall_inventory_schema_error": [
+        "null-userclass.example.com",
+        "dict-userclass.example.com",
+        "non-string-list-userclass.example.com"
+      ],
+      "blastwall_inventory_marker_parse_error": [
+        "v2-strange-socket-lab-active.example.com",
+        "v2-strange-socket-missing-dry-run-flag.example.com",
+        "v2-strange-socket-noncanonical-order.example.com",
+        "stale-registry-hash.example.com",
+        "unknown-profile.example.com",
+        "base-with-strange-scope.example.com",
+        "unknown-scope.example.com",
+        "malformed-marker.example.com",
+        "old-rpm.example.com"
       ],
       "blastwall_profile_base": [
         "v2-base-current.example.com",
-        "v1-base-compat.example.com"
+        "v2-base-current-string-userclass.example.com",
+        "v1-base-compat.example.com",
+        "non-string-list-userclass.example.com"
       ],
       "blastwall_profile_strange_socket_v1": []
     },
     "allow_dry_run": {
       "blastwall_policy_current": [
         "v2-base-current.example.com",
+        "v2-base-current-string-userclass.example.com",
         "v1-base-compat.example.com",
-        "v2-strange-socket-lab-active.example.com"
+        "v2-strange-socket-lab-active.example.com",
+        "non-string-list-userclass.example.com"
       ],
       "blastwall_policy_stale": [
         "v2-strange-socket-missing-dry-run-flag.example.com",
@@ -110,12 +155,31 @@
         "unknown-scope.example.com",
         "malformed-marker.example.com",
         "old-rpm.example.com",
-        "missing-marker.example.com"
+        "missing-marker.example.com",
+        "null-userclass.example.com",
+        "dict-userclass.example.com"
+      ],
+      "blastwall_inventory_schema_error": [
+        "null-userclass.example.com",
+        "dict-userclass.example.com",
+        "non-string-list-userclass.example.com"
+      ],
+      "blastwall_inventory_marker_parse_error": [
+        "v2-strange-socket-missing-dry-run-flag.example.com",
+        "v2-strange-socket-noncanonical-order.example.com",
+        "stale-registry-hash.example.com",
+        "unknown-profile.example.com",
+        "base-with-strange-scope.example.com",
+        "unknown-scope.example.com",
+        "malformed-marker.example.com",
+        "old-rpm.example.com"
       ],
       "blastwall_profile_base": [
         "v2-base-current.example.com",
+        "v2-base-current-string-userclass.example.com",
         "v1-base-compat.example.com",
-        "v2-strange-socket-lab-active.example.com"
+        "v2-strange-socket-lab-active.example.com",
+        "non-string-list-userclass.example.com"
       ],
       "blastwall_profile_strange_socket_v1": [
         "v2-strange-socket-lab-active.example.com"

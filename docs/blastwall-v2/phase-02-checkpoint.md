@@ -151,8 +151,9 @@ Captured log paths on `bastion-01.workshop.lan`:
 - Inventory grouping uses generated/current-hash regex predicates for
   operational compatibility. The Python parser is the stricter reference
   implementation.
-- `policy_sha256` currently carries the verified policy RPM artifact hash for
-  the RHEL login path.
+- Superseded by the Phase 08 remediation contract: `policy_sha256` is now the
+  canonical installed policy payload hash. RPM/package identity is recorded in
+  workflow evidence as `artifact_sha256` or `policy_rpm_sha256`.
 - The live gate found and fixed an Ansible file-lookup hashing mismatch. Static
   validation now requires `rstrip=False` for registry hashing in deploy,
   promote, and preflight.

@@ -34,9 +34,13 @@
     blastwall_deploy_force_cleanup_on_failure: false
     blastwall_policy_marker_rpm_sha256: >-
       {{ blastwall_policy_rpm_sha256 | default(lookup('env', 'BLASTWALL_POLICY_RPM_SHA256') | default('', true), true) }}
+    blastwall_policy_artifact_sha256: "{{ blastwall_policy_marker_rpm_sha256 }}"
     blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
     blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
-    blastwall_policy_sha256: "{{ blastwall_policy_marker_rpm_sha256 }}"
+    blastwall_policy_module_sha256: ""
+    blastwall_failure_policy_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    blastwall_marker_policy_sha256: "{{ blastwall_policy_module_sha256 | default(blastwall_failure_policy_sha256, true) }}"
+    blastwall_policy_hash_tool_path: "{{ blastwall_project_dir }}/tools/blastwall_policy_hash.py"
     blastwall_allow_dry_run_profiles: >-
       {{
         BLASTWALL_ALLOW_DRY_RUN_PROFILES |
@@ -107,7 +111,7 @@
       --allow-dry-run-profiles
       {% endif %}
       --rpm={{ blastwall_policy_rpm }}
-      --policy-sha256={{ blastwall_policy_sha256 }}
+      --policy-sha256={{ blastwall_marker_policy_sha256 }}
       {% for profile in required_blastwall_profiles %}
       --profile={{ profile }}
       {% endfor %}
@@ -121,13 +125,11 @@
           - not blastwall_update_idm_marker | bool or ipa_server | length > 0
           - not blastwall_update_idm_marker | bool or ipa_domain | length > 0
           - not blastwall_update_idm_marker | bool or ipa_password | length > 0
-          - not blastwall_update_idm_marker | bool or blastwall_policy_marker_rpm_sha256 is match('^[0-9a-f]{64}$')
           - not blastwall_update_idm_marker | bool or blastwall_profile_registry_sha256 is match('^[0-9a-f]{64}$')
         fail_msg: >-
           Set IPA_PRINCIPAL, IPA_REALM, and either IPA_KEYTAB or IPA_PASSWORD for
           GSSAPI target SSH. Marker updates also require IPA_SERVER, IPA_DOMAIN,
-          IPA_PASSWORD, and a 64-character BLASTWALL_POLICY_RPM_SHA256 value for
-          the FreeIPA module.
+          IPA_PASSWORD, and a valid profile registry hash for the FreeIPA module.
       run_once: true
       delegate_to: localhost
       become: false
@@ -196,6 +198,24 @@
       become: false
       when: blastwall_update_idm_marker | bool
 
+    - name: Render rollback-active Blastwall marker for verified rollback
+      ansible.builtin.shell:
+        cmd: "{{ blastwall_marker_emit_command }} --state=rollback-active"
+      register: blastwall_policy_rollback_active_marker
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      when: blastwall_update_idm_marker | bool
+
+    - name: Render rollback-failed Blastwall marker for failed rollback verification
+      ansible.builtin.shell:
+        cmd: "{{ blastwall_marker_emit_command }} --state=rollback-failed"
+      register: blastwall_policy_rollback_failed_marker
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      when: blastwall_update_idm_marker | bool
+
     - name: Install and validate Blastwall policy
       block:
         - name: Install SELinux policy build dependencies
@@ -255,6 +275,22 @@
           ansible.builtin.file:
             path: "{{ blastwall_project_dir }}"
             state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Create Blastwall tool directory
+          ansible.builtin.file:
+            path: "{{ blastwall_project_dir }}/tools"
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Copy Blastwall policy hash helper to target
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/../tools/blastwall_policy_hash.py"
+            dest: "{{ blastwall_policy_hash_tool_path }}"
             owner: root
             group: root
             mode: "0755"
@@ -394,6 +430,28 @@
               Blastwall policy install did not validate cleanly.
               context_exists={{ blastwall_login_context_file.stat.exists | default(false) }}.
 
+        - name: Compute installed Blastwall policy payload SHA-256
+          ansible.builtin.command:
+            cmd: >-
+              {{ ansible_python_interpreter | default('/usr/bin/python3') }}
+              {{ blastwall_policy_hash_tool_path }}
+              --root {{ blastwall_policy_dir }}
+              {% if blastwall_enable_strange_socket_v1_dry_run | bool %}
+              --include-dry-run
+              {% endif %}
+          register: blastwall_policy_payload_hash
+          changed_when: false
+
+        - name: Store installed Blastwall policy payload hash
+          ansible.builtin.set_fact:
+            blastwall_policy_module_sha256: "{{ blastwall_policy_payload_hash.stdout | trim }}"
+
+        - name: Assert installed Blastwall policy payload hash is valid
+          ansible.builtin.assert:
+            that:
+              - blastwall_policy_module_sha256 is match('^[0-9a-f]{64}$')
+            fail_msg: "Installed Blastwall policy payload hash is invalid."
+
         - name: Render active Blastwall marker for collection writes
           ansible.builtin.shell:
             cmd: "{{ blastwall_marker_emit_command }} --state=active"
@@ -401,6 +459,40 @@
           changed_when: false
           delegate_to: localhost
           become: false
+          when: blastwall_update_idm_marker | bool
+
+        - name: Pre-validate active Blastwall marker before IdM publication
+          ansible.builtin.command:
+            argv: "{{ blastwall_marker_check_argv }}"
+            stdin: "{{ [blastwall_policy_marker.stdout] | to_json }}"
+          register: blastwall_policy_marker_check
+          changed_when: false
+          failed_when: blastwall_policy_marker_check.rc != 0
+          delegate_to: localhost
+          become: false
+          vars:
+            blastwall_marker_check_argv: >-
+              {{
+                [
+                  ansible_playbook_python | default('/usr/bin/python3'),
+                  playbook_dir ~ '/../tools/blastwall_marker.py',
+                  'check',
+                  '--registry',
+                  blastwall_profile_registry_path,
+                  '--expected-registry-sha256',
+                  blastwall_profile_registry_sha256,
+                  '--expected-policy-sha256',
+                  blastwall_policy_module_sha256,
+                  '--accepted-rpm',
+                  blastwall_policy_rpm,
+                  '--expected-target',
+                  'rhel-login',
+                  '--required-profiles-csv',
+                  required_blastwall_profiles | join(','),
+                  '--markers-stdin'
+                ]
+                + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+              }}
           when: blastwall_update_idm_marker | bool
 
         - name: Publish Blastwall host marker to IdM
@@ -468,7 +560,98 @@
           failed_when: false
           when: blastwall_deploy_rollback_on_failure | bool
 
-        - name: Publish failed Blastwall host marker to IdM
+        - name: List SELinux policy modules after rollback
+          ansible.builtin.command:
+            argv:
+              - semodule
+              - -l
+          register: blastwall_rollback_modules
+          changed_when: false
+          failed_when: false
+          when: blastwall_deploy_rollback_on_failure | bool
+
+        - name: Check Blastwall login context after rollback
+          ansible.builtin.stat:
+            path: >-
+              /etc/selinux/{{ blastwall_selinux_type }}/contexts/users/{{ blastwall_selinux_user }}
+          register: blastwall_rollback_login_context
+          failed_when: false
+          when: blastwall_deploy_rollback_on_failure | bool
+
+        - name: Verify Blastwall rollback result
+          ansible.builtin.assert:
+            that:
+              - >-
+                (
+                  blastwall_policy_modules_effective
+                  if blastwall_deploy_force_cleanup_on_failure | bool
+                  else (
+                    blastwall_policy_modules_effective
+                    | reject('in', blastwall_preexisting_module_names | default([]))
+                    | list
+                  )
+                )
+                | intersect(blastwall_rollback_modules.stdout_lines | default([]) | map('split') | map('first') | list)
+                | length == 0
+              - >-
+                (
+                  blastwall_preexisting_login_context is defined and
+                  blastwall_preexisting_login_context.stat.exists | default(false) and
+                  not blastwall_deploy_force_cleanup_on_failure | bool and
+                  blastwall_rollback_login_context.stat.exists | default(false)
+                )
+                or
+                (
+                  (
+                    blastwall_preexisting_login_context is not defined or
+                    not blastwall_preexisting_login_context.stat.exists | default(false) or
+                    blastwall_deploy_force_cleanup_on_failure | bool
+                  )
+                  and
+                  not blastwall_rollback_login_context.stat.exists | default(false)
+                )
+            fail_msg: >-
+              Blastwall rollback verification failed. Module or login-context state
+              remains ambiguous after rescue cleanup.
+          register: blastwall_rollback_verification
+          ignore_errors: true
+          when: blastwall_deploy_rollback_on_failure | bool
+
+        - name: Publish rollback-active Blastwall host marker to IdM
+          freeipa.ansible_freeipa.ipahost:
+            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_password: "{{ ipa_password }}"
+            name: "{{ inventory_hostname }}"
+            description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
+            userclass: "{{ blastwall_preserved_userclass_values + [blastwall_policy_rollback_active_marker.stdout] }}"
+            state: present
+          no_log: true
+          delegate_to: localhost
+          become: false
+          failed_when: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is not failed
+
+        - name: Publish rollback-failed Blastwall host marker to IdM
+          freeipa.ansible_freeipa.ipahost:
+            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_password: "{{ ipa_password }}"
+            name: "{{ inventory_hostname }}"
+            description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
+            userclass: "{{ blastwall_preserved_userclass_values + [blastwall_policy_rollback_failed_marker.stdout] }}"
+            state: present
+          no_log: true
+          delegate_to: localhost
+          become: false
+          failed_when: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is failed
+
+        - name: Publish failed Blastwall host marker to IdM when rollback is disabled
           freeipa.ansible_freeipa.ipahost:
             ipaadmin_principal: "{{ ipa_principal }}"
             ipaadmin_password: "{{ ipa_password }}"
@@ -480,13 +663,16 @@
           delegate_to: localhost
           become: false
           failed_when: false
-          when: blastwall_update_idm_marker | bool
+          when:
+            - blastwall_update_idm_marker | bool
+            - not blastwall_deploy_rollback_on_failure | bool
 
         - name: Stop after failed Blastwall deployment
           ansible.builtin.fail:
             msg: >-
               Blastwall policy deployment failed on {{ inventory_hostname }}.
-              The host marker was set to failed when marker updates were enabled.
+              The host marker was set to failed, rollback-active, or
+              rollback-failed when marker updates were enabled.
               Rollback was attempted when blastwall_deploy_rollback_on_failure=true.
               Set blastwall_deploy_force_cleanup_on_failure=true only for destructive
               lab cleanup of pre-existing Blastwall policy state.

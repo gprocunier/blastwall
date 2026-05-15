@@ -85,7 +85,39 @@
         if blastwall_preflight_target_group_override_raw | length > 0
         else blastwall_profile_preflight_group
       }}
-    blastwall_fail_on_stale_policy: true
+    blastwall_fail_on_stale_policy: >-
+      {{
+        BLASTWALL_FAIL_ON_STALE_POLICY |
+        default(lookup('env', 'BLASTWALL_FAIL_ON_STALE_POLICY') | default('true', true), true) |
+        bool
+      }}
+    blastwall_fail_on_no_eligible_hosts: >-
+      {{
+        BLASTWALL_FAIL_ON_NO_ELIGIBLE_HOSTS |
+        default(
+          lookup('env', 'BLASTWALL_FAIL_ON_NO_ELIGIBLE_HOSTS') |
+          default(blastwall_fail_on_stale_policy | string, true),
+          true
+        ) |
+        bool
+      }}
+    blastwall_validate_selected_markers: >-
+      {{
+        BLASTWALL_VALIDATE_SELECTED_MARKERS |
+        default(lookup('env', 'BLASTWALL_VALIDATE_SELECTED_MARKERS') | default('true', true), true) |
+        bool
+      }}
+    blastwall_danger_skip_marker_validation: >-
+      {{
+        BLASTWALL_DANGER_SKIP_MARKER_VALIDATION |
+        default(lookup('env', 'BLASTWALL_DANGER_SKIP_MARKER_VALIDATION') | default('false', true), true) |
+        bool
+      }}
+    blastwall_danger_skip_marker_validation_reason: >-
+      {{
+        BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON |
+        default(lookup('env', 'BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON') | default('', true), true)
+      }}
     blastwall_target_hosts: >-
       {{ groups[blastwall_preflight_effective_group] | default([]) }}
     blastwall_stale_hosts: >-
@@ -117,7 +149,34 @@
           include strange-socket-v1 in BLASTWALL_REQUIRED_POLICY_PROFILES and set
           BLASTWALL_ALLOW_DRY_RUN_PROFILES=true. If legacy
           BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN is set, it must agree with the
-          derived profile intent.
+            derived profile intent.
+
+    - name: Assert marker validation cannot be disabled accidentally
+      ansible.builtin.assert:
+        that:
+          - >-
+            blastwall_validate_selected_markers | bool or
+            (
+              blastwall_danger_skip_marker_validation | bool and
+              blastwall_danger_skip_marker_validation_reason | length > 0
+            )
+        fail_msg: >-
+          Marker validation is a safety-critical gate. Do not disable it with
+          stale-host tolerance. To bypass for an incident-only diagnostic run,
+          set BLASTWALL_DANGER_SKIP_MARKER_VALIDATION=true and provide
+          BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON.
+
+    - name: Warn when marker validation is explicitly bypassed
+      ansible.builtin.debug:
+        msg:
+          marker_validation_bypassed: true
+          reason: "{{ blastwall_danger_skip_marker_validation_reason }}"
+          warning: >-
+            BLASTWALL_DANGER_SKIP_MARKER_VALIDATION disables parser-backed
+            selected-host marker checks for this run only.
+      when:
+        - not blastwall_validate_selected_markers | bool
+        - blastwall_danger_skip_marker_validation | bool
 
     - name: Write FreeIPA client config for controller-side lookups
       ansible.builtin.copy:
@@ -213,7 +272,7 @@
           No current hosts are eligible for Blastwall managed-host verification.
           Current hosts: {{ blastwall_target_hosts | join(', ') }}.
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
-      when: blastwall_fail_on_stale_policy | bool
+      when: blastwall_fail_on_no_eligible_hosts | bool
 
     - name: Fail closed when selected hosts lack required Blastwall profile evidence
       ansible.builtin.command:
@@ -252,7 +311,7 @@
             + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
           }}
       loop: "{{ blastwall_target_hosts }}"
-      when: blastwall_fail_on_stale_policy | bool
+      when: blastwall_validate_selected_markers | bool
 
     - name: Report selected candidates
       ansible.builtin.debug:
@@ -260,7 +319,11 @@
           selected_hosts: "{{ blastwall_target_hosts }}"
           stale_hosts: "{{ blastwall_stale_hosts }}"
           candidate_hosts: "{{ blastwall_candidate_hosts }}"
+          effective_group: "{{ blastwall_preflight_effective_group }}"
           required_profiles: "{{ required_blastwall_profiles }}"
+          fail_on_no_eligible_hosts: "{{ blastwall_fail_on_no_eligible_hosts }}"
+          marker_validation_enabled: "{{ blastwall_validate_selected_markers }}"
+          marker_validation_bypass_reason: "{{ blastwall_danger_skip_marker_validation_reason }}"
           registry_sha256: "{{ blastwall_profile_registry_sha256 }}"
           hbac_rule: "{{ blastwall_hbac_rule_name }}"
           selinux_user: "{{ blastwall_selinux_map.selinuxuser }}"

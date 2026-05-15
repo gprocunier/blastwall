@@ -70,6 +70,7 @@ class BlastwallMarkerTests(unittest.TestCase):
         marker_text: str,
         required_profiles: str = "base",
         *,
+        extra_args: list[str] | None = None,
         expect_success: bool = True,
     ):
         command = [
@@ -82,6 +83,8 @@ class BlastwallMarkerTests(unittest.TestCase):
             "--expected-registry-sha256",
             self.registry_hash,
         ]
+        if extra_args:
+            command.extend(extra_args)
         result = subprocess.run(
             command,
             input=json.dumps([marker_text]),
@@ -291,6 +294,65 @@ class BlastwallMarkerTests(unittest.TestCase):
         parsed = self.parse(text)
         self.assertFalse(parsed.suitable)
         self.assertIn("policy_sha256 is not 64 lowercase hex", parsed.errors)
+
+    def test_expected_policy_hash_mismatch_fails(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        parsed = marker.parse_marker(
+            text,
+            registry=self.registry,
+            expected_registry_sha256=self.registry_hash,
+            expected_policy_sha256="c" * 64,
+        )
+        self.assertFalse(parsed.suitable)
+        self.assertIn("policy_sha256 does not match installed policy payload", parsed.errors)
+
+    def test_check_cli_rejects_wrong_expected_policy_hash(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        result = self.run_check_cli(
+            text,
+            extra_args=["--expected-policy-sha256", "c" * 64],
+            expect_success=False,
+        )
+        flattened_errors = [error for marker_errors in result["errors"] for error in marker_errors]
+        self.assertIn("policy_sha256 does not match installed policy payload", flattened_errors)
+
+    def test_check_cli_rejects_wrong_accepted_rpm(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        result = self.run_check_cli(
+            text,
+            extra_args=["--accepted-rpm", "blastwall-selinux-9.9.9-1"],
+            expect_success=False,
+        )
+        flattened_errors = [error for marker_errors in result["errors"] for error in marker_errors]
+        self.assertIn("marker rpm is not accepted", flattened_errors)
+
+    def test_failed_and_rollback_states_are_not_suitable(self) -> None:
+        for state in ["failed", "rollback-active", "rollback-failed"]:
+            text = marker.emit_marker_v2(
+                registry=self.registry,
+                registry_hash=self.registry_hash,
+                policy_hash=self.policy_hash,
+                rpm=marker.DEFAULT_RPM,
+                state=state,
+            )
+            parsed = self.parse(text)
+            self.assertFalse(parsed.suitable)
+            self.assertEqual(parsed.state, state)
 
     def test_unknown_required_profile_fails(self) -> None:
         text = marker.emit_marker_v2(

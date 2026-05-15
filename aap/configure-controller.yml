@@ -474,6 +474,7 @@
         source: scm
         source_project: "{{ blastwall_aap_project }}"
         source_path: "{{ blastwall_aap_inventory_source_path }}"
+        source_vars: "{{ blastwall_aap_inventory_source_vars }}"
         execution_environment: "{{ blastwall_aap_ee_name }}"
         credential: "{{ blastwall_aap_idm_credential }}"
         overwrite: true
@@ -493,6 +494,7 @@
         playbook: "{{ item.playbook }}"
         credentials: "{{ item.credentials }}"
         limit: "{{ item.limit | default(omit) }}"
+        extra_vars: "{{ item.extra_vars | default(omit) }}"
         ask_variables_on_launch: true
         ask_limit_on_launch: true
         verbosity: 1
@@ -510,6 +512,7 @@
         playbook: playbooks/apply-validate-spo-policy-crs.yml
         credentials:
           - "{{ blastwall_aap_openshift_credential }}"
+        extra_vars: "{{ blastwall_aap_spo_apply_extra_vars }}"
         ask_variables_on_launch: true
         ask_limit_on_launch: true
         verbosity: 1
@@ -568,11 +571,11 @@
           template: Blastwall credential smoke
         - identifier: preflight
           template: Blastwall preflight
+          extra_data: "{{ blastwall_aap_profile_extra_vars }}"
         - identifier: verify_managed_host
           template: Blastwall verify managed host
           limit: "{{ blastwall_aap_verify_target_group }}"
-          extra_data:
-            blastwall_verify_target_hosts: "{{ blastwall_aap_verify_target_group }}"
+          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_verify_target_hosts': blastwall_aap_verify_target_group}) }}"
 
     - name: Remove stale bootstrap workflow nodes from verification workflow
       awx.awx.workflow_job_template_node:
@@ -648,25 +651,22 @@
             blastwall_policy_pipeline_build_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
         - identifier: render_spo_policy_crs
           template: Blastwall render SPO policy CRs
+          extra_data: "{{ blastwall_aap_spo_render_extra_vars }}"
         - identifier: install_candidate_policy_rpm
           template: Blastwall install candidate policy RPM
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
-          extra_data:
-            blastwall_policy_pipeline_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_policy_pipeline_target_hosts': blastwall_aap_policy_pipeline_candidate_group}) }}"
         - identifier: verify_candidate_host
           template: Blastwall verify managed host
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
-          extra_data:
-            blastwall_verify_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_verify_target_hosts': blastwall_aap_policy_pipeline_candidate_group}) }}"
         - identifier: promote_policy_marker
           template: Blastwall promote policy marker
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
-          extra_data:
-            blastwall_policy_pipeline_target_hosts: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_policy_pipeline_target_hosts': blastwall_aap_policy_pipeline_candidate_group}) }}"
         - identifier: post_promotion_preflight
           template: Blastwall preflight
-          extra_data:
-            blastwall_preflight_target_group_override: "{{ blastwall_aap_post_promotion_preflight_target_group }}"
+          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group}) }}"
 
     - name: Ensure policy pipeline OpenShift apply validation node exists when configured
       awx.awx.workflow_job_template_node:
@@ -674,6 +674,7 @@
         workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
         organization: "{{ blastwall_aap_organization }}"
         unified_job_template: Blastwall apply and validate SPO policy CRs
+        extra_data: "{{ blastwall_aap_spo_apply_extra_vars }}"
         state: present
       when: blastwall_aap_openshift_kubeconfig_content | length > 0
 

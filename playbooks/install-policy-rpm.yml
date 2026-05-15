@@ -293,11 +293,33 @@
           rpm -V {{ blastwall_policy_name }} reported drift:
           {{ blastwall_policy_rpm_verify.stdout | default('') }}
 
+    - name: Compute installed Blastwall policy payload SHA-256
+      ansible.builtin.script: >-
+        {{ playbook_dir }}/../tools/blastwall_policy_hash.py
+        --root {{ blastwall_policy_package_dir }}
+        {% if blastwall_enable_strange_socket_v1_dry_run | bool %}
+        --include-dry-run
+        {% endif %}
+      register: blastwall_policy_payload_hash
+      changed_when: false
+
+    - name: Store installed Blastwall policy payload hash
+      ansible.builtin.set_fact:
+        blastwall_policy_module_sha256: "{{ blastwall_policy_payload_hash.stdout | trim }}"
+
+    - name: Assert installed Blastwall policy payload hash is valid
+      ansible.builtin.assert:
+        that:
+          - blastwall_policy_module_sha256 is match('^[0-9a-f]{64}$')
+        fail_msg: "Installed Blastwall policy payload hash is invalid."
+
     - name: Publish installed policy RPM metadata
       ansible.builtin.set_stats:
         data:
           policy_nevra: "{{ blastwall_policy_nevra }}"
           policy_rpm: "{{ blastwall_policy_artifact_path }}"
+          blastwall_policy_sha256: "{{ blastwall_policy_module_sha256 }}"
+          blastwall_policy_artifact_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
           blastwall_policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
 
     - name: Report policy installation evidence
@@ -305,5 +327,7 @@
         msg:
           policy_pipeline_install: passed
           policy_nevra: "{{ blastwall_policy_nevra }}"
+          policy_sha256: "{{ blastwall_policy_module_sha256 }}"
+          artifact_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
           policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
           strange_socket_v1_dry_run: "{{ blastwall_enable_strange_socket_v1_dry_run }}"

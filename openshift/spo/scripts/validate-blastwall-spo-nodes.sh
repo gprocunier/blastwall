@@ -121,6 +121,10 @@ get_spo_selinux_usage() {
 
 derive_selinux_type() {
   local usage="$1"
+  if [[ ! "${usage}" =~ ^[A-Za-z0-9_.-]+_?\\.process$ ]]; then
+    echo "FAIL: Unknown OpenShift/SPO status.usage format: ${usage}" >&2
+    return 1
+  fi
   if [[ "${usage_mode}" == "status-usage-direct" ]]; then
     printf '%s' "${usage}"
     return
@@ -128,7 +132,10 @@ derive_selinux_type() {
   case "${usage}" in
     *_.process) printf '%s' "${usage}" ;;
     *.process) printf '%s_.process' "${usage%.process}" ;;
-    *) printf '%s' "${usage}" ;;
+    *)
+      echo "FAIL: Unknown OpenShift/SPO status.usage format: ${usage}" >&2
+      return 1
+      ;;
   esac
 }
 

@@ -47,12 +47,14 @@ def _jinja_string(value: str) -> str:
 
 def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str) -> str:
     rpm_expr = (
-        "(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | "
-        f"default({_jinja_string(blastwall_marker.DEFAULT_RPM)}, true) | regex_escape)"
+        "(BLASTWALL_REQUIRED_POLICY_MARKER | "
+        "default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | "
+        f"default({_jinja_string(blastwall_marker.DEFAULT_RPM)}, true), true) | regex_escape)"
     )
     registry_expr = (
-        "(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | "
-        f"default({_jinja_string(registry_hash)}, true) | regex_escape)"
+        "(BLASTWALL_PROFILE_REGISTRY_SHA256 | "
+        "default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | "
+        f"default({_jinja_string(registry_hash)}, true), true) | regex_escape)"
     )
     pattern_expr = " ~ ".join(
         [
@@ -69,12 +71,14 @@ def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str
         ]
     )
     return (
-        f"(idm_userclass | select('match', {pattern_expr}) | list | length) > 0"
+        f"(([idm_userclass] if idm_userclass is string else idm_userclass) | "
+        f"select('match', {pattern_expr}) | list | length) > 0"
     )
 
 
 def _legacy_v1_match_expr() -> str:
-    marker_list = "(idm_userclass | select('match', '^blastwall:') | list)"
+    marker_values = "([idm_userclass] if idm_userclass is string else idm_userclass)"
+    marker_list = f"({marker_values} | select('match', '^blastwall:') | list)"
     marker_csv = f"({marker_list} | join(';'))"
     rpm_match = " or ".join(
         f"'rpm={rpm}' in {marker_csv}" for rpm in sorted(blastwall_marker.LEGACY_V1_RPMS)
@@ -136,7 +140,29 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
     )
     legacy_match = _legacy_v1_match_expr()
 
-    allow_dry_run = "(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false') | bool)"
+    allow_dry_run = (
+        "(BLASTWALL_ALLOW_DRY_RUN_PROFILES | "
+        "default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | "
+        "bool)"
+    )
+    schema_error = _and_block(
+        "idm_userclass is defined and",
+        "(",
+        "  idm_userclass is none",
+        "  or idm_userclass is mapping",
+        "  or (idm_userclass is not string and idm_userclass is not sequence)",
+        "  or (",
+        "    idm_userclass is sequence",
+        "    and idm_userclass is not string",
+        "    and (idm_userclass | select('string') | list | length) != (idm_userclass | list | length)",
+        "  )",
+        ")",
+    )
+    marker_like = (
+        "(idm_userclass is string and idm_userclass is match('^blastwall:')) "
+        "or (idm_userclass is sequence and idm_userclass is not string and "
+        "(idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0)"
+    )
 
     profile_base = _and_block(
         "idm_userclass is defined and",
@@ -190,11 +216,26 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         "    )",
         ")",
     )
+    marker_parse_error = _and_block(
+        "not (",
+        f"{schema_error}",
+        ")",
+        "and",
+        "(",
+        f"  {marker_like}",
+        ")",
+        "and",
+        "not (",
+        f"{profile_current}",
+        ")",
+    )
 
     return {
         "blastwall_policy_current": profile_current,
         "blastwall_policy_stale": profile_stale,
         "blastwall_policy_candidate": profile_stale,
+        "blastwall_inventory_schema_error": schema_error,
+        "blastwall_inventory_marker_parse_error": marker_parse_error,
         "blastwall_profile_base": profile_base,
         "blastwall_profile_strange_socket_v1": profile_strange,
     }

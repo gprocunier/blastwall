@@ -81,6 +81,27 @@ blastwall_aap_launch_user_email: >-
   {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_USER_EMAIL') |
   default(blastwall_aap_launch_user ~ '@example.com', true) }}
 
+blastwall_aap_required_policy_profiles: >-
+  {{ lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true) }}
+blastwall_aap_allow_dry_run_profiles: >-
+  {{ lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true) }}
+blastwall_aap_strange_socket_v1_dry_run: >-
+  {{ lookup('env', 'BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN') | default('', true) }}
+blastwall_aap_spo_include_strange_socket_v1: >-
+  {{ lookup('env', 'BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1') | default('false', true) }}
+blastwall_aap_spo_validate_strange_socket_v1: >-
+  {{ lookup('env', 'BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1') | default('false', true) }}
+blastwall_aap_profile_extra_vars:
+  BLASTWALL_REQUIRED_POLICY_PROFILES: "{{ blastwall_aap_required_policy_profiles }}"
+  BLASTWALL_ALLOW_DRY_RUN_PROFILES: "{{ blastwall_aap_allow_dry_run_profiles }}"
+  BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN: "{{ blastwall_aap_strange_socket_v1_dry_run }}"
+blastwall_aap_spo_render_extra_vars:
+  BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1: "{{ blastwall_aap_spo_include_strange_socket_v1 }}"
+blastwall_aap_spo_apply_extra_vars:
+  BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1: "{{ blastwall_aap_spo_validate_strange_socket_v1 }}"
+blastwall_aap_inventory_source_vars:
+  BLASTWALL_ALLOW_DRY_RUN_PROFILES: "{{ blastwall_aap_allow_dry_run_profiles }}"
+
 blastwall_aap_registry_host: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_HOST') |
   default('registry.example.com', true) }}
@@ -102,21 +123,25 @@ blastwall_aap_job_templates:
     playbook: playbooks/render-spo-policy-crs.yml
     credentials: []
     limit: ""
+    extra_vars: "{{ blastwall_aap_spo_render_extra_vars }}"
   - name: Blastwall apply and validate SPO policy CRs
     playbook: playbooks/apply-validate-spo-policy-crs.yml
     credentials: []
     limit: ""
+    extra_vars: "{{ blastwall_aap_spo_apply_extra_vars }}"
   - name: Blastwall install candidate policy RPM
     playbook: playbooks/install-policy-rpm.yml
     credentials:
       - "{{ blastwall_aap_policy_idm_credential }}"
       - "{{ blastwall_aap_policy_machine_credential }}"
     limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+    extra_vars: "{{ blastwall_aap_profile_extra_vars }}"
   - name: Blastwall promote policy marker
     playbook: playbooks/promote-policy-rpm.yml
     credentials:
       - "{{ blastwall_aap_idm_admin_credential }}"
     limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+    extra_vars: "{{ blastwall_aap_profile_extra_vars }}"
   - name: Blastwall credential smoke
     playbook: playbooks/credential-smoke.yml
     credentials:
@@ -127,12 +152,14 @@ blastwall_aap_job_templates:
     credentials:
       - "{{ blastwall_aap_idm_credential }}"
     limit: ""
+    extra_vars: "{{ blastwall_aap_profile_extra_vars }}"
   - name: Blastwall verify managed host
     playbook: playbooks/verify-managed-host.yml
     credentials:
       - "{{ blastwall_aap_idm_credential }}"
       - "{{ blastwall_aap_machine_credential }}"
     limit: ""
+    extra_vars: "{{ blastwall_aap_profile_extra_vars }}"
 
 blastwall_aap_workflow: Blastwall runtime verification
 blastwall_aap_policy_pipeline_workflow: Blastwall policy pipeline

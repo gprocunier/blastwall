@@ -193,6 +193,16 @@
           blastwall_spo_selinux_type_resolution_mode must be either
           calabi-ocp420-rawprofile-underscore or status-usage-direct.
 
+    - name: Assert OpenShift/SPO status.usage format is recognized
+      ansible.builtin.assert:
+        that:
+          - blastwall_spo_usage_by_profile[item] is match('^[A-Za-z0-9_.-]+_?\\.process$')
+        fail_msg: >-
+          Unknown OpenShift/SPO status.usage format for RawSelinuxProfile/{{ item }}:
+          {{ blastwall_spo_usage_by_profile[item] | default('') }}.
+          Refusing to derive an SCC SELinux type from an unrecognized value.
+      loop: "{{ blastwall_spo_profiles }}"
+
     - name: Derive SCC SELinux types from OpenShift/SPO usage
       ansible.builtin.set_fact:
         blastwall_spo_selinux_type_by_profile:
@@ -371,4 +381,5 @@
             standard_strange: "{{ blastwall_spo_selinux_type_by_profile.get('blastwallstrange', '') }}"
             nested_strange: "{{ blastwall_spo_selinux_type_by_profile.get('blastwallnestedstrange', '') }}"
           spo_sccs_present: "{{ blastwall_spo_sccs | join(', ') }}"
+          spo_validation_classes: "{{ blastwall_spo_validation_jobs | map(attribute='profile_resource') | list }}"
           spo_validation_summaries: "{{ blastwall_spo_validation_summaries }}"

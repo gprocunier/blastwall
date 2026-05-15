@@ -202,6 +202,7 @@ def parse_marker(
     *,
     registry: dict[str, Any],
     expected_registry_sha256: str,
+    expected_policy_sha256: str | None = None,
     expected_target: str | None = None,
     accepted_rpms: set[str] | None = None,
     required_profiles: set[str] | None = None,
@@ -256,6 +257,8 @@ def parse_marker(
             result.errors.append("registry_sha256 is stale")
         if not result.policy_sha256 or not SHA256_RE.match(result.policy_sha256):
             result.errors.append("policy_sha256 is not 64 lowercase hex")
+        elif expected_policy_sha256 is not None and result.policy_sha256 != expected_policy_sha256:
+            result.errors.append("policy_sha256 does not match installed policy payload")
 
         known_profiles = registry.get("profiles", {})
         unknown_profiles = sorted(result.profiles - set(known_profiles))
@@ -374,6 +377,7 @@ def main() -> int:
     check_parser.add_argument("--accepted-rpm", action="append", default=[])
     check_parser.add_argument("--expected-target")
     check_parser.add_argument("--expected-registry-sha256")
+    check_parser.add_argument("--expected-policy-sha256")
     check_parser.add_argument("--allow-dry-run-profiles", action="store_true", dest="check_allow_dry_run_profiles")
 
     args = parser.parse_args()
@@ -406,6 +410,7 @@ def main() -> int:
                 marker_text,
                 registry=registry,
                 expected_registry_sha256=expected_hash,
+                expected_policy_sha256=args.expected_policy_sha256,
                 expected_target=args.expected_target,
                 accepted_rpms=accepted_rpms,
                 required_profiles=required_profiles,

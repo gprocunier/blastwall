@@ -34,6 +34,7 @@ def inventory_expression_environment() -> Environment:
     env = Environment()
     env.filters["bool"] = jinja_bool_filter
     env.filters["regex_escape"] = re.escape
+    env.tests["match"] = lambda value, pattern: re.match(pattern, str(value or "")) is not None
     return env
 
 
@@ -179,11 +180,17 @@ for required in [
     "ask_limit_on_launch: true",
     "blastwall_aap_policy_pipeline_candidate_group",
     "blastwall_policy_pipeline_build_hosts:",
-    "blastwall_policy_pipeline_target_hosts:",
-    "blastwall_verify_target_hosts:",
     "blastwall_aap_verify_target_group",
     'limit: "{{ blastwall_aap_verify_target_group }}"',
-    'blastwall_verify_target_hosts: "{{ blastwall_aap_verify_target_group }}"',
+    'source_vars: "{{ blastwall_aap_inventory_source_vars }}"',
+    'extra_vars: "{{ item.extra_vars | default(omit) }}"',
+    "blastwall_aap_profile_extra_vars | combine",
+    "'blastwall_policy_pipeline_target_hosts': blastwall_aap_policy_pipeline_candidate_group",
+    "'blastwall_verify_target_hosts': blastwall_aap_verify_target_group",
+    "'blastwall_verify_target_hosts': blastwall_aap_policy_pipeline_candidate_group",
+    "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group",
+    'extra_data: "{{ blastwall_aap_spo_render_extra_vars }}"',
+    'extra_data: "{{ blastwall_aap_spo_apply_extra_vars }}"',
 ]:
     if required not in aap_config:
         fail(f"aap/configure-controller.yml does not set {required}")
@@ -194,6 +201,23 @@ if "BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not expose a post-promotion preflight target group")
 if "BLASTWALL_AAP_VERIFY_TARGET_GROUP" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not expose the AAP verify target group")
+for required_env in [
+    "BLASTWALL_REQUIRED_POLICY_PROFILES",
+    "BLASTWALL_ALLOW_DRY_RUN_PROFILES",
+    "BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN",
+    "BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1",
+    "BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1",
+]:
+    if required_env not in controller_vars:
+        fail(f"aap/vars/blastwall-controller.yml does not expose {required_env}")
+for required_var in [
+    "blastwall_aap_profile_extra_vars:",
+    "blastwall_aap_spo_render_extra_vars:",
+    "blastwall_aap_spo_apply_extra_vars:",
+    "blastwall_aap_inventory_source_vars:",
+]:
+    if required_var not in controller_vars:
+        fail(f"aap/vars/blastwall-controller.yml does not define {required_var}")
 if "default('blastwall_profile_base', true)" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not default AAP verify targeting to blastwall_profile_base")
 controller_post_promotion_group_pattern = re.compile(
@@ -440,6 +464,15 @@ preflight = (PLAYBOOKS / "preflight.yml").read_text(encoding="utf-8")
 install_policy = (PLAYBOOKS / "install-policy-rpm.yml").read_text(encoding="utf-8")
 promotion = (PLAYBOOKS / "promote-policy-rpm.yml").read_text(encoding="utf-8")
 deploy_policy = (PLAYBOOKS / "deploy-policy.yml").read_text(encoding="utf-8")
+policy_hash_tool = ROOT / "tools" / "blastwall_policy_hash.py"
+inventory_audit_tool = ROOT / "tools" / "audit_blastwall_inventory.py"
+inventory_audit_playbook = PLAYBOOKS / "audit-inventory-membership.yml"
+if not policy_hash_tool.exists():
+    fail("tools/blastwall_policy_hash.py is missing")
+if not inventory_audit_tool.exists():
+    fail("tools/audit_blastwall_inventory.py is missing")
+if not inventory_audit_playbook.exists():
+    fail("playbooks/audit-inventory-membership.yml is missing")
 for path_name, text in [
     ("playbooks/deploy-policy.yml", deploy_policy),
     ("playbooks/install-policy-rpm.yml", install_policy),
@@ -497,6 +530,43 @@ active_marker_index = deploy_policy.find("Render active Blastwall marker for col
 install_complete_index = deploy_policy.find("Assert Blastwall policy install is complete")
 if active_marker_index == -1 or install_complete_index == -1 or active_marker_index < install_complete_index:
     fail("playbooks/deploy-policy.yml must render the active marker only after policy validation")
+for path_name, text in [
+    ("playbooks/deploy-policy.yml", deploy_policy),
+    ("playbooks/promote-policy-rpm.yml", promotion),
+]:
+    validation_indices = [
+        text.find("Pre-validate active Blastwall marker before IdM publication"),
+        text.find("Pre-validate promoted Blastwall marker before IdM publication"),
+    ]
+    validation_indices = [index for index in validation_indices if index != -1]
+    validation_index = min(validation_indices) if validation_indices else -1
+    publish_indices = [
+        text.find("Publish Blastwall host marker to IdM"),
+        text.find("Publish verified Blastwall host marker to IdM"),
+    ]
+    publish_indices = [index for index in publish_indices if index != -1]
+    publish_index = min(publish_indices) if publish_indices else -1
+    if validation_index == -1:
+        fail(f"{path_name} is missing pre-publication marker validation")
+    if publish_index == -1:
+        fail(f"{path_name} is missing IdM marker publication")
+    if validation_index > publish_index:
+        fail(f"{path_name} validates the marker after IdM publication")
+    for required_marker_gate in [
+        "blastwall_marker.py",
+        "--expected-registry-sha256",
+        "--expected-policy-sha256",
+        "--accepted-rpm",
+        "--expected-target",
+        "--required-profiles-csv",
+        "--markers-stdin",
+    ]:
+        if required_marker_gate not in text:
+            fail(f"{path_name} marker pre-validation is missing {required_marker_gate}")
+    if "blastwall_policy_module_sha256" not in text:
+        fail(f"{path_name} does not use the installed policy payload hash for markers")
+if "artifact_sha256" not in install_policy or "policy_rpm_sha256" not in install_policy:
+    fail("playbooks/install-policy-rpm.yml does not expose both artifact_sha256 and policy_rpm_sha256 evidence")
 if "blastwall_policy_dry_run_modules" not in install_policy or "dry-run/{{ module }}.cil" not in install_policy:
     fail("playbooks/install-policy-rpm.yml does not install the dry-run RPM module when enabled")
 if "--oldpackage" not in install_policy:
@@ -522,7 +592,27 @@ for required in [
         fail(f"playbooks/preflight.yml is missing profile preflight check: {required}")
 if "groups['blastwall_policy_current']" in preflight:
     fail("playbooks/preflight.yml must select profile-specific groups, not blastwall_policy_current")
-if "blastwall_preflight_target_group_override: \"{{ blastwall_aap_post_promotion_preflight_target_group }}\"" not in aap_config:
+for required_preflight_safety in [
+    "blastwall_fail_on_no_eligible_hosts",
+    "blastwall_validate_selected_markers",
+    "BLASTWALL_DANGER_SKIP_MARKER_VALIDATION",
+    "BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON",
+    "marker_validation_enabled",
+]:
+    if required_preflight_safety not in preflight:
+        fail(f"playbooks/preflight.yml is missing marker-validation safety control {required_preflight_safety}")
+marker_check_index = preflight.find("Fail closed when selected hosts lack required Blastwall profile evidence")
+if marker_check_index == -1:
+    fail("playbooks/preflight.yml is missing selected-host marker validation")
+marker_check_block_end = preflight.find("\n    - name:", marker_check_index + 1)
+marker_check_block = preflight[
+    marker_check_index: marker_check_block_end if marker_check_block_end != -1 else len(preflight)
+]
+if "blastwall_fail_on_stale_policy" in marker_check_block:
+    fail("preflight marker validation is still gated by blastwall_fail_on_stale_policy")
+if "blastwall_validate_selected_markers | bool" not in marker_check_block:
+    fail("preflight marker validation is not gated by the explicit validation control")
+if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group" not in aap_config:
     fail("AAP policy pipeline post-promotion preflight cannot override the target group")
 
 print("PASS: AAP policy pipeline targets stale candidates before promotion")
@@ -601,6 +691,16 @@ if "blastwall_policy_marker.stdout" not in deploy_policy:
     fail("playbooks/deploy-policy.yml does not use blastwall_policy_marker.stdout")
 if "blastwall_policy_failed_marker.stdout" not in deploy_policy:
     fail("playbooks/deploy-policy.yml does not use blastwall_policy_failed_marker.stdout")
+for required_rollback_signal in [
+    "--state=rollback-active",
+    "--state=rollback-failed",
+    "Verify Blastwall rollback result",
+    "Publish rollback-active Blastwall host marker to IdM",
+    "Publish rollback-failed Blastwall host marker to IdM",
+    "Publish failed Blastwall host marker to IdM when rollback is disabled",
+]:
+    if required_rollback_signal not in deploy_policy:
+        fail(f"playbooks/deploy-policy.yml is missing rollback evidence signal: {required_rollback_signal}")
 if "blastwall_base_scopes" in deploy_policy:
     fail("playbooks/deploy-policy.yml still tracks blastwall_base_scopes for marker generation")
 if "blastwall_base_scopes" in promotion:
@@ -625,10 +725,74 @@ print("PASS: IdM marker writes use FreeIPA collection modules")
 workflow = (ROOT / ".github" / "workflows" / "policy-pipeline-smoke.yml").read_text(encoding="utf-8")
 if "SPO_APPLY_VALIDATE" not in workflow:
     fail("policy-pipeline-smoke.yml does not expose a SPO apply validation toggle")
+for required_workflow_evidence in [
+    "policy_rpm_sha256",
+    "artifact_sha256",
+    "policy_sha256=[0-9a-f]{64}",
+    "registry_sha256=[0-9a-f]{64}",
+    "profiles=base",
+]:
+    if required_workflow_evidence not in workflow:
+        fail(f"policy-pipeline-smoke.yml does not assert {required_workflow_evidence}")
+
+spo_apply = (ROOT / "playbooks" / "apply-validate-spo-policy-crs.yml").read_text(encoding="utf-8")
+spo_node_validator = (ROOT / "openshift" / "spo" / "scripts" / "validate-blastwall-spo-nodes.sh").read_text(
+    encoding="utf-8"
+)
+for required_spo_guard in [
+    "Assert OpenShift/SPO status.usage format is recognized",
+    "spo_validation_classes",
+]:
+    if required_spo_guard not in spo_apply:
+        fail(f"playbooks/apply-validate-spo-policy-crs.yml is missing SPO guard {required_spo_guard}")
+if "FAIL: Unknown OpenShift/SPO status.usage format" not in spo_node_validator:
+    fail("OpenShift/SPO node validator does not fail closed for unknown status.usage")
 
 day2_operations = (ROOT / "docs" / "day2-operations.html").read_text(encoding="utf-8").lower()
 if "evidence contract" not in day2_operations:
     fail("docs/day2-operations.html no longer states the AAP evidence contract")
+
+required_phase08_docs = [
+    "operator-one-page-summary.md",
+    "troubleshooting-runbook.md",
+    "inventory-diagnostic-decision-tree.md",
+    "stable-or-reference-decision.md",
+    "ownership-and-escalation.md",
+    "scope-triage-policy.md",
+    "future-scope-triage.md",
+    "tabletop-fail-stale-marker.md",
+    "positioning-against-detection-tools.md",
+    "base-corpus-replay-report.md",
+    "spo-compatibility-matrix.md",
+    "phase-08-remediation-checkpoint.md",
+    "phase-08-calabi-final-checkpoint.md",
+]
+for doc_name in required_phase08_docs:
+    docs_path = ROOT / "docs" / "blastwall-v2" / doc_name
+    if not docs_path.exists():
+        fail(f"required Phase 08 evidence doc is missing: {docs_path.relative_to(ROOT)}")
+
+markers_doc = (ROOT / "docs" / "blastwall-v2" / "markers.md").read_text(encoding="utf-8").lower()
+if "policy_sha256=<policy-rpm-sha256>" in markers_doc:
+    fail("docs/blastwall-v2/markers.md still documents policy_sha256 as the RPM hash")
+if "policy_sha256=` is the verified policy rpm artifact hash" in markers_doc:
+    fail("docs/blastwall-v2/markers.md still uses old RPM-as-policy-hash wording")
+if "installed blastwall policy" not in markers_doc or "artifact_sha256" not in markers_doc:
+    fail("docs/blastwall-v2/markers.md does not document the policy/artifact hash split")
+
+corpus_playbook = ROOT / "tests" / "corpus" / "base_automation_corpus.yml"
+if not corpus_playbook.exists():
+    fail("tests/corpus/base_automation_corpus.yml is missing")
+corpus_text = corpus_playbook.read_text(encoding="utf-8")
+for required_corpus_task in [
+    "Require corpus to run under Blastwall login context",
+    "package_facts",
+    "lineinfile",
+    "blastwall-corpus.service",
+    "ansible.builtin.uri",
+]:
+    if required_corpus_task not in corpus_text:
+        fail(f"base automation corpus is missing {required_corpus_task}")
 
 for docs_path in (ROOT / "docs" / "blastwall-v2").glob("*.md"):
     docs_text = docs_path.read_text(encoding="utf-8").lower()

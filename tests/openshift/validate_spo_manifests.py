@@ -359,6 +359,7 @@ for expected in [
     "get_spo_selinux_usage",
     ".status.usage",
     "derive_selinux_type",
+    "Unknown OpenShift/SPO status.usage format",
     "patch_scc_usage",
     "openshift/spo-overlays/strange-socket-v1",
     "delete job",
@@ -482,6 +483,9 @@ for expected in [
     "spo_policy_apply_validate",
     "status.usage",
     "blastwall_spo_usage_by_profile",
+    "Assert OpenShift/SPO status.usage format is recognized",
+    "Unknown OpenShift/SPO status.usage format",
+    "spo_validation_classes",
 ]:
     if expected not in apply_validate_playbook:
         fail(f"playbooks/apply-validate-spo-policy-crs.yml is missing {expected}")

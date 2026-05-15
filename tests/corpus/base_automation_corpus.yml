@@ -1,0 +1,118 @@
+---
+- name: Blastwall base automation corpus replay
+  hosts: "{{ blastwall_corpus_target_hosts | default('blastwall_profile_base') }}"
+  become: true
+  gather_facts: true
+  vars:
+    blastwall_corpus_tmpdir: /var/tmp/blastwall-base-corpus
+    blastwall_corpus_user: blastwall-corpus
+  tasks:
+    - name: Record SELinux execution context
+      ansible.builtin.command:
+        argv:
+          - id
+          - -Z
+      register: blastwall_corpus_context
+      changed_when: false
+
+    - name: Require corpus to run under Blastwall login context
+      ansible.builtin.assert:
+        that:
+          - "'blastwall_u:blastwall_r:blastwall_t:s0' in blastwall_corpus_context.stdout"
+        fail_msg: "Base corpus must run through SSH/SSSD/PAM as blastwall_t."
+
+    - name: Query package state for a harmless base package
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Create corpus workspace
+      ansible.builtin.file:
+        path: "{{ blastwall_corpus_tmpdir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy a corpus file
+      ansible.builtin.copy:
+        dest: "{{ blastwall_corpus_tmpdir }}/copy.txt"
+        content: "blastwall base corpus copy\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Template a corpus file
+      ansible.builtin.template:
+        src: templates/base-corpus-template.j2
+        dest: "{{ blastwall_corpus_tmpdir }}/template.txt"
+        mode: "0644"
+
+    - name: Mutate corpus file line
+      ansible.builtin.lineinfile:
+        path: "{{ blastwall_corpus_tmpdir }}/copy.txt"
+        line: "lineinfile mutation"
+        create: false
+
+    - name: Create lab-only corpus user
+      ansible.builtin.user:
+        name: "{{ blastwall_corpus_user }}"
+        comment: Blastwall corpus replay user
+        state: present
+        create_home: false
+
+    - name: Install harmless systemd unit for lifecycle replay
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/blastwall-corpus.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Blastwall corpus no-op service
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/true
+
+    - name: Reload systemd for corpus unit
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Run corpus systemd unit
+      ansible.builtin.systemd:
+        name: blastwall-corpus.service
+        state: started
+
+    - name: Exercise local API/network access
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        method: GET
+        status_code:
+          - 200
+          - 301
+          - 302
+          - 403
+          - 404
+        timeout: 5
+      register: blastwall_corpus_uri
+      failed_when: false
+
+    - name: Remove lab-only corpus user
+      ansible.builtin.user:
+        name: "{{ blastwall_corpus_user }}"
+        state: absent
+        remove: true
+
+    - name: Remove corpus systemd unit
+      ansible.builtin.file:
+        path: /etc/systemd/system/blastwall-corpus.service
+        state: absent
+
+    - name: Remove corpus workspace
+      ansible.builtin.file:
+        path: "{{ blastwall_corpus_tmpdir }}"
+        state: absent
+
+    - name: Report corpus replay evidence
+      ansible.builtin.debug:
+        msg:
+          base_automation_corpus: completed
+          selinux_context: "{{ blastwall_corpus_context.stdout }}"
+          localhost_api_status: "{{ blastwall_corpus_uri.status | default('not-listening') }}"
