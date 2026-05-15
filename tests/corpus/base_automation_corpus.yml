@@ -2,7 +2,7 @@
 - name: Blastwall base automation corpus replay
   hosts: "{{ blastwall_corpus_target_hosts | default('blastwall_profile_base') }}"
   become: true
-  gather_facts: true
+  gather_facts: false
   vars:
     blastwall_corpus_tmpdir: /var/tmp/blastwall-base-corpus
     blastwall_corpus_user: blastwall-corpus
