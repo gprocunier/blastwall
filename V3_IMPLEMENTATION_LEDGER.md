@@ -3,7 +3,7 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: pending latest-index commit
+- current commit: pending stable-v3 verifier commit
 
 ## Phase Status
 | Phase | State | Owner | Commit(s) | Tests | Notes |
@@ -15,7 +15,7 @@
 | 04 | complete | vault/KRA agent | `a5dbeb0` | vault pytest, full pytest | Added explicit KRA vault configuration, targeted read/write helpers, retry/error context, digest readback, and health playbook skeleton. |
 | 05 | complete | vault/KRA + schema | pending | index pytest, full pytest | Added signed latest-generation index schema, signature verification, digest binding, and replay/revocation checks. |
 | 06 | complete | marker agent | `a5dbeb0` | marker unittest, full pytest | Added v3 locator marker parser/emitter; valid v3 markers produce hints but never marker-only suitability. |
-| 07 | pending | preflight agent | pending | pending | AAP preflight attestation verification. |
+| 07 | complete | preflight agent | pending | verifier pytest, preflight syntax, full pytest | Added stable-v3 verifier command and preflight wiring requiring marker, envelope, index, signer trust, binding, and current policy hash. |
 | 08 | pending | AAP agent | pending | pending | Signer and marker-promotion workflows. |
 | 09 | pending | inventory agent | pending | pending | Inventory audit and monitoring. |
 | 10 | pending | rollback agent | pending | pending | Revocation, rollback, and breakglass. |
@@ -97,6 +97,15 @@
 - open issues: vault write/read integration for indexes is deferred to signer/preflight workflow phases, using the explicit KRA helper from Phase 04
 - security invariants checked: stable-v3 latest index is mandatory in verifier surface; stale generations fail as `FAIL_REPLAYED_ATTESTATION`; revoked index fails closed
 - next recommended phase: Phase 07 preflight verification
+
+### Phase 07
+- phase: 07
+- files changed: `tools/blastwall_attestation_verify.py`, `playbooks/preflight.yml`, `tests/test_blastwall_attestation_verify.py`
+- tests added: valid stable-v3 verification; marker-only failure; v2 marker rejection in stable-v3; live policy drift; replayed generation; CLI JSON exit status
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation_verify.py`; `ansible-playbook --syntax-check -i localhost, playbooks/preflight.yml`; `python3 tests/policy_static.py`; profile validation; drift check; `python3 -m pytest -q tests`; `git diff --check`
+- open issues: preflight currently verifies artifacts from explicit retrieved envelope/index directories; live Calabi KRA retrieval remains Phase 13 gate work
+- security invariants checked: stable-v3 cannot pass from a marker alone; v2 markers are rejected in stable-v3; live policy hash is mandatory; latest index is mandatory
+- next recommended phase: Phase 08 signer/promotion workflow
 
 ### Phase 06
 - phase: 06

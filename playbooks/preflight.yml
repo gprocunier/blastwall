@@ -118,6 +118,46 @@
         BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON |
         default(lookup('env', 'BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON') | default('', true), true)
       }}
+    blastwall_attestation_mode: >-
+      {{
+        BLASTWALL_ATTESTATION_MODE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)
+      }}
+    blastwall_attestation_vault_primary: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_PRIMARY |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true), true)
+      }}
+    blastwall_attestation_envelope_dir: >-
+      {{
+        BLASTWALL_ATTESTATION_ENVELOPE_DIR |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') | default('', true), true)
+      }}
+    blastwall_attestation_index_dir: >-
+      {{
+        BLASTWALL_ATTESTATION_INDEX_DIR |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') | default('', true), true)
+      }}
+    blastwall_attestation_signer_certificate: >-
+      {{
+        BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE') | default('', true), true)
+      }}
+    blastwall_attestation_ca_bundle: >-
+      {{
+        BLASTWALL_ATTESTATION_CA_BUNDLE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE') | default(ipa_ca, true), true)
+      }}
+    blastwall_attestation_signer_allowlist_csv: >-
+      {{
+        BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true), true)
+      }}
+    blastwall_current_policy_sha256: >-
+      {{
+        BLASTWALL_CURRENT_POLICY_SHA256 |
+        default(lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') | default('', true), true)
+      }}
     blastwall_target_hosts: >-
       {{ groups[blastwall_preflight_effective_group] | default([]) }}
     blastwall_stale_hosts: >-
@@ -165,6 +205,30 @@
           stale-host tolerance. To bypass for an incident-only diagnostic run,
           set BLASTWALL_DANGER_SKIP_MARKER_VALIDATION=true and provide
           BLASTWALL_DANGER_SKIP_MARKER_VALIDATION_REASON.
+
+    - name: Assert attestation mode is supported
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_mode in ['reference-v2', 'transition-v3', 'stable-v3', 'breakglass']
+        fail_msg: >-
+          BLASTWALL_ATTESTATION_MODE must be one of reference-v2, transition-v3,
+          stable-v3, or breakglass.
+
+    - name: Assert stable-v3 attestation inputs are explicit
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_vault_primary | length > 0
+          - blastwall_attestation_envelope_dir | length > 0
+          - blastwall_attestation_index_dir | length > 0
+          - blastwall_attestation_signer_certificate | length > 0
+          - blastwall_attestation_ca_bundle | length > 0
+          - blastwall_attestation_signer_allowlist_csv | length > 0
+          - blastwall_current_policy_sha256 is match('^[0-9a-f]{64}$')
+        fail_msg: >-
+          stable-v3 requires explicit KRA vault primary, retrieved envelope/index
+          artifact directories, signer certificate, CA bundle, signer allowlist,
+          and live current policy hash. A v3 marker alone is not evidence.
+      when: blastwall_attestation_mode == 'stable-v3'
 
     - name: Warn when marker validation is explicitly bypassed
       ansible.builtin.debug:
@@ -311,7 +375,94 @@
             + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
           }}
       loop: "{{ blastwall_target_hosts }}"
-      when: blastwall_validate_selected_markers | bool
+      when:
+        - blastwall_validate_selected_markers | bool
+        - blastwall_attestation_mode != 'stable-v3'
+
+    - name: Fail closed when stable-v3 selected host lacks a v3 marker hint
+      ansible.builtin.assert:
+        that:
+          - host_v3_marker | length > 0
+        fail_msg: >-
+          stable-v3 selected host {{ item }} does not expose a v3 attestation marker hint.
+      vars:
+        raw_host_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        host_userclass_values: >-
+          {{
+            raw_host_userclass_values
+            if raw_host_userclass_values is not string
+            else [raw_host_userclass_values]
+          }}
+        host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
+        host_v3_marker: >-
+          {{
+            (
+              host_marker_values |
+              select('match', '^blastwall:.*(?:^blastwall:|;)v=3(?:;|$)') |
+              list |
+              first
+            ) | default('', true)
+          }}
+      loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_attestation_mode == 'stable-v3'
+
+    - name: Verify stable-v3 signed attestation before launch
+      ansible.builtin.command:
+        argv: "{{ blastwall_attestation_verify_argv }}"
+      register: blastwall_attestation_verify
+      changed_when: false
+      failed_when: blastwall_attestation_verify.rc != 0
+      vars:
+        raw_host_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        host_userclass_values: >-
+          {{
+            raw_host_userclass_values
+            if raw_host_userclass_values is not string
+            else [raw_host_userclass_values]
+          }}
+        host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
+        host_v3_marker: >-
+          {{
+            (
+              host_marker_values |
+              select('match', '^blastwall:.*(?:^blastwall:|;)v=3(?:;|$)') |
+              list |
+              first
+            ) | default('', true)
+          }}
+        blastwall_attestation_verify_argv: >-
+          {{
+            [
+              ansible_playbook_python | default('/usr/bin/python3'),
+              playbook_dir ~ '/../tools/blastwall_attestation_verify.py',
+              '--marker',
+              host_v3_marker,
+              '--envelope-json',
+              blastwall_attestation_envelope_dir ~ '/' ~ item ~ '.json',
+              '--index-json',
+              blastwall_attestation_index_dir ~ '/' ~ item ~ '.json',
+              '--signer-certificate',
+              blastwall_attestation_signer_certificate,
+              '--ca-bundle',
+              blastwall_attestation_ca_bundle,
+              '--signer-allowlist-csv',
+              blastwall_attestation_signer_allowlist_csv,
+              '--expected-host',
+              item,
+              '--expected-target',
+              'rhel-login',
+              '--expected-rpm',
+              blastwall_required_policy_marker,
+              '--expected-registry-sha256',
+              blastwall_profile_registry_sha256,
+              '--current-policy-sha256',
+              blastwall_current_policy_sha256,
+              '--required-profiles-csv',
+              blastwall_required_profile_csv
+            ]
+          }}
+      loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_attestation_mode == 'stable-v3'
 
     - name: Report selected candidates
       ansible.builtin.debug:
@@ -324,6 +475,9 @@
           fail_on_no_eligible_hosts: "{{ blastwall_fail_on_no_eligible_hosts }}"
           marker_validation_enabled: "{{ blastwall_validate_selected_markers }}"
           marker_validation_bypass_reason: "{{ blastwall_danger_skip_marker_validation_reason }}"
+          attestation_mode: "{{ blastwall_attestation_mode }}"
+          attestation_vault_primary: "{{ blastwall_attestation_vault_primary }}"
+          stable_v3_verification: "{{ blastwall_attestation_verify.results | default([]) }}"
           registry_sha256: "{{ blastwall_profile_registry_sha256 }}"
           hbac_rule: "{{ blastwall_hbac_rule_name }}"
           selinux_user: "{{ blastwall_selinux_map.selinuxuser }}"

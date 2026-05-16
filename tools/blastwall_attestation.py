@@ -341,7 +341,7 @@ def build_latest_index(
     if not isinstance(signer_certificate, x509.Certificate):
         signer_certificate = _load_pem_certificate(signer_certificate)
     signer_kid = extract_signer_kid(signer_certificate)
-    unsigned = dict(index_payload)
+    unsigned = _index_signature_payload(dict(index_payload))
     unsigned["index_version"] = SUPPORTED_INDEX_VERSION
     unsigned["signer_kid"] = signer_kid
     validate_latest_index({**unsigned, "signature": "AA=="})
