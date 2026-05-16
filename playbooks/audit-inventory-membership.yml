@@ -41,6 +41,12 @@
         default(lookup('env', 'BLASTWALL_FAIL_ON_CURRENT_TO_STALE') | default('true', true), true) |
         bool
       }}
+    blastwall_fail_on_current_marker_parse_error: >-
+      {{
+        BLASTWALL_FAIL_ON_CURRENT_MARKER_PARSE_ERROR |
+        default(lookup('env', 'BLASTWALL_FAIL_ON_CURRENT_MARKER_PARSE_ERROR') | default('true', true), true) |
+        bool
+      }}
   tasks:
     - name: Capture ansible-inventory output when no JSON path is supplied
       ansible.builtin.command:
@@ -95,6 +101,7 @@
             + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
             + (['--previous', blastwall_inventory_audit_previous] if blastwall_inventory_previous_snapshot.stat.exists | default(false) else [])
             + (['--fail-on-current-to-stale'] if blastwall_fail_on_current_to_stale | bool else [])
+            + (['--fail-on-current-marker-parse-error'] if blastwall_fail_on_current_marker_parse_error | bool else [])
           }}
 
     - name: Write Blastwall inventory audit report

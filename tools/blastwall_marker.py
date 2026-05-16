@@ -35,6 +35,21 @@ PROFILE_STATUS_ACTIVE = "active"
 PROFILE_STATUS_DRY_RUN = "dry-run"
 PROFILE_STATUS_PLANNED = "planned"
 PROFILE_STATUS_DEPRECATED = "deprecated"
+RESERVED_MARKER_FIELDS = {
+    "v",
+    "state",
+    "target",
+    "rpm",
+    "registry_sha256",
+    "policy_sha256",
+    "profiles",
+    "scopes",
+    "attest_ref",
+    "attest_sha256",
+    "signer_kid",
+    "exp",
+    "generation",
+}
 
 
 @dataclass
@@ -66,10 +81,11 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
     return data
 
 
-def _split_marker(raw: str) -> dict[str, str]:
+def _split_marker(raw: str) -> tuple[dict[str, str], set[str]]:
     if not raw.startswith("blastwall:"):
-        return {}
+        return {}, set()
     fields: dict[str, str] = {}
+    duplicate_reserved_fields: set[str] = set()
     for token in raw.removeprefix("blastwall:").split(";"):
         if not token:
             continue
@@ -77,8 +93,10 @@ def _split_marker(raw: str) -> dict[str, str]:
             fields[f"__malformed_{len(fields)}"] = token
             continue
         key, value = token.split("=", 1)
+        if key in fields and key in RESERVED_MARKER_FIELDS:
+            duplicate_reserved_fields.add(key)
         fields[key] = value
-    return fields
+    return fields, duplicate_reserved_fields
 
 
 def _csv_set(value: str | None) -> set[str]:
@@ -211,13 +229,15 @@ def parse_marker(
     accepted_rpms = accepted_rpms or {DEFAULT_RPM}
     required_profiles = required_profiles or {"base"}
     result = MarkerResult(raw=raw, version=None)
-    fields = _split_marker(raw)
+    fields, duplicate_reserved_fields = _split_marker(raw)
     if not fields:
         result.errors.append("missing blastwall marker prefix")
         return result
     if any(key.startswith("__malformed_") for key in fields):
         result.errors.append("malformed marker token")
         return result
+    for key in sorted(duplicate_reserved_fields):
+        result.errors.append(f"duplicate reserved marker field: {key}")
 
     if fields.get("v") == "2":
         result.version = 2

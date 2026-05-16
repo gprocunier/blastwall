@@ -499,6 +499,12 @@ if not inventory_audit_tool.exists():
     fail("tools/audit_blastwall_inventory.py is missing")
 if not inventory_audit_playbook.exists():
     fail("playbooks/audit-inventory-membership.yml is missing")
+inventory_audit = inventory_audit_tool.read_text(encoding="utf-8")
+inventory_audit_playbook_text = inventory_audit_playbook.read_text(encoding="utf-8")
+if "--fail-on-current-marker-parse-error" not in inventory_audit:
+    fail("tools/audit_blastwall_inventory.py is missing --fail-on-current-marker-parse-error")
+if "--fail-on-current-marker-parse-error" not in inventory_audit_playbook_text:
+    fail("playbooks/audit-inventory-membership.yml does not default current marker parse errors to fatal")
 for path_name, text in [
     ("playbooks/deploy-policy.yml", deploy_policy),
     ("playbooks/install-policy-rpm.yml", install_policy),

@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -78,6 +81,55 @@ class BlastwallInventoryAuditTests(unittest.TestCase):
         report = self.audit(inventory)
         self.assertIn("bad-marker.example.com", report["marker_parse_errors"])
         self.assertIn("registry_sha256 is stale", report["marker_parse_errors"]["bad-marker.example.com"])
+
+    def test_current_marker_parse_error_contradiction_is_reported(self) -> None:
+        inventory = {
+            "_meta": {
+                "hostvars": {
+                    "bad-current.example.com": {
+                        "idm_userclass": [
+                            self.base_marker.replace(self.registry_hash, "1" * 64)
+                        ]
+                    }
+                }
+            },
+            "blastwall_policy_current": {"hosts": ["bad-current.example.com"]},
+        }
+        report = self.audit(inventory)
+        self.assertEqual(report["current_marker_parse_error_hosts"], ["bad-current.example.com"])
+
+    def test_fail_on_current_marker_parse_error_cli_exits_nonzero(self) -> None:
+        inventory = {
+            "_meta": {
+                "hostvars": {
+                    "bad-current.example.com": {
+                        "idm_userclass": [
+                            self.base_marker.replace(self.registry_hash, "1" * 64)
+                        ]
+                    }
+                }
+            },
+            "blastwall_policy_current": {"hosts": ["bad-current.example.com"]},
+        }
+        with tempfile.TemporaryDirectory(prefix="blastwall-audit-test-") as temp_dir:
+            inventory_path = Path(temp_dir) / "inventory.json"
+            inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(AUDIT_PATH),
+                    "--inventory-json",
+                    str(inventory_path),
+                    "--fail-on-current-marker-parse-error",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        self.assertEqual(result.returncode, 1, result.stdout)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["current_marker_parse_error_hosts"], ["bad-current.example.com"])
 
     def test_current_to_stale_movement_is_reported(self) -> None:
         current_inventory = {

@@ -112,6 +112,8 @@ def audit_inventory(
 
     changed_hosts = {}
     current_to_stale = []
+    current_hosts = _group_hosts(inventory, "blastwall_policy_current")
+    current_marker_parse_error_hosts = sorted(current_hosts.intersection(marker_parse_errors))
     for host, groups in host_groups.items():
         old_groups = previous_host_groups.get(host)
         if old_groups is None or sorted(old_groups) == groups:
@@ -127,6 +129,7 @@ def audit_inventory(
         "current_to_stale": sorted(current_to_stale),
         "schema_errors": schema_errors,
         "marker_parse_errors": marker_parse_errors,
+        "current_marker_parse_error_hosts": current_marker_parse_error_hosts,
         "legacy_v1_marker_hosts": sorted(set(legacy_v1_hosts)),
         "dry_run_marker_hosts": sorted(set(dry_run_marker_hosts)),
     }
@@ -142,6 +145,7 @@ def main() -> int:
     parser.add_argument("--required-profiles-csv", default="base")
     parser.add_argument("--allow-dry-run-profiles", action="store_true")
     parser.add_argument("--fail-on-current-to-stale", action="store_true")
+    parser.add_argument("--fail-on-current-marker-parse-error", action="store_true")
     args = parser.parse_args()
 
     registry = blastwall_marker.load_registry(args.registry)
@@ -160,6 +164,8 @@ def main() -> int:
     )
     print(json.dumps(report, sort_keys=True))
     if args.fail_on_current_to_stale and report["current_to_stale"]:
+        return 1
+    if args.fail_on_current_marker_parse_error and report["current_marker_parse_error_hosts"]:
         return 1
     return 0
 

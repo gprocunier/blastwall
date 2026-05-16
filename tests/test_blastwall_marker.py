@@ -191,6 +191,37 @@ class BlastwallMarkerTests(unittest.TestCase):
         self.assertTrue(parsed.suitable, parsed.errors)
         self.assertEqual(parsed.profiles, {"base"})
 
+    def test_v2_marker_accepts_duplicate_unknown_fields(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        parsed = self.parse(f"{text};notes=first;notes=second")
+        self.assertTrue(parsed.suitable, parsed.errors)
+
+    def test_v2_marker_rejects_duplicate_reserved_fields(self) -> None:
+        text = marker.emit_marker_v2(
+            registry=self.registry,
+            registry_hash=self.registry_hash,
+            policy_hash=self.policy_hash,
+            rpm=marker.DEFAULT_RPM,
+        )
+        fields = {
+            key: value
+            for key, value in (
+                token.split("=", 1)
+                for token in text.removeprefix("blastwall:").split(";")
+                if "=" in token
+            )
+        }
+        for field in ["v", "state", "rpm", "registry_sha256", "policy_sha256", "profiles", "scopes"]:
+            with self.subTest(field=field):
+                parsed = self.parse(f"{text};{field}={fields[field]}")
+                self.assertFalse(parsed.suitable)
+                self.assertIn(f"duplicate reserved marker field: {field}", parsed.errors)
+
     def test_v2_marker_accepts_reordered_scopes(self) -> None:
         text = marker.emit_marker_v2(
             registry=self.registry,

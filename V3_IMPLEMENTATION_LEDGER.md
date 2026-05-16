@@ -3,13 +3,13 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: HEAD (`docs(v3): freeze signed attestation baseline`)
+- current commit: HEAD (`feat(marker): reject duplicate reserved marker fields`)
 
 ## Phase Status
 | Phase | State | Owner | Commit(s) | Tests | Notes |
 |---:|---|---|---|---|---|
 | 00 | complete | PM + architecture lead | HEAD (`docs(v3): freeze signed attestation baseline`) | `policy_static`, profile validation, drift check, pytest | Branch created from the remediated v2 baseline; design doc copied into `docs/blastwall-v3/`; local baseline passed. |
-| 01 | pending | marker agent | pending | pending | V2 marker duplicate reserved-field hardening. |
+| 01 | complete | marker agent | HEAD (`feat(marker): reject duplicate reserved marker fields`) | marker, inventory grouping, audit, static | V2 markers reject duplicate reserved fields; inventory and audit fail closed on current+parser-invalid contradictions. |
 | 02 | pending | schema agent | pending | pending | Attestation schema and canonical JSON. |
 | 03 | pending | signer agent | pending | pending | Signer identity and detached signature verification. |
 | 04 | pending | vault/KRA agent | pending | pending | KRA-aware vault custody helpers. |
@@ -52,3 +52,12 @@
 - open issues: Calabi/KRA validation deferred by design until Phase 13
 - security invariants checked: branch split preserves v2 baseline; no SELinux deny scope changes; marker remains locator-only in v3 design
 - next recommended phase: commit Phase 00, then start Phase 01
+
+### Phase 01
+- phase: 01
+- files changed: `tools/blastwall_marker.py`, `tools/render_inventory_profile_groups.py`, `tools/audit_blastwall_inventory.py`, `playbooks/audit-inventory-membership.yml`, `inventory/blastwall-idm.yml`, `poc-calabi/aap/inventory/blastwall-idm.yml`, `tests/test_blastwall_marker.py`, `tests/test_audit_blastwall_inventory.py`, `tests/inventory_grouping.py`, `tests/fixtures/inventory-policy-markers.json`, `tests/policy_static.py`
+- tests added: duplicate reserved marker field parser tests; duplicate reserved inventory fixture cases; audit current-marker-parse-error tests
+- tests run: `python3 tests/test_blastwall_marker.py`; `python3 tests/inventory_grouping.py`; `python3 tests/test_audit_blastwall_inventory.py`; `python3 tests/policy_static.py`; `git diff --check`
+- open issues: none for Phase 01
+- security invariants checked: duplicate reserved fields fail closed; unknown non-reserved duplicate fields remain tolerated; inventory selects only and does not verify v3 proof
+- next recommended phase: start parallel Batch A after Phase 01 commit

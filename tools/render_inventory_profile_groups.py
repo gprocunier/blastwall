@@ -62,6 +62,13 @@ def _scope_membership_pattern(scopes: list[str]) -> str:
     return f"{presence_checks}{scope_list}"
 
 
+def _reserved_field_uniqueness_patterns() -> list[str]:
+    return [
+        f"(?!.*(?:^blastwall:|;){re.escape(field)}=[^;]*(?:;[^;]*)*;{re.escape(field)}=)"
+        for field in sorted(blastwall_marker.RESERVED_MARKER_FIELDS)
+    ]
+
+
 def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str) -> str:
     rpm_expr = (
         "(BLASTWALL_REQUIRED_POLICY_MARKER | "
@@ -76,9 +83,10 @@ def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str
     scope_list = [scope for scope in fields["scopes"].split(",") if scope]
     scope_pattern = _scope_membership_pattern(scope_list)
 
-    pattern_expr = " ~ ".join(
-        [
-            _jinja_string("^"),
+    pattern_parts = [
+        _jinja_string("^"),
+        *(_jinja_string(pattern) for pattern in _reserved_field_uniqueness_patterns()),
+        *[
             _jinja_string("(?=.*(?:^blastwall:|;)v=2(?:;|$))"),
             _jinja_string(f"(?=.*(?:^blastwall:|;)state={re.escape(state)}(?:;|$))"),
             _jinja_string(f"(?=.*(?:^blastwall:|;)target={re.escape(fields['target'])}(?:;|$))"),
@@ -92,8 +100,9 @@ def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str
             _jinja_string(f"(?=.*(?:^blastwall:|;)profiles={fields['profiles']}(?:;|$))"),
             _jinja_string(f"(?=.*(?:^blastwall:|;)scopes={scope_pattern}(?=;|$))"),
             _jinja_string("blastwall:"),
-        ]
-    )
+        ],
+    ]
+    pattern_expr = " ~ ".join(pattern_parts)
     return (
         f"(([idm_userclass] if idm_userclass is string else idm_userclass) | "
         f"select('match', {pattern_expr}) | list | length) > 0"

@@ -23,6 +23,18 @@
       ]
     },
     {
+      "name": "duplicate-reserved-scopes.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect"
+      ]
+    },
+    {
+      "name": "duplicate-reserved-profiles.example.com",
+      "idm_userclass": [
+        "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc,selfprotect"
+      ]
+    },
+    {
       "name": "base-with-missing-scope.example.com",
       "idm_userclass": [
         "blastwall:v=2;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;registry_sha256={REGISTRY_SHA256};policy_sha256={POLICY_SHA256};profiles=base;scopes=alg_socket,bpf,capability2_bpf,packet_socket,userns,io_uring,xfrm,rxrpc"
@@ -121,6 +133,8 @@
         "non-string-list-userclass.example.com"
       ],
       "blastwall_policy_stale": [
+        "duplicate-reserved-scopes.example.com",
+        "duplicate-reserved-profiles.example.com",
         "base-with-missing-scope.example.com",
         "v2-strange-socket-lab-active.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
@@ -141,6 +155,8 @@
         "non-string-list-userclass.example.com"
       ],
       "blastwall_inventory_marker_parse_error": [
+        "duplicate-reserved-scopes.example.com",
+        "duplicate-reserved-profiles.example.com",
         "base-with-missing-scope.example.com",
         "v2-strange-socket-lab-active.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
@@ -173,6 +189,8 @@
         "non-string-list-userclass.example.com"
       ],
       "blastwall_policy_stale": [
+        "duplicate-reserved-scopes.example.com",
+        "duplicate-reserved-profiles.example.com",
         "base-with-missing-scope.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
         "v2-strange-socket-noncanonical-order.example.com",
@@ -192,6 +210,8 @@
         "non-string-list-userclass.example.com"
       ],
       "blastwall_inventory_marker_parse_error": [
+        "duplicate-reserved-scopes.example.com",
+        "duplicate-reserved-profiles.example.com",
         "base-with-missing-scope.example.com",
         "v2-strange-socket-missing-dry-run-flag.example.com",
         "v2-strange-socket-noncanonical-order.example.com",
