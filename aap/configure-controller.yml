@@ -35,6 +35,25 @@
           IPA_PRINCIPAL, and either IPA_KEYTAB or IPA_PASSWORD before applying AAP
           configuration.
 
+    - name: Require attestation signer files when v3 AAP attestation is enabled
+      ansible.builtin.assert:
+        that:
+          - blastwall_aap_attestation_signer_key_file | length > 0
+          - blastwall_aap_attestation_signer_certificate_file | length > 0
+          - blastwall_aap_attestation_ca_bundle_file | length > 0
+          - blastwall_aap_attestation_signer_allowlist | length > 0
+          - blastwall_aap_attestation_vault_primary | length > 0
+          - blastwall_aap_attestation_vault_servers | length > 0
+        fail_msg: >-
+          Set BLASTWALL_ATTESTATION_SIGNER_KEY_FILE,
+          BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE_FILE,
+          BLASTWALL_ATTESTATION_CA_BUNDLE_FILE,
+          BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST,
+          BLASTWALL_ATTESTATION_VAULT_PRIMARY, and
+          BLASTWALL_ATTESTATION_VAULT_SERVERS when
+          BLASTWALL_AAP_ATTESTATION_ENABLED=true.
+      when: blastwall_aap_attestation_enabled | bool
+
     - name: Read IdM CA certificate for AAP credential creation
       ansible.builtin.slurp:
         src: "{{ blastwall_aap_ipa_cert_file }}"
@@ -61,6 +80,27 @@
       when: blastwall_aap_openshift_kubeconfig_file | length > 0
       no_log: true
 
+    - name: Read attestation signer private key for AAP credential creation
+      ansible.builtin.slurp:
+        src: "{{ blastwall_aap_attestation_signer_key_file }}"
+      register: blastwall_aap_attestation_signer_key
+      when: blastwall_aap_attestation_enabled | bool
+      no_log: true
+
+    - name: Read attestation signer certificate for AAP credential creation
+      ansible.builtin.slurp:
+        src: "{{ blastwall_aap_attestation_signer_certificate_file }}"
+      register: blastwall_aap_attestation_signer_certificate
+      when: blastwall_aap_attestation_enabled | bool
+      no_log: true
+
+    - name: Read attestation CA bundle for AAP credential creation
+      ansible.builtin.slurp:
+        src: "{{ blastwall_aap_attestation_ca_bundle_file }}"
+      register: blastwall_aap_attestation_ca_bundle
+      when: blastwall_aap_attestation_enabled | bool
+      no_log: true
+
     - name: Store IdM runtime credential material
       ansible.builtin.set_fact:
         blastwall_aap_ipa_cert_content: >-
@@ -71,6 +111,12 @@
           {{ blastwall_aap_ipa_keytab.content | default('') | b64decode }}
         blastwall_aap_openshift_kubeconfig_content: >-
           {{ blastwall_aap_openshift_kubeconfig.content | default('') | b64decode }}
+        blastwall_aap_attestation_signer_key_content: >-
+          {{ blastwall_aap_attestation_signer_key.content | default('') | b64decode }}
+        blastwall_aap_attestation_signer_certificate_content: >-
+          {{ blastwall_aap_attestation_signer_certificate.content | default('') | b64decode }}
+        blastwall_aap_attestation_ca_bundle_content: >-
+          {{ blastwall_aap_attestation_ca_bundle.content | default('') | b64decode }}
       no_log: true
 
     - name: Ensure Blastwall organization exists
@@ -200,6 +246,124 @@
             template.kubeconfig: !unsafe "{{ kubeconfig }}"
           env:
             K8S_AUTH_KUBECONFIG: !unsafe "{{ tower.filename.kubeconfig }}"
+
+    - name: Define Blastwall attestation signer credential type contract
+      ansible.builtin.set_fact:
+        blastwall_aap_attestation_signer_credential_type_inputs:
+          fields:
+            - id: signer_private_key
+              label: Blastwall attestation signer private key
+              type: string
+              multiline: true
+              secret: true
+            - id: signer_certificate
+              label: Blastwall attestation signer certificate
+              type: string
+              multiline: true
+              secret: true
+            - id: signer_ca_bundle
+              label: Blastwall attestation CA bundle
+              type: string
+              multiline: true
+              secret: true
+            - id: signer_allowlist
+              label: Blastwall signer allowlist
+              type: string
+            - id: vault_primary
+              label: Blastwall attestation vault primary
+              type: string
+            - id: vault_servers
+              label: Blastwall attestation vault servers
+              type: string
+            - id: vault_scope
+              label: Blastwall attestation vault scope
+              type: string
+            - id: vault_owner
+              label: Blastwall attestation vault owner
+              type: string
+          required:
+            - signer_private_key
+            - signer_certificate
+            - signer_ca_bundle
+            - signer_allowlist
+            - vault_primary
+            - vault_servers
+            - vault_scope
+            - vault_owner
+        blastwall_aap_attestation_signer_credential_type_injectors:
+          file:
+            template.signer_private_key: !unsafe "{{ signer_private_key }}"
+            template.signer_certificate: !unsafe "{{ signer_certificate }}"
+            template.signer_ca_bundle: !unsafe "{{ signer_ca_bundle }}"
+          env:
+            BLASTWALL_ATTESTATION_SIGNER_KEY: !unsafe "{{ tower.filename.signer_private_key }}"
+            BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE: !unsafe "{{ tower.filename.signer_certificate }}"
+            BLASTWALL_ATTESTATION_CA_BUNDLE: !unsafe "{{ tower.filename.signer_ca_bundle }}"
+            BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST: !unsafe "{{ signer_allowlist }}"
+            BLASTWALL_ATTESTATION_VAULT_PRIMARY: !unsafe "{{ vault_primary }}"
+            BLASTWALL_ATTESTATION_VAULT_SERVERS: !unsafe "{{ vault_servers }}"
+            BLASTWALL_ATTESTATION_VAULT_SCOPE: !unsafe "{{ vault_scope }}"
+            BLASTWALL_ATTESTATION_VAULT_OWNER: !unsafe "{{ vault_owner }}"
+
+    - name: Define Blastwall attestation verifier credential type contract
+      ansible.builtin.set_fact:
+        blastwall_aap_attestation_verifier_credential_type_inputs:
+          fields:
+            - id: signer_certificate
+              label: Blastwall attestation signer certificate
+              type: string
+              multiline: true
+              secret: true
+            - id: signer_ca_bundle
+              label: Blastwall attestation CA bundle
+              type: string
+              multiline: true
+              secret: true
+            - id: signer_allowlist
+              label: Blastwall signer allowlist
+              type: string
+            - id: vault_primary
+              label: Blastwall attestation vault primary
+              type: string
+            - id: vault_servers
+              label: Blastwall attestation vault servers
+              type: string
+            - id: vault_scope
+              label: Blastwall attestation vault scope
+              type: string
+            - id: vault_owner
+              label: Blastwall attestation vault owner
+              type: string
+            - id: envelope_dir
+              label: Blastwall attestation envelope directory
+              type: string
+            - id: index_dir
+              label: Blastwall attestation index directory
+              type: string
+          required:
+            - signer_certificate
+            - signer_ca_bundle
+            - signer_allowlist
+            - vault_primary
+            - vault_servers
+            - vault_scope
+            - vault_owner
+            - envelope_dir
+            - index_dir
+        blastwall_aap_attestation_verifier_credential_type_injectors:
+          file:
+            template.signer_certificate: !unsafe "{{ signer_certificate }}"
+            template.signer_ca_bundle: !unsafe "{{ signer_ca_bundle }}"
+          env:
+            BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE: !unsafe "{{ tower.filename.signer_certificate }}"
+            BLASTWALL_ATTESTATION_CA_BUNDLE: !unsafe "{{ tower.filename.signer_ca_bundle }}"
+            BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST: !unsafe "{{ signer_allowlist }}"
+            BLASTWALL_ATTESTATION_VAULT_PRIMARY: !unsafe "{{ vault_primary }}"
+            BLASTWALL_ATTESTATION_VAULT_SERVERS: !unsafe "{{ vault_servers }}"
+            BLASTWALL_ATTESTATION_VAULT_SCOPE: !unsafe "{{ vault_scope }}"
+            BLASTWALL_ATTESTATION_VAULT_OWNER: !unsafe "{{ vault_owner }}"
+            BLASTWALL_ATTESTATION_ENVELOPE_DIR: !unsafe "{{ envelope_dir }}"
+            BLASTWALL_ATTESTATION_INDEX_DIR: !unsafe "{{ index_dir }}"
 
     - name: Look up Blastwall IdM credential type
       ansible.builtin.uri:
@@ -351,6 +515,24 @@
           blastwall_aap_openshift_credential_type_lookup.json.results[0].injectors !=
           blastwall_aap_openshift_credential_type_injectors
 
+    - name: Ensure Blastwall attestation signer credential type exists
+      awx.awx.credential_type:
+        name: "{{ blastwall_aap_attestation_signer_credential_type }}"
+        kind: cloud
+        inputs: "{{ blastwall_aap_attestation_signer_credential_type_inputs }}"
+        injectors: "{{ blastwall_aap_attestation_signer_credential_type_injectors }}"
+        state: present
+      when: blastwall_aap_attestation_enabled | bool
+
+    - name: Ensure Blastwall attestation verifier credential type exists
+      awx.awx.credential_type:
+        name: "{{ blastwall_aap_attestation_verifier_credential_type }}"
+        kind: cloud
+        inputs: "{{ blastwall_aap_attestation_verifier_credential_type_inputs }}"
+        injectors: "{{ blastwall_aap_attestation_verifier_credential_type_injectors }}"
+        state: present
+      when: blastwall_aap_attestation_enabled | bool
+
     - name: Ensure Blastwall IdM credential exists
       awx.awx.credential:
         name: "{{ blastwall_aap_idm_credential }}"
@@ -415,6 +597,43 @@
         state: present
       no_log: true
       when: blastwall_aap_openshift_kubeconfig_content | length > 0
+
+    - name: Ensure Blastwall attestation signer credential exists
+      awx.awx.credential:
+        name: "{{ blastwall_aap_attestation_signer_credential }}"
+        organization: "{{ blastwall_aap_organization }}"
+        credential_type: "{{ blastwall_aap_attestation_signer_credential_type }}"
+        inputs:
+          signer_private_key: "{{ blastwall_aap_attestation_signer_key_content }}"
+          signer_certificate: "{{ blastwall_aap_attestation_signer_certificate_content }}"
+          signer_ca_bundle: "{{ blastwall_aap_attestation_ca_bundle_content }}"
+          signer_allowlist: "{{ blastwall_aap_attestation_signer_allowlist }}"
+          vault_primary: "{{ blastwall_aap_attestation_vault_primary }}"
+          vault_servers: "{{ blastwall_aap_attestation_vault_servers }}"
+          vault_scope: "{{ blastwall_aap_attestation_vault_scope }}"
+          vault_owner: "{{ blastwall_aap_attestation_vault_owner }}"
+        state: present
+      no_log: true
+      when: blastwall_aap_attestation_enabled | bool
+
+    - name: Ensure Blastwall attestation verifier credential exists
+      awx.awx.credential:
+        name: "{{ blastwall_aap_attestation_verifier_credential }}"
+        organization: "{{ blastwall_aap_organization }}"
+        credential_type: "{{ blastwall_aap_attestation_verifier_credential_type }}"
+        inputs:
+          signer_certificate: "{{ blastwall_aap_attestation_signer_certificate_content }}"
+          signer_ca_bundle: "{{ blastwall_aap_attestation_ca_bundle_content }}"
+          signer_allowlist: "{{ blastwall_aap_attestation_signer_allowlist }}"
+          vault_primary: "{{ blastwall_aap_attestation_vault_primary }}"
+          vault_servers: "{{ blastwall_aap_attestation_vault_servers }}"
+          vault_scope: "{{ blastwall_aap_attestation_vault_scope }}"
+          vault_owner: "{{ blastwall_aap_attestation_vault_owner }}"
+          envelope_dir: "{{ blastwall_aap_attestation_envelope_dir }}"
+          index_dir: "{{ blastwall_aap_attestation_index_dir }}"
+        state: present
+      no_log: true
+      when: blastwall_aap_attestation_enabled | bool
 
     - name: Ensure GSSAPI machine credential exists
       awx.awx.credential:
@@ -500,6 +719,72 @@
         verbosity: 1
         state: present
       loop: "{{ blastwall_aap_job_templates }}"
+
+    - name: Ensure Blastwall v3 attestation job templates exist when enabled
+      awx.awx.job_template:
+        name: "{{ item.name }}"
+        organization: "{{ blastwall_aap_organization }}"
+        job_type: run
+        inventory: "{{ blastwall_aap_inventory }}"
+        project: "{{ blastwall_aap_project }}"
+        execution_environment: "{{ blastwall_aap_ee_name }}"
+        playbook: "{{ item.playbook }}"
+        credentials: "{{ item.credentials }}"
+        limit: "{{ item.limit | default(omit) }}"
+        extra_vars: "{{ item.extra_vars | default(omit) }}"
+        ask_variables_on_launch: true
+        ask_limit_on_launch: true
+        verbosity: 1
+        state: present
+      loop: "{{ blastwall_aap_v3_job_templates }}"
+      when: blastwall_aap_attestation_enabled | bool
+
+    - name: Remove Blastwall v3 attestation job templates when disabled
+      awx.awx.job_template:
+        name: "{{ item.name }}"
+        organization: "{{ blastwall_aap_organization }}"
+        state: absent
+      loop: "{{ blastwall_aap_v3_job_templates }}"
+      when: not blastwall_aap_attestation_enabled | bool
+
+    - name: Attach attestation verifier credential to stable-v3 preflight
+      awx.awx.job_template:
+        name: Blastwall preflight
+        organization: "{{ blastwall_aap_organization }}"
+        job_type: run
+        inventory: "{{ blastwall_aap_inventory }}"
+        project: "{{ blastwall_aap_project }}"
+        execution_environment: "{{ blastwall_aap_ee_name }}"
+        playbook: playbooks/preflight.yml
+        credentials:
+          - "{{ blastwall_aap_idm_credential }}"
+          - "{{ blastwall_aap_attestation_verifier_credential }}"
+        extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"
+        ask_variables_on_launch: true
+        ask_limit_on_launch: true
+        verbosity: 1
+        state: present
+      when: blastwall_aap_attestation_enabled | bool
+
+    - name: Attach attestation verifier credential to stable-v3 marker promotion
+      awx.awx.job_template:
+        name: Blastwall promote policy marker
+        organization: "{{ blastwall_aap_organization }}"
+        job_type: run
+        inventory: "{{ blastwall_aap_inventory }}"
+        project: "{{ blastwall_aap_project }}"
+        execution_environment: "{{ blastwall_aap_ee_name }}"
+        playbook: playbooks/promote-policy-rpm.yml
+        credentials:
+          - "{{ blastwall_aap_idm_admin_credential }}"
+          - "{{ blastwall_aap_attestation_verifier_credential }}"
+        limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+        extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"
+        ask_variables_on_launch: true
+        ask_limit_on_launch: true
+        verbosity: 1
+        state: present
+      when: blastwall_aap_attestation_enabled | bool
 
     - name: Attach OpenShift credential to SPO apply and validate job template
       awx.awx.job_template:
@@ -660,13 +945,37 @@
           template: Blastwall verify managed host
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
           extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_verify_target_hosts': blastwall_aap_policy_pipeline_candidate_group}) }}"
+        - identifier: sign_attestation
+          template: Blastwall sign attestation
+          limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+          extra_data: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) | combine({'blastwall_policy_pipeline_target_hosts': blastwall_aap_policy_pipeline_candidate_group}) }}"
         - identifier: promote_policy_marker
           template: Blastwall promote policy marker
           limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
-          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_policy_pipeline_target_hosts': blastwall_aap_policy_pipeline_candidate_group}) }}"
+          extra_data: >-
+            {{
+              blastwall_aap_profile_extra_vars |
+              combine(blastwall_aap_attestation_extra_vars if blastwall_aap_attestation_enabled | bool else {}) |
+              combine({'blastwall_policy_pipeline_target_hosts': blastwall_aap_policy_pipeline_candidate_group})
+            }}
         - identifier: post_promotion_preflight
           template: Blastwall preflight
-          extra_data: "{{ blastwall_aap_profile_extra_vars | combine({'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group}) }}"
+          extra_data: >-
+            {{
+              blastwall_aap_profile_extra_vars |
+              combine(blastwall_aap_attestation_extra_vars if blastwall_aap_attestation_enabled | bool else {}) |
+              combine({'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group})
+            }}
+      when: item.identifier != 'sign_attestation' or blastwall_aap_attestation_enabled | bool
+
+    - name: Remove policy pipeline attestation node when v3 attestation is disabled
+      awx.awx.workflow_job_template_node:
+        identifier: sign_attestation
+        workflow_job_template: "{{ blastwall_aap_policy_pipeline_workflow }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: Blastwall sign attestation
+        state: absent
+      when: not blastwall_aap_attestation_enabled | bool
 
     - name: Ensure policy pipeline OpenShift apply validation node exists when configured
       awx.awx.workflow_job_template_node:
@@ -715,6 +1024,9 @@
             - verify_candidate_host
         - identifier: verify_candidate_host
           template: Blastwall verify managed host
+          success_nodes: "{{ ['sign_attestation'] if blastwall_aap_attestation_enabled | bool else ['promote_policy_marker'] }}"
+        - identifier: sign_attestation
+          template: Blastwall sign attestation
           success_nodes:
             - promote_policy_marker
         - identifier: promote_policy_marker
@@ -725,6 +1037,7 @@
           template: "{{ blastwall_aap_inventory_source }}"
           success_nodes:
             - post_promotion_preflight
+      when: item.identifier != 'sign_attestation' or blastwall_aap_attestation_enabled | bool
 
     - name: Link render SPO node to OpenShift apply validation when configured
       awx.awx.workflow_job_template_node:

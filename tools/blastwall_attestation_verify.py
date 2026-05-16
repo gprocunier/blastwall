@@ -31,10 +31,170 @@ class VerificationReport:
         }
 
 
+@dataclass(frozen=True)
+class BreakglassContext:
+    enabled: bool
+    approved_by: str
+    ticket: str
+    reason: str
+    scope_host: str
+    scope_profiles: tuple[str, ...]
+    valid_until: datetime.datetime | None
+
+
+INFRASTRUCTURE_FAILURE_STATES = {
+    "FAIL_ATTESTATION_NOT_VISIBLE",
+    "FAIL_INDEX_NOT_VISIBLE",
+}
+
+
+def _parse_breakglass_profiles(raw_profiles: str | None) -> tuple[str, ...]:
+    parsed = [profile.strip() for profile in (raw_profiles or "").split(",") if profile.strip()]
+    return tuple(sorted(dict.fromkeys(parsed)))
+
+
+def _parse_breakglass_unix_ts(value: str | None) -> datetime.datetime | None:
+    if not value:
+        return None
+    return datetime.datetime.fromtimestamp(float(value), tz=datetime.timezone.utc)
+
+
+def _make_breakglass_context(args: argparse.Namespace) -> BreakglassContext | None:
+    if not args.breakglass:
+        return None
+    valid_until = _parse_breakglass_unix_ts(args.breakglass_until)
+    return BreakglassContext(
+        enabled=True,
+        approved_by=args.breakglass_approved_by,
+        ticket=args.breakglass_ticket,
+        reason=args.breakglass_reason,
+        scope_host=args.breakglass_host,
+        scope_profiles=_parse_breakglass_profiles(args.breakglass_profiles_csv),
+        valid_until=valid_until,
+    )
+
+
+def _assert_breakglass_scope(
+    *,
+    ctx: BreakglassContext | None,
+    expected_host: str,
+    expected_profiles: list[str],
+    now: datetime.datetime,
+) -> str | None:
+    if ctx is None or not ctx.enabled:
+        return None
+    if not ctx.approved_by or not ctx.ticket or not ctx.reason:
+        return "FAIL_BREAKGLASS_SCOPE"
+    if not ctx.scope_host:
+        return "FAIL_BREAKGLASS_SCOPE"
+    if ctx.scope_host != expected_host:
+        return "FAIL_BREAKGLASS_SCOPE"
+    if not ctx.scope_profiles:
+        return "FAIL_BREAKGLASS_SCOPE"
+    if tuple(sorted(expected_profiles)) != ctx.scope_profiles:
+        return "FAIL_BREAKGLASS_SCOPE"
+    if not ctx.valid_until or ctx.valid_until <= now:
+        return "FAIL_BREAKGLASS_EXPIRED"
+    return None
+
+
+def _is_infrastructure_failure(failure_state: str) -> bool:
+    return failure_state in INFRASTRUCTURE_FAILURE_STATES
+
+
+def _can_use_breakglass(
+    *,
+    failure_state: str,
+    ctx: BreakglassContext | None,
+    expected_host: str,
+    expected_profiles: list[str],
+    now: datetime.datetime,
+) -> bool:
+    if _is_infrastructure_failure(failure_state) and ctx is not None and ctx.enabled:
+        return _assert_breakglass_scope(
+            ctx=ctx,
+            expected_host=expected_host,
+            expected_profiles=expected_profiles,
+            now=now,
+        ) is None
+    return False
+
+
+def _maybe_bypass_with_breakglass(
+    *,
+    failure_state: str,
+    message: str,
+    details: dict[str, Any],
+    now: datetime.datetime,
+    breakglass: BreakglassContext | None,
+    expected_host: str,
+    expected_profiles: list[str],
+) -> VerificationReport:
+    if breakglass is None:
+        return VerificationReport(status="FAIL", failure_state=failure_state, message=message, details=details)
+    scope_error = _assert_breakglass_scope(
+        ctx=breakglass,
+        expected_host=expected_host,
+        expected_profiles=expected_profiles,
+        now=now,
+    )
+    if not _can_use_breakglass(
+        failure_state=failure_state,
+        ctx=breakglass,
+        expected_host=expected_host,
+        expected_profiles=expected_profiles,
+        now=now,
+    ):
+        if _is_infrastructure_failure(failure_state) and scope_error is not None:
+            details = dict(details)
+            details["breakglass_scope_error"] = scope_error
+            return VerificationReport(
+                status="FAIL",
+                failure_state=scope_error,
+                message=f"breakglass scope invalid: {scope_error}",
+                details=details,
+            )
+        return VerificationReport(status="FAIL", failure_state=failure_state, message=message, details=details)
+
+    if _is_infrastructure_failure(failure_state):
+        return VerificationReport(
+            status="PASS",
+            message=f"pass via scoped breakglass: {failure_state}",
+            details={
+                "attest_ref": details.get("attest_ref"),
+                "override_failure_state": failure_state,
+                "breakglass": {
+                    "approved_by": breakglass.approved_by,
+                    "ticket": breakglass.ticket,
+                    "reason": breakglass.reason,
+                    "scope_host": breakglass.scope_host,
+                    "scope_profiles": list(breakglass.scope_profiles),
+                    "scope_valid_until": breakglass.valid_until.isoformat() if breakglass.valid_until else None,
+                },
+            },
+        )
+
+    return VerificationReport(status="FAIL", failure_state=failure_state, message=message, details=details)
+
+
+def _is_tombstoned_artifact(envelope_text: str | None) -> bool:
+    if not envelope_text:
+        return False
+    try:
+        payload = json.loads(envelope_text)
+    except json.JSONDecodeError:
+        return False
+    return bool(payload.get("status") in {"blastwall-attestation-tombstone", "blastwall-attestation-tombstoned", "tombstoned"})
+
+
 def _load_json_path(path: Path | None) -> str | None:
     if path is None:
         return None
-    return sys.stdin.read() if str(path) == "-" else path.read_text(encoding="utf-8")
+    if str(path) == "-":
+        return sys.stdin.read()
+    if not path.exists():
+        return None
+    return path.read_text(encoding="utf-8")
 
 
 def _marker_failure_state(errors: list[str]) -> str:
@@ -114,6 +274,50 @@ def _verify_payload_binding(
         )
 
 
+def _is_ocp_spo_target(target: str) -> bool:
+    return target in {"ocp-spo-standard", "ocp-spo-nested"}
+
+
+def _validate_spo_evidence(
+    *,
+    payload: Mapping[str, Any],
+    expected_target: str,
+) -> None:
+    evidence = payload.get("spo_evidence")
+    if not isinstance(evidence, Mapping):
+        raise blastwall_attestation.AttestationVerificationError(
+            "FAIL_SPO_EVIDENCE_MISSING",
+            "OpenShift/SPO attestation payload is missing spo_evidence",
+        )
+    validation_results = evidence.get("validation_results")
+    if not isinstance(validation_results, Mapping) or not validation_results:
+        raise blastwall_attestation.AttestationVerificationError(
+            "FAIL_SPO_EVIDENCE_INVALID",
+            "spo_evidence.validation_results must be a non-empty object",
+        )
+    required_fields = [
+        "bundle_sha256",
+        "validation_output_digest",
+        "spo_version",
+        "ocp_version",
+        "status_usage",
+        "scc_type",
+        "admitted_pod_context",
+    ]
+    missing = [item for item in required_fields if not evidence.get(item)]
+    if missing:
+        raise blastwall_attestation.AttestationVerificationError(
+            "FAIL_SPO_EVIDENCE_INVALID",
+            f"spo_evidence is missing required fields for OpenShift/SPO payload: {', '.join(missing)}",
+        )
+    expected_validation_token = "standard" if expected_target == "ocp-spo-standard" else "nested"
+    if not any(key.startswith(expected_validation_token) for key in validation_results):
+        raise blastwall_attestation.AttestationVerificationError(
+            "FAIL_SPO_EVIDENCE_INVALID",
+            f"spo_evidence.validation_results missing expected {expected_validation_token} entry",
+        )
+
+
 def verify_attestation_for_marker(
     *,
     marker_text: str,
@@ -129,6 +333,7 @@ def verify_attestation_for_marker(
     signer_certificate: Path,
     ca_bundle: Path,
     signer_allowlist: list[str],
+    breakglass: BreakglassContext | None = None,
     now: datetime.datetime | None = None,
 ) -> VerificationReport:
     now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -142,32 +347,54 @@ def verify_attestation_for_marker(
         allow_dry_run_profiles=True,
     )
     if parsed_marker.version != 3:
-        return VerificationReport(
-            status="FAIL",
+        return _maybe_bypass_with_breakglass(
             failure_state="FAIL_UNSUPPORTED_MARKER_VERSION",
             message="stable-v3 requires a v3 attestation marker",
             details={"marker_errors": parsed_marker.errors, "marker_version": parsed_marker.version},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
         )
     if parsed_marker.errors or not parsed_marker.hint:
-        return VerificationReport(
-            status="FAIL",
+        return _maybe_bypass_with_breakglass(
             failure_state=_marker_failure_state(parsed_marker.errors),
             message="v3 marker locator is invalid",
             details={"marker_errors": parsed_marker.errors},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
         )
     if not envelope_text:
-        return VerificationReport(
-            status="FAIL",
+        return _maybe_bypass_with_breakglass(
             failure_state="FAIL_ATTESTATION_NOT_VISIBLE",
             message="attestation envelope is not available",
             details={"attest_ref": parsed_marker.attest_ref},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
+        )
+    if _is_tombstoned_artifact(envelope_text):
+        return _maybe_bypass_with_breakglass(
+            failure_state="FAIL_MISSING_ATTESTATION",
+            message="attestation artifact is tombstoned",
+            details={"attest_ref": parsed_marker.attest_ref},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
         )
     if not index_text:
-        return VerificationReport(
-            status="FAIL",
+        return _maybe_bypass_with_breakglass(
             failure_state="FAIL_INDEX_NOT_VISIBLE",
             message="latest-generation index is not available",
             details={"attest_ref": parsed_marker.attest_ref},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
         )
 
     try:
@@ -193,17 +420,30 @@ def verify_attestation_for_marker(
             required_profiles=required_profiles,
             registry=registry,
         )
+        if _is_ocp_spo_target(expected_target):
+            _validate_spo_evidence(
+                payload=verified["payload"],
+                expected_target=expected_target,
+            )
     except blastwall_attestation.AttestationVerificationError as exc:
-        return VerificationReport(
-            status="FAIL",
+        return _maybe_bypass_with_breakglass(
             failure_state=exc.failure_state,
             message=str(exc),
+            details={},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
         )
     except ValueError as exc:
-        return VerificationReport(
-            status="FAIL",
+        return _maybe_bypass_with_breakglass(
             failure_state=_crypto_failure_state(exc),
             message=str(exc),
+            details={},
+            now=now,
+            breakglass=breakglass,
+            expected_host=expected_host,
+            expected_profiles=required_profiles,
         )
 
     return VerificationReport(
@@ -233,10 +473,29 @@ def main() -> int:
     parser.add_argument("--expected-registry-sha256")
     parser.add_argument("--current-policy-sha256", required=True)
     parser.add_argument("--required-profiles-csv", default="base")
+    parser.add_argument("--breakglass", action="store_true")
+    parser.add_argument("--breakglass-host")
+    parser.add_argument("--breakglass-profiles-csv")
+    parser.add_argument("--breakglass-approved-by")
+    parser.add_argument("--breakglass-ticket")
+    parser.add_argument("--breakglass-reason")
+    parser.add_argument("--breakglass-until")
     args = parser.parse_args()
 
     registry = blastwall_marker.load_registry(args.registry)
     required_profiles = [item for item in args.required_profiles_csv.split(",") if item]
+    normalized_profiles = sorted(set(required_profiles or ["base"]))
+    breakglass = _make_breakglass_context(args)
+    if breakglass is not None and not breakglass.scope_profiles:
+        breakglass = BreakglassContext(
+            enabled=True,
+            approved_by=breakglass.approved_by,
+            ticket=breakglass.ticket,
+            reason=breakglass.reason,
+            scope_host=breakglass.scope_host,
+            scope_profiles=tuple(sorted(set(required_profiles or ["base"]))),
+            valid_until=breakglass.valid_until,
+        )
     report = verify_attestation_for_marker(
         marker_text=args.marker,
         envelope_text=_load_json_path(args.envelope_json),
@@ -247,10 +506,11 @@ def main() -> int:
         expected_target=args.expected_target,
         expected_rpm=args.expected_rpm,
         current_policy_sha256=args.current_policy_sha256,
-        required_profiles=required_profiles or ["base"],
+        required_profiles=normalized_profiles,
         signer_certificate=args.signer_certificate,
         ca_bundle=args.ca_bundle,
         signer_allowlist=[item for item in args.signer_allowlist_csv.split(",") if item],
+        breakglass=breakglass,
     )
     print(json.dumps(report.to_dict(), sort_keys=True))
     return 0 if report.status == "PASS" else 1

@@ -46,6 +46,28 @@
         default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) |
         bool
       }}
+    blastwall_attestation_mode: >-
+      {{ BLASTWALL_ATTESTATION_MODE |
+      default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true) }}
+    blastwall_stable_v3_promotion: "{{ blastwall_attestation_mode == 'stable-v3' }}"
+    blastwall_probe_report_sha256: >-
+      {{ BLASTWALL_PROBE_REPORT_SHA256 |
+      default(lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('0' * 64, true), true) }}
+    blastwall_attestation_generation: >-
+      {{ BLASTWALL_ATTESTATION_GENERATION |
+      default(lookup('env', 'BLASTWALL_ATTESTATION_GENERATION') | default('0', true), true) }}
+    blastwall_attestation_signer_certificate: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE') | default('', true) }}
+    blastwall_attestation_ca_bundle: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE') | default('', true) }}
+    blastwall_attestation_signer_allowlist: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true) }}
+    blastwall_attestation_envelope_dir: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') |
+      default('/tmp/blastwall-attestations/envelopes', true) }}
+    blastwall_attestation_index_dir: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
+      default('/tmp/blastwall-attestations/indexes', true) }}
     blastwall_required_profiles_env: >-
       {{
         BLASTWALL_REQUIRED_POLICY_PROFILES |
@@ -109,10 +131,15 @@
           - not blastwall_update_idm_marker | bool or blastwall_policy_marker_rpm_sha256 is match('^[0-9a-f]{64}$')
           - not blastwall_update_idm_marker | bool or blastwall_policy_module_sha256 is match('^[0-9a-f]{64}$')
           - not blastwall_update_idm_marker | bool or blastwall_profile_registry_sha256 is match('^[0-9a-f]{64}$')
+          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_signer_certificate | length > 0
+          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_ca_bundle | length > 0
+          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_signer_allowlist | length > 0
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_PRINCIPAL, IPA_PASSWORD,
           64-character BLASTWALL_POLICY_RPM_SHA256, and 64-character
           BLASTWALL_POLICY_SHA256 values for the FreeIPA host marker update.
+          Stable-v3 promotion also requires attestation signer certificate,
+          CA bundle, signer allowlist, and materialized envelope/index paths.
       run_once: true
       delegate_to: localhost
 
@@ -165,7 +192,9 @@
       changed_when: false
       delegate_to: localhost
       become: false
-      when: blastwall_update_idm_marker | bool
+      when:
+        - blastwall_update_idm_marker | bool
+        - not blastwall_stable_v3_promotion | bool
 
     - name: Render failed Blastwall marker for collection fallback
       ansible.builtin.shell:
@@ -174,7 +203,77 @@
       changed_when: false
       delegate_to: localhost
       become: false
-      when: blastwall_update_idm_marker | bool
+      when:
+        - blastwall_update_idm_marker | bool
+        - not blastwall_stable_v3_promotion | bool
+
+    - name: Verify stable-v3 attestation before marker publication
+      ansible.builtin.command:
+        argv: "{{ blastwall_attestation_verify_existing_argv }}"
+      register: blastwall_v3_attestation_promotion
+      changed_when: false
+      failed_when: blastwall_v3_attestation_promotion.rc != 0
+      delegate_to: localhost
+      become: false
+      vars:
+        blastwall_attestation_verify_existing_argv: >-
+          {{
+            [
+              ansible_playbook_python | default('/usr/bin/python3'),
+              playbook_dir ~ '/../tools/blastwall_attestation_sign.py',
+              'verify-existing',
+              '--registry', blastwall_profile_registry_path,
+              '--subject-host', inventory_hostname,
+              '--target', 'rhel-login',
+              '--rpm', blastwall_policy_nevra,
+              '--policy-sha256', blastwall_policy_module_sha256,
+              '--registry-sha256', blastwall_profile_registry_sha256,
+              '--probe-report-sha256', blastwall_probe_report_sha256,
+              '--generation', blastwall_attestation_generation | string,
+              '--signer-certificate', blastwall_attestation_signer_certificate,
+              '--ca-bundle', blastwall_attestation_ca_bundle,
+              '--signer-allowlist-csv', blastwall_attestation_signer_allowlist,
+              '--envelope-json', blastwall_attestation_envelope_dir ~ '/' ~ inventory_hostname ~ '.json',
+              '--index-json', blastwall_attestation_index_dir ~ '/' ~ inventory_hostname ~ '.json'
+            ]
+            + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+            + (
+              required_blastwall_profiles
+              | map('regex_replace', '^(.*)$', '--profile=\\1')
+              | list
+            )
+          }}
+      when:
+        - blastwall_update_idm_marker | bool
+        - blastwall_stable_v3_promotion | bool
+
+    - name: Store stable-v3 attestation promotion evidence
+      ansible.builtin.set_fact:
+        blastwall_v3_attestation_promotion_evidence: "{{ blastwall_v3_attestation_promotion.stdout | from_json }}"
+      when:
+        - blastwall_update_idm_marker | bool
+        - blastwall_stable_v3_promotion | bool
+
+    - name: Use verified stable-v3 locator marker for IdM publication
+      ansible.builtin.set_fact:
+        blastwall_policy_marker:
+          stdout: "{{ blastwall_v3_attestation_promotion_evidence.marker }}"
+      when:
+        - blastwall_update_idm_marker | bool
+        - blastwall_stable_v3_promotion | bool
+
+    - name: Report stable-v3 attestation promotion evidence
+      ansible.builtin.debug:
+        msg:
+          attestation_ref: "{{ blastwall_v3_attestation_promotion_evidence.attestation_ref }}"
+          attestation_sha256: "{{ blastwall_v3_attestation_promotion_evidence.attestation_sha256 }}"
+          index_generation: "{{ blastwall_v3_attestation_promotion_evidence.index_generation }}"
+          signer_kid: "{{ blastwall_v3_attestation_promotion_evidence.signer_kid }}"
+          workflow_job_id: "{{ blastwall_v3_attestation_promotion_evidence.workflow_job_id }}"
+          source_revision: "{{ blastwall_v3_attestation_promotion_evidence.source_revision }}"
+      when:
+        - blastwall_update_idm_marker | bool
+        - blastwall_stable_v3_promotion | bool
 
     - name: Pre-validate promoted Blastwall marker before IdM publication
       ansible.builtin.command:
@@ -208,7 +307,9 @@
             ]
             + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
           }}
-      when: blastwall_update_idm_marker | bool
+      when:
+        - blastwall_update_idm_marker | bool
+        - not blastwall_stable_v3_promotion | bool
 
     - name: Publish verified Blastwall host marker to IdM
       block:
@@ -303,10 +404,17 @@
               no_log: true
               delegate_to: localhost
           ignore_errors: true
-          when: blastwall_update_idm_marker | bool
+          when:
+            - blastwall_update_idm_marker | bool
+            - not blastwall_stable_v3_promotion | bool
 
         - name: Stop after failed policy promotion
           ansible.builtin.fail:
             msg: >-
               Blastwall policy marker promotion failed on {{ inventory_hostname }}.
+              {% if blastwall_stable_v3_promotion | bool %}
+              No v3 marker was published because stable-v3 requires verified
+              envelope and index visibility before IdM publication.
+              {% else %}
               The host marker was set to failed when marker updates were enabled.
+              {% endif %}

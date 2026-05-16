@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 import unittest
 from copy import deepcopy
@@ -125,6 +126,32 @@ class BlastwallAttestationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "schema validation failed"):
             attestation.validate_attestation_payload(payload)
 
+    def _spo_evidence(self) -> dict[str, object]:
+        return {
+            "bundle_sha256": "d" * 64,
+            "validation_output_digest": "e" * 64,
+            "spo_version": "spo-0.10.0",
+            "ocp_version": "4.16.0",
+            "status_usage": "blastwall.process",
+            "scc_type": "s0:c123,c456",
+            "admitted_pod_context": "system_u:system_r:system_dbusd_t:s0:c123,c456",
+            "validation_results": {
+                "standard_profile": "passed",
+            },
+        }
+
+    def test_ocp_spo_target_requires_spo_evidence(self) -> None:
+        payload = deepcopy(self.sample_payload)
+        payload["target"] = "ocp-spo-standard"
+        with self.assertRaisesRegex(ValueError, "schema validation failed"):
+            attestation.validate_attestation_payload(payload)
+
+    def test_ocp_spo_target_accepts_valid_spo_evidence(self) -> None:
+        payload = deepcopy(self.sample_payload)
+        payload["target"] = "ocp-spo-standard"
+        payload["spo_evidence"] = self._spo_evidence()
+        attestation.validate_attestation_payload(payload)
+
     def test_generation_requires_integer(self) -> None:
         payload = deepcopy(self.sample_payload)
         payload["generation"] = "7"
@@ -136,6 +163,18 @@ class BlastwallAttestationTests(unittest.TestCase):
         payload["not_before"] = "2026-05-16 14:00:00"
         with self.assertRaisesRegex(ValueError, "schema validation failed"):
             attestation.parse_attestation_payload(json.dumps(payload))
+
+    def test_expired_payload_window_rejected_during_verification(self) -> None:
+        payload = deepcopy(self.sample_payload)
+        payload["issued_at"] = "2026-05-16T14:00:00Z"
+        payload["not_before"] = "2026-05-16T14:00:00Z"
+        payload["not_after"] = "2026-05-16T14:05:00Z"
+        with self.assertRaises(attestation.AttestationVerificationError) as exc:
+            attestation._assert_current_time_in_window(
+                payload,
+                datetime.datetime(2026, 5, 16, 14, 6, tzinfo=datetime.timezone.utc),
+            )
+        self.assertEqual(exc.exception.failure_state, "FAIL_STALE_ATTESTATION")
 
     def test_envelope_digest_is_stable_under_formatting(self) -> None:
         envelope = {

@@ -72,6 +72,7 @@ RESERVED_MARKER_FIELDS = {
 }
 RFC3339_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 SIGNER_KID_RE = re.compile(r"^[0-9a-f]{40}$")
+ATTEST_REF_RE = re.compile(r"^(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\.json$")
 
 
 @dataclass
@@ -398,6 +399,9 @@ def parse_marker(
         if not result.attest_sha256 or not SHA256_RE.match(result.attest_sha256):
             result.errors.append("attest_sha256 is not 64 lowercase hex")
 
+        if not result.attest_ref or not ATTEST_REF_RE.match(result.attest_ref):
+            result.errors.append("attest_ref is not a vault locator")
+
         if not result.signer_kid or not SIGNER_KID_RE.match(result.signer_kid):
             result.errors.append("signer_kid is not lowercase SKI hex")
 
@@ -555,6 +559,8 @@ def emit_marker_v3(
         raise ValueError(f"unsupported marker state: {state}")
     if not attest_ref:
         raise ValueError("missing attest_ref")
+    if not ATTEST_REF_RE.match(attest_ref):
+        raise ValueError("attest_ref is not a vault locator")
     if not SHA256_RE.match(attest_sha256):
         raise ValueError("attest_sha256 is not 64 lowercase hex")
     if not SIGNER_KID_RE.match(signer_kid):

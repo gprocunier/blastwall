@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "hostvars": {
+      "phase09-missing-artifact.example.com": {
+        "idm_userclass": ["MARKER"]
+      }
+    }
+  },
+  "blastwall_policy_current": {
+    "hosts": ["phase09-missing-artifact.example.com"]
+  }
+}

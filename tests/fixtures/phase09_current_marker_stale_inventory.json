@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "hostvars": {
+      "phase09-stale-generation.example.com": {
+        "idm_userclass": ["MARKER"]
+      }
+    }
+  },
+  "blastwall_policy_current": {
+    "hosts": ["phase09-stale-generation.example.com"]
+  }
+}

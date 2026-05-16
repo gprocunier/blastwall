@@ -105,6 +105,73 @@
     "nonce": {
       "type": "string",
       "minLength": 1
+    },
+    "spo_evidence": {
+      "type": "object",
+      "required": [
+        "bundle_sha256",
+        "validation_output_digest",
+        "spo_version",
+        "ocp_version",
+        "status_usage",
+        "scc_type",
+        "admitted_pod_context",
+        "validation_results"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bundle_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "validation_output_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "spo_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ocp_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status_usage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scc_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "admitted_pod_context": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validation_results": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minProperties": 1
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "enum": ["ocp-spo-standard", "ocp-spo-nested"]
+          }
+        },
+        "required": ["target"]
+      },
+      "then": {
+        "required": ["spo_evidence"]
+      }
+    }
+  ]
 }

@@ -896,3 +896,53 @@ for fallback_name, collection_name in deploy_marker_fallbacks.items():
         fail(f"deploy-policy.yml missing required collection marker publication task: {collection_name}")
 
 print("PASS: deploy-policy marker publication fallbacks are guarded by rescue blocks")
+
+v3_sign = (ROOT / "playbooks" / "sign-attestation.yml").read_text(encoding="utf-8")
+v3_promote = (ROOT / "playbooks" / "promote-policy-rpm.yml").read_text(encoding="utf-8")
+v3_preflight = (ROOT / "playbooks" / "preflight.yml").read_text(encoding="utf-8")
+aap_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")
+aap_controller = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
+for required_v3_file in [
+    "policy/attestation-schema.json",
+    "policy/attestation-envelope-schema.json",
+    "policy/attestation-index-schema.json",
+    "tools/blastwall_attestation_sign.py",
+    "tools/blastwall_attestation_verify.py",
+    "tools/blastwall_attestation_vault.py",
+]:
+    if not (ROOT / required_v3_file).exists():
+        fail(f"missing v3 attestation file: {required_v3_file}")
+for required_v3_doc in [
+    "signed-attestation-design.md",
+    "operator-runbook.md",
+    "kra-topology-runbook.md",
+    "revocation-and-breakglass.md",
+    "stable-v3-readiness-checklist.md",
+    "external-review-packet.md",
+]:
+    if not (ROOT / "docs" / "blastwall-v3" / required_v3_doc).exists():
+        fail(f"missing v3 documentation file: docs/blastwall-v3/{required_v3_doc}")
+for required_signer_signal in [
+    "Blastwall sign attestation",
+    "blastwall_aap_attestation_signer_credential",
+    "blastwall_aap_attestation_verifier_credential",
+    "BLASTWALL_ATTESTATION_SIGNER_KEY",
+]:
+    if required_signer_signal not in aap_vars + aap_controller + v3_sign:
+        fail(f"v3 AAP signer workflow missing {required_signer_signal}")
+signer_key_var = "blastwall_aap_attestation_signer_credential"
+verifier_var = "blastwall_aap_attestation_verifier_credential"
+if signer_key_var in v3_preflight or signer_key_var in v3_promote:
+    fail("stable-v3 preflight/promotion must not receive the signer private-key credential")
+if verifier_var not in aap_controller:
+    fail("AAP stable-v3 preflight/promotion must attach verifier credential")
+if "Build, store, read back, and verify signed attestation" not in v3_sign:
+    fail("sign-attestation.yml does not enforce write/readback/verify before marker publication")
+if "Verify stable-v3 attestation before marker publication" not in v3_promote:
+    fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
+if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
+    fail("AAP policy pipeline does not route verified candidates through sign_attestation before marker promotion")
+v3_verifier = (ROOT / "tools" / "blastwall_attestation_verify.py").read_text(encoding="utf-8")
+if "FAIL_ATTESTATION_NOT_VISIBLE" not in v3_verifier or "FAIL_INDEX_NOT_VISIBLE" not in v3_verifier:
+    fail("stable-v3 preflight/verifier does not expose missing artifact/index failure states")
+print("PASS: v3 signed attestation workflow keeps signer, verifier, and marker promotion separated")

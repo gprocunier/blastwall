@@ -1,0 +1,14 @@
+{
+  "_meta": {
+    "hostvars": {
+      "phase09-dry-run-without-allow.example.com": {
+        "idm_userclass": [
+          "blastwall:v=3;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;profiles=base,strange-socket-v1;attest_ref=service/blastwall-attestation/blastwall-attestations/phase09-dry-run-without-allow.example.com/base/1.json;attest_sha256=1111111111111111111111111111111111111111111111111111111111111111;signer_kid=2222222222222222222222222222222222222222;exp=2099-01-01T00:00:00Z;generation=1"
+        ]
+      }
+    }
+  },
+  "blastwall_policy_current": {
+    "hosts": ["phase09-dry-run-without-allow.example.com"]
+  }
+}

@@ -123,6 +123,43 @@
         BLASTWALL_ATTESTATION_MODE |
         default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)
       }}
+    blastwall_attestation_signed_mode: "{{ blastwall_attestation_mode in ['stable-v3', 'breakglass'] }}"
+    blastwall_breakglass: >-
+      {{
+        BLASTWALL_BREAKGLASS |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS') | default('false', true), true) |
+        bool
+      }}
+    blastwall_breakglass_host: >-
+      {{
+        BLASTWALL_BREAKGLASS_HOST |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS_HOST') | default('', true), true)
+      }}
+    blastwall_breakglass_profiles_csv: >-
+      {{
+        BLASTWALL_BREAKGLASS_PROFILES_CSV |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS_PROFILES_CSV') | default('', true), true)
+      }}
+    blastwall_breakglass_approved_by: >-
+      {{
+        BLASTWALL_BREAKGLASS_APPROVED_BY |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS_APPROVED_BY') | default('', true), true)
+      }}
+    blastwall_breakglass_ticket: >-
+      {{
+        BLASTWALL_BREAKGLASS_TICKET |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS_TICKET') | default('', true), true)
+      }}
+    blastwall_breakglass_reason: >-
+      {{
+        BLASTWALL_BREAKGLASS_REASON |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS_REASON') | default('', true), true)
+      }}
+    blastwall_breakglass_until: >-
+      {{
+        BLASTWALL_BREAKGLASS_UNTIL |
+        default(lookup('env', 'BLASTWALL_BREAKGLASS_UNTIL') | default('', true), true)
+      }}
     blastwall_attestation_vault_primary: >-
       {{
         BLASTWALL_ATTESTATION_VAULT_PRIMARY |
@@ -228,7 +265,22 @@
           stable-v3 requires explicit KRA vault primary, retrieved envelope/index
           artifact directories, signer certificate, CA bundle, signer allowlist,
           and live current policy hash. A v3 marker alone is not evidence.
-      when: blastwall_attestation_mode == 'stable-v3'
+      when: blastwall_attestation_signed_mode
+
+    - name: Assert breakglass metadata is complete when breakglass is active
+      ansible.builtin.assert:
+        that:
+          - blastwall_breakglass_approved_by | length > 0
+          - blastwall_breakglass_ticket | length > 0
+          - blastwall_breakglass_reason | length > 0
+          - blastwall_breakglass_until | length > 0
+          - blastwall_breakglass_until | int > 0
+        fail_msg: >-
+          BLASTWALL_BREAKGLASS requires approved_by, ticket, reason, and unix
+          until metadata.
+      when:
+        - blastwall_attestation_mode == 'breakglass'
+        - blastwall_breakglass | bool
 
     - name: Warn when marker validation is explicitly bypassed
       ansible.builtin.debug:
@@ -377,7 +429,7 @@
       loop: "{{ blastwall_target_hosts }}"
       when:
         - blastwall_validate_selected_markers | bool
-        - blastwall_attestation_mode != 'stable-v3'
+        - not blastwall_attestation_signed_mode
 
     - name: Fail closed when stable-v3 selected host lacks a v3 marker hint
       ansible.builtin.assert:
@@ -404,7 +456,7 @@
             ) | default('', true)
           }}
       loop: "{{ blastwall_target_hosts }}"
-      when: blastwall_attestation_mode == 'stable-v3'
+      when: blastwall_attestation_signed_mode
 
     - name: Verify stable-v3 signed attestation before launch
       ansible.builtin.command:
@@ -460,9 +512,24 @@
               '--required-profiles-csv',
               blastwall_required_profile_csv
             ]
+            + ([
+              '--breakglass',
+              '--breakglass-host',
+              blastwall_breakglass_host | default(item, true),
+              '--breakglass-profiles-csv',
+              blastwall_breakglass_profiles_csv | default(blastwall_required_profile_csv, true),
+              '--breakglass-approved-by',
+              blastwall_breakglass_approved_by,
+              '--breakglass-ticket',
+              blastwall_breakglass_ticket,
+              '--breakglass-reason',
+              blastwall_breakglass_reason,
+              '--breakglass-until',
+              blastwall_breakglass_until,
+            ] if blastwall_breakglass | bool else [])
           }}
       loop: "{{ blastwall_target_hosts }}"
-      when: blastwall_attestation_mode == 'stable-v3'
+      when: blastwall_attestation_signed_mode
 
     - name: Report selected candidates
       ansible.builtin.debug:

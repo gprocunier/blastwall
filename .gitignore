@@ -17,6 +17,7 @@ scripts/
 !openshift/spo/scripts/
 !openshift/spo/scripts/*.sh
 node_modules/
+test-results/
 
 # Build and package outputs
 build/

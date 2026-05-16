@@ -1,0 +1,182 @@
+---
+- name: Revoke Blastwall host attestation artifacts
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    blastwall_host: "{{ lookup('env', 'BLASTWALL_HOST') | default('', true) }}"
+    blastwall_marker_text: "{{ lookup('env', 'BLASTWALL_MARKER') | default('', true) }}"
+    blastwall_vault_primary: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+    blastwall_vault_servers: >-
+      {{
+        lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') |
+        default('', true) |
+        split(',') |
+        reject('equalto', '') |
+        list
+      }}
+    blastwall_vault_scope: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+    blastwall_vault_owner: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true) }}
+    blastwall_signer_key: "{{ lookup('env', 'BLASTWALL_SIGNER_KEY') | default('', true) }}"
+    blastwall_signer_certificate: "{{ lookup('env', 'BLASTWALL_SIGNER_CERTIFICATE') | default('', true) }}"
+    blastwall_revocation_reason: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_REVOCATION_REASON') | default('', true) }}
+    blastwall_publish_marker: >-
+      {{ lookup('env', 'BLASTWALL_PUBLISH_REVOKED_MARKER') | default('false', true) | bool }}
+  tasks:
+    - name: Validate revocation prerequisites
+      ansible.builtin.assert:
+        that:
+          - blastwall_host | length > 0
+          - blastwall_marker_text | length > 0
+          - blastwall_vault_primary | length > 0
+          - blastwall_vault_servers | length > 0
+          - blastwall_vault_owner | length > 0
+          - blastwall_signer_key | length > 0
+          - blastwall_signer_certificate | length > 0
+        fail_msg: >-
+          BLASTWALL_HOST, BLASTWALL_MARKER, and attestation vault/signer inputs are required.
+
+    - name: Build revoked marker and write tombstone plus revoked index
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/python3
+          - -c
+          - |
+            import datetime
+            import json
+            import os
+            import sys
+            from pathlib import Path
+
+            sys.path.insert(0, str(Path("{{ playbook_dir }}") / ".." / "tools"))
+            import blastwall_marker as marker
+            import blastwall_attestation as attestation
+            import blastwall_attestation_revocation as revocation
+            import blastwall_attestation_vault as vault
+
+            host = os.environ["BLASTWALL_HOST"]
+            marker_text = os.environ["BLASTWALL_MARKER"]
+            registry_path = Path("{{ playbook_dir }}") / ".." / "policy" / "profiles.yml"
+            registry = marker.load_registry(registry_path)
+            registry_hash = marker.registry_sha256(registry_path)
+            parsed = marker.parse_marker(
+                marker_text,
+                registry=registry,
+                expected_registry_sha256=registry_hash,
+            )
+            if parsed.version != 3:
+                raise SystemExit("marker must be a v3 marker")
+            if parsed.attest_ref:
+                revoked_marker = (
+                    marker_text
+                    if parsed.state == "revoked"
+                    else revocation.marker_to_revoked_marker(
+                        marker_text=marker_text,
+                        registry=registry,
+                        expected_registry_sha256=registry_hash,
+                    )
+                )
+            else:
+                raise SystemExit("marker is missing attest_ref; cannot revoke artifacts")
+
+            vault_cfg = vault.VaultConfig.from_mapping(
+                {
+                    "blastwall_attestation_vault_primary": os.environ["BLASTWALL_ATTESTATION_VAULT_PRIMARY"],
+                    "blastwall_attestation_vault_servers": os.environ["BLASTWALL_ATTESTATION_VAULT_SERVERS"],
+                    "blastwall_attestation_vault_scope": os.environ.get("BLASTWALL_ATTESTATION_VAULT_SCOPE", "service"),
+                    "blastwall_attestation_vault_owner": os.environ["BLASTWALL_ATTESTATION_VAULT_OWNER"],
+                }
+            )
+            now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+            now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            future = (now + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            tombstone = revocation.build_tombstone_json(
+                reason=os.environ.get("BLASTWALL_ATTESTATION_REVOCATION_REASON", ""),
+                revoked_at=now,
+            )
+            vault.write_vault_artifact(
+                server=vault_cfg.primary,
+                config=vault_cfg,
+                vault_ref=parsed.attest_ref,
+                payload=tombstone,
+            )
+            index_ref = vault.build_vault_ref(
+                scope=vault_cfg.scope,
+                owner=vault_cfg.owner,
+                kind="blastwall-attestation-index",
+                host=host,
+                profile="+".join(sorted(parsed.profiles or [])),
+                generation=None,
+            )
+            current_index = vault.read_vault_artifact(
+                server=vault_cfg.primary,
+                config=vault_cfg,
+                vault_ref=index_ref,
+            )
+            index_obj = json.loads(current_index.payload.decode("utf-8"))
+            index_obj["state"] = "revoked"
+            index_obj["issued_at"] = now_str
+            index_obj["not_before"] = now_str
+            index_obj["not_after"] = future
+            index_obj.pop("signature", None)
+            revoked_index = attestation.build_latest_index(
+                index_obj,
+                private_key=os.environ["BLASTWALL_SIGNER_KEY"],
+                signer_certificate=os.environ["BLASTWALL_SIGNER_CERTIFICATE"],
+            )
+            vault.write_vault_artifact(
+                server=vault_cfg.primary,
+                config=vault_cfg,
+                vault_ref=index_ref,
+                payload=json.dumps(revoked_index),
+            )
+            print(json.dumps({"revoked_marker": revoked_marker, "index_ref": index_ref}, sort_keys=True))
+        chdir: "{{ playbook_dir }}/.."
+      environment:
+        BLASTWALL_HOST: "{{ blastwall_host }}"
+        BLASTWALL_MARKER: "{{ blastwall_marker_text }}"
+        BLASTWALL_ATTESTATION_VAULT_PRIMARY: "{{ blastwall_vault_primary }}"
+        BLASTWALL_ATTESTATION_VAULT_SERVERS: "{{ blastwall_vault_servers | join(',') }}"
+        BLASTWALL_ATTESTATION_VAULT_SCOPE: "{{ blastwall_vault_scope }}"
+        BLASTWALL_ATTESTATION_VAULT_OWNER: "{{ blastwall_vault_owner }}"
+        BLASTWALL_SIGNER_KEY: "{{ blastwall_signer_key }}"
+        BLASTWALL_SIGNER_CERTIFICATE: "{{ blastwall_signer_certificate }}"
+        BLASTWALL_ATTESTATION_REVOCATION_REASON: "{{ blastwall_revocation_reason }}"
+      register: blastwall_revocation_run
+      changed_when: blastwall_revocation_run.rc == 0 and blastwall_revocation_run.stdout | length > 0
+
+    - name: Validate revoked marker result
+      ansible.builtin.set_fact:
+        blastwall_revoked_marker: "{{ (blastwall_revocation_run.stdout | default('{}') | from_json).revoked_marker | default(blastwall_marker_text) }}"
+        blastwall_revoked_index_ref: "{{ (blastwall_revocation_run.stdout | default('{}') | from_json).index_ref | default('') }}"
+      when: blastwall_revocation_run is succeeded
+
+    - name: Publish revoked marker to IdM
+      ansible.builtin.command:
+        cmd: |
+          set -euo pipefail
+          set -o pipefail
+          marker={{ blastwall_revoked_marker | quote }}
+          old_markers=()
+          old_markers+=("{{ blastwall_marker_text }}")
+          ipa host-show "${BLASTWALL_HOST}" >/dev/null 2>&1
+          while IFS= read -r marker_line; do
+            m=$(echo "${marker_line}" | sed -n 's/^  userclass: \(blastwall:.*\)$/\1/p')
+            [ -n "${m}" ] || continue
+            old_markers+=("${m}")
+          done < <(ipa host-show "${BLASTWALL_HOST}" --all 2>/dev/null || true)
+          printf '%s\n' "${old_markers[@]}" | sort -u | while IFS= read -r marker; do
+            [ -n "${marker}" ] || continue
+            ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
+          done
+          ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${marker}" >/dev/null
+        env:
+          BLASTWALL_HOST: "{{ blastwall_host }}"
+      when:
+        - blastwall_publish_marker | bool
+        - blastwall_revoked_marker | length > 0
+      changed_when: false

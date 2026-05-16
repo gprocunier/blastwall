@@ -1,0 +1,189 @@
+---
+- name: Sign and read back Blastwall v3 attestation artifacts
+  hosts: "{{ blastwall_policy_pipeline_target_hosts | default('blastwall_policy_stale') }}"
+  become: false
+  gather_facts: false
+  vars:
+    blastwall_attestation_mode: >-
+      {{ BLASTWALL_ATTESTATION_MODE |
+      default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true) }}
+    blastwall_attestation_required: "{{ blastwall_attestation_mode in ['transition-v3', 'stable-v3'] }}"
+    blastwall_policy_name: blastwall-selinux
+    blastwall_policy_version: >-
+      {{ BLASTWALL_POLICY_VERSION |
+      default(lookup('env', 'BLASTWALL_POLICY_VERSION') | default('0.6.1', true), true) }}
+    blastwall_policy_release: >-
+      {{ BLASTWALL_POLICY_RELEASE |
+      default(lookup('env', 'BLASTWALL_POLICY_RELEASE') | default('0.rc1', true), true) }}
+    blastwall_policy_nevra: "{{ blastwall_policy_name }}-{{ blastwall_policy_version }}-{{ blastwall_policy_release }}"
+    blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
+    blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
+    blastwall_policy_module_sha256: >-
+      {{
+        BLASTWALL_CURRENT_POLICY_SHA256 |
+        default(
+          BLASTWALL_POLICY_SHA256 |
+          default(lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
+          default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true), true),
+          true
+        )
+      }}
+    blastwall_probe_report_sha256: >-
+      {{ BLASTWALL_PROBE_REPORT_SHA256 |
+      default(lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true), true) }}
+    blastwall_required_profiles_env: >-
+      {{ BLASTWALL_REQUIRED_POLICY_PROFILES |
+      default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true) }}
+    required_blastwall_profiles: >-
+      {{
+        (blastwall_required_profiles_env.split(',') | map('trim') | reject('equalto', '') | list)
+        if blastwall_required_profiles_env | length > 0
+        else ['base']
+      }}
+    blastwall_allow_dry_run_profiles: >-
+      {{ BLASTWALL_ALLOW_DRY_RUN_PROFILES |
+      default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool }}
+    blastwall_attestation_state: >-
+      {{ BLASTWALL_ATTESTATION_STATE |
+      default(lookup('env', 'BLASTWALL_ATTESTATION_STATE') | default('active', true), true) }}
+    blastwall_attestation_generation: >-
+      {{
+        BLASTWALL_ATTESTATION_GENERATION |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_GENERATION') |
+        default(lookup('pipe', 'date +%s'), true), true)
+      }}
+    blastwall_attestation_valid_for_seconds: >-
+      {{ BLASTWALL_ATTESTATION_VALID_FOR_SECONDS |
+      default(lookup('env', 'BLASTWALL_ATTESTATION_VALID_FOR_SECONDS') | default('3600', true), true) }}
+    blastwall_attestation_source_revision: >-
+      {{
+        BLASTWALL_SOURCE_REVISION |
+        default(lookup('env', 'AWX_PROJECT_REVISION') |
+        default(lookup('env', 'BLASTWALL_SOURCE_REVISION') |
+        default(lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD'), true), true), true)
+      }}
+    blastwall_attestation_workflow_job_id: >-
+      {{
+        BLASTWALL_AAP_WORKFLOW_JOB_ID |
+        default(lookup('env', 'AWX_WORKFLOW_JOB_ID') |
+        default(lookup('env', 'WORKFLOW_JOB_ID') |
+        default(lookup('env', 'AWX_JOB_ID') | default('0', true), true), true), true)
+      }}
+    blastwall_spo_evidence_json: >-
+      {{ BLASTWALL_SPO_EVIDENCE_JSON |
+      default(lookup('env', 'BLASTWALL_SPO_EVIDENCE_JSON') | default('', true), true) }}
+    blastwall_attestation_signer_key: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_KEY') | default('', true) }}
+    blastwall_attestation_signer_certificate: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE') | default('', true) }}
+    blastwall_attestation_ca_bundle: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE') | default('', true) }}
+    blastwall_attestation_signer_allowlist: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true) }}
+    blastwall_attestation_vault_primary: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+    blastwall_attestation_vault_servers: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true) }}
+    blastwall_attestation_vault_scope: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+    blastwall_attestation_vault_owner: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true) }}
+    blastwall_attestation_envelope_dir: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') |
+      default('/tmp/blastwall-attestations/envelopes', true) }}
+    blastwall_attestation_index_dir: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
+      default('/tmp/blastwall-attestations/indexes', true) }}
+  tasks:
+    - name: Skip v3 signing outside transition-v3 or stable-v3 mode
+      ansible.builtin.debug:
+        msg:
+          attestation_signing: skipped
+          mode: "{{ blastwall_attestation_mode }}"
+      when: not blastwall_attestation_required | bool
+
+    - name: Sign and read back attestation artifacts
+      when: blastwall_attestation_required | bool
+      block:
+        - name: Require Blastwall v3 signing inputs
+          ansible.builtin.assert:
+            that:
+              - blastwall_policy_module_sha256 is match('^[0-9a-f]{64}$')
+              - blastwall_probe_report_sha256 is match('^[0-9a-f]{64}$')
+              - blastwall_attestation_generation | int >= 0
+              - blastwall_attestation_valid_for_seconds | int > 0
+              - blastwall_attestation_signer_key | length > 0
+              - blastwall_attestation_signer_certificate | length > 0
+              - blastwall_attestation_ca_bundle | length > 0
+              - blastwall_attestation_signer_allowlist | length > 0
+              - blastwall_attestation_vault_primary | length > 0
+              - blastwall_attestation_vault_servers | length > 0
+            fail_msg: >-
+              transition-v3/stable-v3 signing requires current policy hash,
+              probe report hash, signer key/certificate/CA/allowlist, explicit
+              KRA vault primary, and explicit KRA vault server list.
+          run_once: true
+          delegate_to: localhost
+
+        - name: Build, store, read back, and verify signed attestation
+          ansible.builtin.command:
+            argv: "{{ blastwall_attestation_sign_argv }}"
+          register: blastwall_signed_attestation
+          changed_when: false
+          failed_when: blastwall_signed_attestation.rc != 0
+          no_log: true
+          delegate_to: localhost
+          vars:
+            blastwall_attestation_sign_argv: >-
+              {{
+                [
+                  ansible_playbook_python | default('/usr/bin/python3'),
+                  playbook_dir ~ '/../tools/blastwall_attestation_sign.py',
+                  'sign-store-readback',
+                  '--registry', blastwall_profile_registry_path,
+                  '--subject-host', inventory_hostname,
+                  '--target', 'rhel-login',
+                  '--rpm', blastwall_policy_nevra,
+                  '--policy-sha256', blastwall_policy_module_sha256,
+                  '--registry-sha256', blastwall_profile_registry_sha256,
+                  '--probe-report-sha256', blastwall_probe_report_sha256,
+                  '--state', blastwall_attestation_state,
+                  '--generation', blastwall_attestation_generation | string,
+                  '--source-revision', blastwall_attestation_source_revision,
+                  '--aap-workflow-job-id', blastwall_attestation_workflow_job_id | string,
+                  '--valid-for-seconds', blastwall_attestation_valid_for_seconds | string,
+                  '--signer-key', blastwall_attestation_signer_key,
+                  '--signer-certificate', blastwall_attestation_signer_certificate,
+                  '--ca-bundle', blastwall_attestation_ca_bundle,
+                  '--signer-allowlist-csv', blastwall_attestation_signer_allowlist,
+                  '--vault-primary', blastwall_attestation_vault_primary,
+                  '--vault-servers-csv', blastwall_attestation_vault_servers,
+                  '--vault-scope', blastwall_attestation_vault_scope,
+                  '--vault-owner', blastwall_attestation_vault_owner,
+                  '--envelope-dir', blastwall_attestation_envelope_dir,
+                  '--index-dir', blastwall_attestation_index_dir
+                ]
+                + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+                + (
+                  required_blastwall_profiles
+                  | map('regex_replace', '^(.*)$', '--profile=\\1')
+                  | list
+                )
+                + (['--spo-evidence', blastwall_spo_evidence_json] if blastwall_spo_evidence_json | length > 0 else [])
+              }}
+
+        - name: Parse sanitized attestation signing evidence
+          ansible.builtin.set_fact:
+            blastwall_signed_attestation_evidence: "{{ blastwall_signed_attestation.stdout | from_json }}"
+          no_log: true
+
+        - name: Report attestation signing evidence
+          ansible.builtin.debug:
+            msg:
+              attestation_ref: "{{ blastwall_signed_attestation_evidence.attestation_ref }}"
+              attestation_sha256: "{{ blastwall_signed_attestation_evidence.attestation_sha256 }}"
+              index_generation: "{{ blastwall_signed_attestation_evidence.index_generation }}"
+              signer_kid: "{{ blastwall_signed_attestation_evidence.signer_kid }}"
+              vault_server: "{{ blastwall_signed_attestation_evidence.vault_server }}"
+              workflow_job_id: "{{ blastwall_signed_attestation_evidence.workflow_job_id }}"
+              source_revision: "{{ blastwall_signed_attestation_evidence.source_revision }}"

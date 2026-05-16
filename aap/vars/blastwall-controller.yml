@@ -37,6 +37,10 @@ blastwall_aap_policy_machine_credential: sysop policy maintainer ssh
 blastwall_aap_registry_credential: Blastwall EE Registry
 blastwall_aap_openshift_credential_type: Blastwall OpenShift Kubeconfig
 blastwall_aap_openshift_credential: Blastwall OpenShift Admin
+blastwall_aap_attestation_signer_credential_type: Blastwall Attestation Signer
+blastwall_aap_attestation_signer_credential: Blastwall Attestation Signer
+blastwall_aap_attestation_verifier_credential_type: Blastwall Attestation Verifier
+blastwall_aap_attestation_verifier_credential: Blastwall Attestation Verifier
 
 blastwall_aap_ipa_server: >-
   {{ lookup('env', 'IPA_SERVER') | default('', true) }}
@@ -72,6 +76,39 @@ blastwall_aap_idm_admin_principal: >-
 blastwall_aap_idm_admin_password: >-
   {{ lookup('env', 'BLASTWALL_IDM_ADMIN_PASSWORD') |
   default(blastwall_aap_ipa_password, true) }}
+blastwall_aap_attestation_enabled: >-
+  {{ lookup('env', 'BLASTWALL_AAP_ATTESTATION_ENABLED') | default('false', true) | bool }}
+blastwall_aap_attestation_mode: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true) }}
+blastwall_aap_attestation_signer_key_file: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_KEY_FILE') | default('', true) }}
+blastwall_aap_attestation_signer_certificate_file: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE_FILE') | default('', true) }}
+blastwall_aap_attestation_ca_bundle_file: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE_FILE') | default('', true) }}
+blastwall_aap_attestation_signer_allowlist: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true) }}
+blastwall_aap_attestation_vault_primary: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+blastwall_aap_attestation_vault_servers: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true) }}
+blastwall_aap_attestation_vault_scope: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+blastwall_aap_attestation_vault_owner: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true) }}
+blastwall_aap_attestation_envelope_dir: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') |
+  default('/tmp/blastwall-attestations/envelopes', true) }}
+blastwall_aap_attestation_index_dir: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
+  default('/tmp/blastwall-attestations/indexes', true) }}
+blastwall_aap_current_policy_sha256: >-
+  {{ lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
+  default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true) }}
+blastwall_aap_probe_report_sha256: >-
+  {{ lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true) }}
+blastwall_aap_spo_evidence_json: >-
+  {{ lookup('env', 'BLASTWALL_SPO_EVIDENCE_JSON') | default('', true) }}
 
 blastwall_aap_launch_user: >-
   {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_USER') | default('', true) }}
@@ -95,6 +132,17 @@ blastwall_aap_profile_extra_vars:
   BLASTWALL_REQUIRED_POLICY_PROFILES: "{{ blastwall_aap_required_policy_profiles }}"
   BLASTWALL_ALLOW_DRY_RUN_PROFILES: "{{ blastwall_aap_allow_dry_run_profiles }}"
   BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN: "{{ blastwall_aap_strange_socket_v1_dry_run }}"
+blastwall_aap_attestation_extra_vars:
+  BLASTWALL_ATTESTATION_MODE: "{{ blastwall_aap_attestation_mode }}"
+  BLASTWALL_CURRENT_POLICY_SHA256: "{{ blastwall_aap_current_policy_sha256 }}"
+  BLASTWALL_PROBE_REPORT_SHA256: "{{ blastwall_aap_probe_report_sha256 }}"
+  BLASTWALL_ATTESTATION_VAULT_PRIMARY: "{{ blastwall_aap_attestation_vault_primary }}"
+  BLASTWALL_ATTESTATION_VAULT_SERVERS: "{{ blastwall_aap_attestation_vault_servers }}"
+  BLASTWALL_ATTESTATION_VAULT_SCOPE: "{{ blastwall_aap_attestation_vault_scope }}"
+  BLASTWALL_ATTESTATION_VAULT_OWNER: "{{ blastwall_aap_attestation_vault_owner }}"
+  BLASTWALL_ATTESTATION_ENVELOPE_DIR: "{{ blastwall_aap_attestation_envelope_dir }}"
+  BLASTWALL_ATTESTATION_INDEX_DIR: "{{ blastwall_aap_attestation_index_dir }}"
+  BLASTWALL_SPO_EVIDENCE_JSON: "{{ blastwall_aap_spo_evidence_json }}"
 blastwall_aap_spo_render_extra_vars:
   BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1: "{{ blastwall_aap_spo_include_strange_socket_v1 }}"
 blastwall_aap_spo_apply_extra_vars:
@@ -160,6 +208,15 @@ blastwall_aap_job_templates:
       - "{{ blastwall_aap_machine_credential }}"
     limit: ""
     extra_vars: "{{ blastwall_aap_profile_extra_vars }}"
+
+blastwall_aap_v3_job_templates:
+  - name: Blastwall sign attestation
+    playbook: playbooks/sign-attestation.yml
+    credentials:
+      - "{{ blastwall_aap_policy_idm_credential }}"
+      - "{{ blastwall_aap_attestation_signer_credential }}"
+    limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
+    extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"
 
 blastwall_aap_workflow: Blastwall runtime verification
 blastwall_aap_policy_pipeline_workflow: Blastwall policy pipeline

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import datetime
 import importlib.util
+import json
+import sys
 import unittest
 from copy import deepcopy
 from pathlib import Path
@@ -17,6 +19,9 @@ from cryptography.x509.oid import NameOID
 
 
 ROOT = Path(__file__).resolve().parents[1]
+TOOLS = ROOT / "tools"
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
 ATTESTATION_PATH = ROOT / "tools" / "blastwall_attestation.py"
 
 spec = importlib.util.spec_from_file_location("blastwall_attestation", ATTESTATION_PATH)
@@ -196,6 +201,59 @@ class BlastwallAttestationIndexTests(unittest.TestCase):
         with self.assertRaises(attestation.AttestationVerificationError) as exc:
             self.verify(index=index)
         self.assertEqual(exc.exception.failure_state, "FAIL_PROFILE_MISMATCH")
+
+    def test_index_signed_by_wrong_signer_fails(self) -> None:
+        other_key = _keypair()
+        other_cert = _certificate(
+            subject_common_name="other-attestation-signer",
+            issuer_common_name="BlastwallTestCA",
+            issuer_key=self.ca_key,
+            subject_key=other_key,
+            serial_number=3,
+        )
+        index = attestation.build_latest_index(
+            self.index_payload,
+            private_key=_pem_private_key(other_key),
+            signer_certificate=_pem_bytes(other_cert),
+        )
+        with self.assertRaisesRegex(ValueError, "index signer_kid does not match certificate"):
+            self.verify(index=index)
+
+    def test_index_missing_in_stable_v3_verifier_fails(self) -> None:
+        import blastwall_attestation_verify as verifier
+        import blastwall_marker as marker_tool
+
+        marker = {
+            "attest_ref": self.attest_ref,
+            "attest_sha256": self.envelope_sha,
+        }
+        marker_text = marker_tool.emit_marker_v3(
+            registry=marker_tool.load_registry(),
+            rpm=self.payload["rpm_nevra"],
+            profiles=self.payload["profiles"],
+            attest_ref=marker["attest_ref"],
+            attest_sha256=marker["attest_sha256"],
+            signer_kid=self.signer_kid,
+            exp=self.payload["not_after"],
+            generation=self.payload["generation"],
+        )
+        report = verifier.verify_attestation_for_marker(
+            marker_text=marker_text,
+            envelope_text=json.dumps(self.envelope),
+            index_text=None,
+            registry=marker_tool.load_registry(),
+            expected_registry_sha256=marker_tool.registry_sha256(),
+            expected_host=self.payload["subject_host"],
+            expected_target=self.payload["target"],
+            expected_rpm=self.payload["rpm_nevra"],
+            current_policy_sha256=self.payload["policy_sha256"],
+            required_profiles=self.payload["profiles"],
+            signer_certificate=self.signer_cert,
+            ca_bundle=_pem_bytes(self.ca_cert),
+            signer_allowlist=[self.signer_kid],
+            now=_now(),
+        )
+        self.assertEqual(report.failure_state, "FAIL_INDEX_NOT_VISIBLE")
 
     def test_revoked_index_fails(self) -> None:
         index = self.build_index(state="revoked", latest_generation=7)

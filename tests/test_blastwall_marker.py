@@ -304,6 +304,15 @@ class BlastwallMarkerTests(unittest.TestCase):
         self.assertFalse(parsed.suitable, parsed.errors)
         self.assertIn("signer_kid is not lowercase SKI hex", parsed.errors)
 
+    def test_v3_marker_rejects_embedded_artifact_as_attest_ref(self) -> None:
+        text = (
+            self._remove_marker_field(self.v3_marker(), "attest_ref")
+            + ';attest_ref={"envelope_version":1,"payload":{}}'
+        )
+        parsed = self.parse(text)
+        self.assertFalse(parsed.hint, parsed.errors)
+        self.assertIn("attest_ref is not a vault locator", parsed.errors)
+
     def test_v3_marker_rejects_invalid_expiry_format(self) -> None:
         parsed = self.parse(self._remove_marker_field(self.v3_marker(), "exp") + ";exp=2026-01-01 00:00:00")
         self.assertFalse(parsed.suitable, parsed.errors)
@@ -352,6 +361,19 @@ class BlastwallMarkerTests(unittest.TestCase):
                 profiles=["base"],
                 state="active",
                 attest_ref="",
+                attest_sha256="a" * 64,
+                signer_kid="4c2a9f12ab34cd56ef7890ab1234567890abcdef",
+                exp=(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                generation=1,
+            )
+
+    def test_emit_marker_v3_rejects_embedded_artifact_locator(self) -> None:
+        with self.assertRaisesRegex(ValueError, "attest_ref is not a vault locator"):
+            marker.emit_marker_v3(
+                registry=self.registry,
+                rpm=marker.DEFAULT_RPM,
+                profiles=["base"],
+                attest_ref='{"envelope_version":1}',
                 attest_sha256="a" * 64,
                 signer_kid="4c2a9f12ab34cd56ef7890ab1234567890abcdef",
                 exp=(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),

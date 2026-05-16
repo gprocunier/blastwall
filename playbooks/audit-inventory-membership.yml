@@ -47,6 +47,60 @@
         default(lookup('env', 'BLASTWALL_FAIL_ON_CURRENT_MARKER_PARSE_ERROR') | default('true', true), true) |
         bool
       }}
+    blastwall_verify_attestations: >-
+      {{
+        BLASTWALL_VERIFY_ATTESTATIONS |
+        default(lookup('env', 'BLASTWALL_VERIFY_ATTESTATIONS') | default('false', true), true) |
+        bool
+      }}
+    blastwall_vault_server: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_PRIMARY |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true), true)
+      }}
+    blastwall_vault_scope: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_SCOPE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true), true)
+      }}
+    blastwall_vault_owner: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_OWNER |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true), true)
+      }}
+    blastwall_signer_certificate: >-
+      {{
+        BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE') | default('', true), true)
+      }}
+    blastwall_ca_bundle: >-
+      {{
+        BLASTWALL_ATTESTATION_CA_BUNDLE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE') | default('', true), true)
+      }}
+    blastwall_signer_allowlist_csv: >-
+      {{
+        BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true), true)
+      }}
+    blastwall_fail_on_kra_unavailable: >-
+      {{
+        BLASTWALL_FAIL_ON_KRA_UNAVAILABLE |
+        default(lookup('env', 'BLASTWALL_FAIL_ON_KRA_UNAVAILABLE') | default('false', true), true) |
+        bool
+      }}
+    blastwall_fail_on_attestation_not_visible: >-
+      {{
+        BLASTWALL_FAIL_ON_ATTESTATION_NOT_VISIBLE |
+        default(lookup('env', 'BLASTWALL_FAIL_ON_ATTESTATION_NOT_VISIBLE') | default('false', true), true) |
+        bool
+      }}
+    blastwall_fail_on_current_marker_without_valid_attestation: >-
+      {{
+        BLASTWALL_FAIL_ON_CURRENT_MARKER_WITHOUT_VALID_ATTESTATION |
+        default(lookup('env', 'BLASTWALL_FAIL_ON_CURRENT_MARKER_WITHOUT_VALID_ATTESTATION') | default('false', true), true) |
+        bool
+      }}
   tasks:
     - name: Capture ansible-inventory output when no JSON path is supplied
       ansible.builtin.command:
@@ -102,6 +156,16 @@
             + (['--previous', blastwall_inventory_audit_previous] if blastwall_inventory_previous_snapshot.stat.exists | default(false) else [])
             + (['--fail-on-current-to-stale'] if blastwall_fail_on_current_to_stale | bool else [])
             + (['--fail-on-current-marker-parse-error'] if blastwall_fail_on_current_marker_parse_error | bool else [])
+            + (['--verify-attestations'] if blastwall_verify_attestations | bool else [])
+            + (['--vault-server', blastwall_vault_server] if blastwall_verify_attestations and blastwall_vault_server | length > 0 else [])
+            + (['--vault-scope', blastwall_vault_scope] if blastwall_verify_attestations else [])
+            + (['--vault-owner', blastwall_vault_owner] if blastwall_verify_attestations else [])
+            + (['--signer-certificate', blastwall_signer_certificate] if blastwall_signer_certificate | length > 0 else [])
+            + (['--ca-bundle', blastwall_ca_bundle] if blastwall_ca_bundle | length > 0 else [])
+            + (['--signer-allowlist-csv', blastwall_signer_allowlist_csv] if blastwall_signer_allowlist_csv | length > 0 else [])
+            + (['--fail-on-kra-unavailable'] if blastwall_fail_on_kra_unavailable | bool else [])
+            + (['--fail-on-attestation-not-visible'] if blastwall_fail_on_attestation_not_visible | bool else [])
+            + (['--fail-on-current-marker-without-valid-attestation'] if blastwall_fail_on_current_marker_without_valid_attestation | bool else [])
           }}
 
     - name: Write Blastwall inventory audit report
