@@ -6,9 +6,17 @@ hosts with the same unconstrained local shape as a human administrator. The v2
 work makes that boundary easier to reason about, easier to validate, and safer
 to expand.
 
-The current release-candidate identity is `0.6.1-0.rc1`. The stable v2 posture
-is still `base` for RHEL login automation and `base-nested` for the OpenShift
-nested workload variant. `strange-socket-v1` remains a lab-only dry-run profile.
+The current release-candidate RPM identity is `0.6.1-0.rc1`. The stable v2
+posture is still `base` for RHEL login automation and `base-nested` for the
+OpenShift nested workload variant. `strange-socket-v1` remains a lab-only
+dry-run profile.
+
+Phase 08 Calabi gates passed for the RC1k branch, including RHEL base
+verification, rollback simulation, base automation corpus replay, and
+OpenShift/SPO standard, nested, strange, and nested-strange validation. Stable
+publication is still a separate maintainer decision, and later local/static
+fixes on the same branch must not be described as fresh live evidence until the
+Calabi gates are replayed.
 
 ## What v1 Proved
 
@@ -46,9 +54,11 @@ The main issues were:
   cluster exposes `RawSelinuxProfile.status.usage`, while the admitted SCC type
   on the validated Calabi OCP 4.20/SPO 0.10 path uses the derived underscore
   form such as `blastwall_.process`.
-- New vulnerability response needed a safe experimental lane. Dirty Frag,
-  Fragnesia, and unusual socket-family work should be testable without silently
-  expanding the default automation posture.
+- New vulnerability response needed explicit triage. Dirty Frag and Fragnesia
+  should map to named base scopes when the enforceable surfaces are already in
+  posture, while new or riskier surfaces should move through a safe
+  experimental lane instead of silently expanding the default automation
+  boundary.
 - Evidence semantics were not strict enough. A blocked probe, an absent optional
   class, and an unexpected kernel or protocol failure need different release
   meanings.
@@ -71,6 +81,31 @@ release-checkable.
 
 The registry does not generate policy. It states what the handwritten policy,
 OpenShift/SPO manifests, probes, docs, and playbooks must agree on.
+
+Current `base` expands to these active scopes:
+
+- `alg_socket`
+- `bpf`
+- `capability2_bpf`
+- `packet_socket`
+- `userns`
+- `io_uring`
+- `xfrm`
+- `rxrpc`
+- `selfprotect`
+
+`base-nested` is the OpenShift/SPO nested variant of `base`. It removes
+`userns` because the nested workload path deliberately exercises pod-level user
+namespaces; the remaining base scopes stay in force where the target supports
+them.
+
+Dirty Frag and Fragnesia do not create a separate v2 profile in the current
+codebase. They are handled by the existing base surfaces: `xfrm` for
+NETLINK_XFRM state creation, `rxrpc` for the Dirty Frag RxRPC entry point,
+`alg_socket` for the Fragnesia AF_ALG prerequisite, and `userns` for the normal
+RHEL login route to namespace-local network administration. The safe probe for
+that family is `tests/trigger-dirtyfrag-deny.py`; it checks entry-point
+reachability and does not run exploit payload logic.
 
 ### Drift Checking
 
@@ -96,6 +131,13 @@ malformed, unknown, or profile-incomplete claims. The marker includes both the
 registry hash and the installed policy hash, so a host cannot look suitable just
 because it has an old string that resembles a successful install.
 
+The marker emitter writes canonical field, profile, and scope order. The parser
+is semantic for v2 marker fields and scope membership: additive unknown fields
+are ignored, and `scopes=` may appear in any order as long as the set exactly
+matches the registry-expanded profile closure. Unknown profile names, unknown
+scope names, missing scopes, extra scopes, stale hashes, non-canonical
+`profiles=`, and disallowed dry-run profiles fail closed.
+
 Legacy v1 markers remain accepted only for the base compatibility path.
 
 ### Parser-Backed Preflight
@@ -112,12 +154,19 @@ This lets v2 fail closed when:
 - a dry-run profile is present without explicit dry-run approval
 - an unknown profile or unknown scope is needed to satisfy the claim
 
+Selected-host marker validation is safety critical. It can be bypassed only
+with the explicit diagnostic-only bypass flag and a reason string; stale-host
+tolerance does not disable parser-backed validation.
+
 ### Profile-Aware Inventory
 
-The IdM inventory path now produces profile-aware groups:
+The IdM inventory path now produces profile-aware and diagnostic groups:
 
 - `blastwall_policy_current`
 - `blastwall_policy_stale`
+- `blastwall_policy_candidate`
+- `blastwall_inventory_schema_error`
+- `blastwall_inventory_marker_parse_error`
 - `blastwall_profile_base`
 - `blastwall_profile_strange_socket_v1`
 
@@ -125,6 +174,12 @@ Runtime verification can target `blastwall_profile_base` by default, while the
 policy pipeline can still use a separate candidate cohort for staged rollout.
 That separation matters operationally: installing or promoting a candidate RPM
 is not the same decision as verifying hosts that already claim a release profile.
+
+The checked-in inventory expressions are generated from
+`tools/render_inventory_profile_groups.py`. They now mirror the marker parser's
+v2 semantics for additive unknown fields and reordered scopes while still
+requiring the current registry hash, accepted RPM identity, canonical profile
+list, complete scope set, and correct dry-run state.
 
 ### AAP Pipeline Separation
 
@@ -155,6 +210,10 @@ This avoids a common release trap: treating every stale host as a safe policy
 candidate, or treating every policy candidate as already suitable for runtime
 verification.
 
+The policy install/promote path also validates emitted markers before writing
+IdM evidence. FreeIPA CLI marker publication is a rescue fallback for collection
+module failure, not the normal path when the collection write succeeds.
+
 ### OpenShift/SPO Compatibility
 
 The OpenShift path keeps `RawSelinuxProfile.status.usage` as the source of
@@ -171,6 +230,11 @@ SCC type:     blastwall_.process
 The direct `status.usage` form remains available as a compatibility mode, but
 it is not the default release behavior until live validation proves it works on
 the target cluster family.
+
+The current Calabi evidence covers four validation classes on OCP 4.20/SPO
+0.10: `blastwall`, `blastwall-nested`, `blastwall-strange`, and
+`blastwall-nested-strange`. Unknown usage shapes fail closed instead of being
+guessed.
 
 ### Experimental Profile Lane
 
@@ -189,6 +253,11 @@ It is not folded into `base`. It requires explicit dry-run intent, uses
 `state=lab-active`, and has separate RHEL and OpenShift/SPO validation paths.
 That lets the project gather evidence without silently changing the default
 automation boundary.
+
+On RHEL, the dry-run CIL is listed only in `DRY_RUN_POLICIES` and installed with
+`make -C policy install-dry-run`; the default `install` target does not load it.
+`make -C policy uninstall` removes dry-run modules as well as active/support
+modules, and `uninstall-dry-run` removes only the lab profile module.
 
 ### Probe Semantics
 
@@ -214,6 +283,9 @@ For operators, v2 makes Blastwall easier to run safely:
 - Preflight rejects stale or incomplete evidence before workflow execution.
 - Dry-run scope expansion is explicit and reversible.
 - OpenShift/SPO binding follows the live cluster usage contract.
+- The RHEL `base` corpus has live evidence for ordinary privileged automation
+  under `blastwall_t`, including file/template work, package fact gathering,
+  lab user creation/removal, and systemd daemon reload/service execution.
 
 For maintainers, v2 makes Blastwall easier to change:
 
@@ -235,9 +307,9 @@ For reviewers, v2 makes Blastwall easier to audit:
 ## Current Boundaries
 
 v2 is still experimental. The current release candidate does not promote
-`strange-socket-v1` into the default posture, does not add KVM or seccomp
-hardening, and does not claim broad RHEL/OpenShift generation coverage beyond
-the validated Calabi evidence path.
+`strange-socket-v1` into the default posture, does not add KVM, seccomp, BPF LSM,
+or ptrace/pidfd hardening, and does not claim broad RHEL/OpenShift generation
+coverage beyond the validated Calabi evidence path.
 
 The important release discipline is that `base` remains conservative while new
 surfaces move through explicit profile, probe, drift, and lab evidence gates.
