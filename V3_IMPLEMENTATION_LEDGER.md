@@ -21,7 +21,7 @@
 | 10 | complete | rollback agent | HEAD | verifier/revocation pytest, syntax, full test | Added revocation helper/playbook and infrastructure-only breakglass for artifact/index visibility failures. |
 | 11 | complete | SPO agent | HEAD | attestation/sign/verifier pytest, full test | OCP SPO targets require signed `spo_evidence` without changing workload posture or derived SCC type behavior. |
 | 12 | complete | test agent + architecture lead | HEAD | negative matrix pytest, static, full test | Added embedded-artifact marker rejection, expired attestation, wrong index signer, missing index, and v3 static workflow checks. |
-| 13 | ready for live gate | PM + architecture lead + Calabi agent | pending | local validation complete | Calabi KRA gate may start after this source commit is available to AAP/KRA. |
+| 13 | blocked by lab state | PM + architecture lead + Calabi agent | pending | local validation complete; connectivity check attempted | `virt-01` is reachable, but bastion/IdM/mirror/OpenShift guests are currently shut off. |
 | 14 | complete | docs agent + PM | HEAD | docs render, syntax, full test | Added operator, KRA topology, revocation/breakglass, readiness, and external-review docs. |
 
 ## Security Invariants
@@ -37,13 +37,17 @@
 
 ## Open Blockers
 - Phase 13 live Calabi gate is not complete in this local source pass.
+- Calabi `virt-01` is reachable, but `bastion-01.workshop.lan`, IdM, mirror registry, and OpenShift VMs are currently shut off.
+- The v3 branch is local-only; `origin/blastwall-v3-signed-attestation` does not exist yet, so AAP project sync/source-revision Gate 0 cannot pass until the commit is published or otherwise staged.
 - KRA-enabled Calabi vault configuration, signer material, AAP branch sync, and AAP source revision must be confirmed before live gate execution.
 
 ## Calabi Evidence
-- Not started for v3. Use `blastwall_v3_codex_implementation_pack/calabi/CALABI_V3_KRA_GATE_RUNBOOK.md` after this local source commit is available to the Calabi/AAP path.
+- Not completed for v3. `virt-01.workshop.lan` was reachable, but the required lab guests were shut off during the Phase 13 attempt.
+- Use `blastwall_v3_codex_implementation_pack/calabi/CALABI_V3_KRA_GATE_RUNBOOK.md` after the lab is powered on and this source commit is available to the Calabi/AAP path.
 
 ## Final Decision
 - Local source GO for Phase 13 gate.
+- Live gate HOLD due current lab power state and unpublished v3 branch.
 - Release GO/HOLD remains pending live Calabi KRA evidence.
 
 ## Phase Handoffs
@@ -154,11 +158,11 @@
 
 ### Phase 13
 - phase: 13
-- files changed: none in source tree yet
+- files changed: `V3_IMPLEMENTATION_LEDGER.md`
 - tests added: none
-- tests run: local prerequisites only: `make test`; Ansible syntax checks; docs placeholder-term scan
-- open issues: live Calabi KRA/AAP gate is pending; AAP project branch and source revision must match the committed v3 branch before execution
-- security invariants checked: local gate prerequisites are green; live evidence bundle remains required before any release GO decision
+- tests run: local prerequisites only: `make test`; Ansible syntax checks; docs placeholder-term scan; Calabi connectivity/power-state check
+- open issues: live Calabi KRA/AAP gate is blocked because lab guests are shut off and the v3 branch is not published to `origin`; AAP project branch and source revision must match the committed v3 branch before execution
+- security invariants checked: local gate prerequisites are green; no live evidence bundle exists yet; release GO remains unavailable without KRA/AAP evidence
 
 ### Phase 14
 - phase: 14
