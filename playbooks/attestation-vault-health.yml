@@ -1,0 +1,90 @@
+---
+- name: Check Blastwall attestation vault health for configured KRA targets
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    blastwall_attestation_vault_primary: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+    blastwall_attestation_vault_servers: >-
+      {{
+        lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') |
+        default('', true) |
+        split(',') |
+        reject('equalto', '') |
+        map('trim') |
+        list
+      }}
+    blastwall_attestation_vault_scope: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+    blastwall_attestation_vault_owner: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true) }}
+    blastwall_attestation_vault_retry_not_found: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_RETRY_NOT_FOUND') | default('true', true) | bool }}
+    blastwall_attestation_vault_retry_attempts: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_RETRY_ATTEMPTS') | default('3', true) | int }}
+    blastwall_attestation_vault_retry_delay_seconds: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_RETRY_DELAY_SECONDS') | default('10', true) | int }}
+    blastwall_attestation_vault_health_artifacts:
+      - label: attestation-canary
+        vault_ref: >-
+          {{ blastwall_attestation_vault_scope }}/{{ blastwall_attestation_vault_owner }}/blastwall-health-canary/{{ blastwall_attestation_vault_primary }}.json
+      - label: attestation-envelope
+        vault_ref: >-
+          {{ blastwall_attestation_vault_scope }}/{{ blastwall_attestation_vault_owner }}/blastwall-attestations/attestation-envelope-placeholder.json
+      - label: attestation-index
+        vault_ref: >-
+          {{ blastwall_attestation_vault_scope }}/{{ blastwall_attestation_vault_owner }}/blastwall-attestation-index/attestation-index-placeholder.json
+  tasks:
+    - name: Validate explicit vault primary setting
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_vault_primary | length > 0
+          - blastwall_attestation_vault_owner | length > 0
+        fail_msg: >-
+          blastwall_attestation_vault_primary and blastwall_attestation_vault_owner must be set explicitly
+          for attestation vault health checks.
+
+    - name: Validate explicit vault server list
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_vault_servers | length > 0
+        fail_msg: >-
+          blastwall_attestation_vault_servers must be set explicitly for attestation vault health checks.
+
+    - name: Validate primary server appears in configured server list
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_vault_primary in blastwall_attestation_vault_servers
+        fail_msg: >-
+          blastwall_attestation_vault_primary must be included in blastwall_attestation_vault_servers.
+
+    - name: Build explicit health check context
+      ansible.builtin.set_fact:
+        blastwall_attestation_vault_health_context:
+          primary_server: "{{ blastwall_attestation_vault_primary }}"
+          candidate_servers: "{{ blastwall_attestation_vault_servers }}"
+          scope: "{{ blastwall_attestation_vault_scope }}"
+          owner: "{{ blastwall_attestation_vault_owner }}"
+          retry:
+            enabled: "{{ blastwall_attestation_vault_retry_not_found }}"
+            attempts: "{{ blastwall_attestation_vault_retry_attempts }}"
+            delay_seconds: "{{ blastwall_attestation_vault_retry_delay_seconds }}"
+
+    - name: Emit health-check skeleton summary
+      ansible.builtin.debug:
+        msg:
+          phase: "attestation-vault-health"
+          status: "skeleton"
+          command_model: "eigenstate-ipa vault <read|write>"
+          vault_context: "{{ blastwall_attestation_vault_health_context }}"
+          artifact_refs: "{{ blastwall_attestation_vault_health_artifacts }}"
+
+    - name: Health-check skeleton placeholder (explicitly targeted vault server + artifact refs)
+      ansible.builtin.debug:
+        msg:
+          action: "placeholder"
+          note: "Implement read/write checks using explicit helper command functions in tools/blastwall_attestation_vault.py"
+          server: "{{ blastwall_attestation_vault_primary }}"
+          artifacts: "{{ blastwall_attestation_vault_health_artifacts }}"
+

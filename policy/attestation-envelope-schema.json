@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Blastwall v3 attestation envelope",
+  "type": "object",
+  "required": [
+    "envelope_version",
+    "payload",
+    "payload_sha256",
+    "signature_algorithm",
+    "signature",
+    "signer_kid",
+    "signer_certificate_subject",
+    "signer_certificate_serial",
+    "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "envelope_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "payload": {
+      "type": "object"
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "signature_algorithm": {
+      "type": "string",
+      "const": "sha256-rsa-pkcs1v15"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/=]+$"
+    },
+    "signer_kid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "signer_certificate_subject": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signer_certificate_serial": {
+      "type": "string",
+      "pattern": "^[1-9]\\d*$"
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    }
+  }
+}

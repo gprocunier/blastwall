@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Blastwall marker v1/v2 parsing and emission helpers."""
+"""Blastwall marker v1/v2/v3 parsing and emission helpers."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import datetime
 import re
 import sys
 from dataclasses import dataclass, field
@@ -35,6 +36,25 @@ PROFILE_STATUS_ACTIVE = "active"
 PROFILE_STATUS_DRY_RUN = "dry-run"
 PROFILE_STATUS_PLANNED = "planned"
 PROFILE_STATUS_DEPRECATED = "deprecated"
+V2_V3_SUPPORTED_STATES = {
+    "active",
+    "lab-active",
+    "revoked",
+    "failed",
+    "rollback-active",
+    "rollback-failed",
+}
+V3_LOCATOR_FIELDS = {
+    "state",
+    "target",
+    "rpm",
+    "profiles",
+    "attest_ref",
+    "attest_sha256",
+    "signer_kid",
+    "exp",
+    "generation",
+}
 RESERVED_MARKER_FIELDS = {
     "v",
     "state",
@@ -50,6 +70,8 @@ RESERVED_MARKER_FIELDS = {
     "exp",
     "generation",
 }
+RFC3339_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
+SIGNER_KID_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
 @dataclass
@@ -61,10 +83,16 @@ class MarkerResult:
     rpm: str | None = None
     registry_sha256: str | None = None
     policy_sha256: str | None = None
+    attest_ref: str | None = None
+    attest_sha256: str | None = None
+    signer_kid: str | None = None
+    exp: str | None = None
+    generation: int | None = None
     profiles: set[str] = field(default_factory=set)
     scopes: set[str] = field(default_factory=set)
     legacy: bool = False
     suitable: bool = False
+    hint: bool = False
     errors: list[str] = field(default_factory=list)
 
 
@@ -189,6 +217,29 @@ def _collect_profile_statuses(
     }
 
 
+def _parse_expiry(exp: str | None) -> datetime.datetime:
+    if not exp:
+        raise ValueError("missing exp")
+    if not RFC3339_UTC_RE.match(exp):
+        raise ValueError("exp is not RFC3339 UTC timestamp")
+    parsed = datetime.datetime.fromisoformat(exp.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.tzinfo.utcoffset(parsed) != datetime.timedelta(0):
+        raise ValueError("exp is not RFC3339 UTC timestamp")
+    return parsed
+
+
+def _parse_generation(raw: str | None) -> int:
+    if raw is None:
+        raise ValueError("missing generation")
+    try:
+        generation = int(raw)
+    except ValueError as exc:
+        raise ValueError("generation is not integer") from exc
+    if generation < 0:
+        raise ValueError("generation must be non-negative")
+    return generation
+
+
 def _validate_profile_statuses(
     profile_statuses: dict[str, str | None],
     allow_dry_run_profiles: bool,
@@ -238,8 +289,9 @@ def parse_marker(
         return result
     for key in sorted(duplicate_reserved_fields):
         result.errors.append(f"duplicate reserved marker field: {key}")
+    marker_version = fields.get("v")
 
-    if fields.get("v") == "2":
+    if marker_version == "2":
         result.version = 2
         result.state = fields.get("state")
         result.target = fields.get("target")
@@ -321,6 +373,105 @@ def parse_marker(
         result.suitable = not result.errors
         return result
 
+    if marker_version == "3":
+        result.version = 3
+        result.state = fields.get("state")
+        result.target = fields.get("target")
+        result.rpm = fields.get("rpm")
+        raw_profile_list = _csv_list(fields.get("profiles"))
+        result.profiles = set(raw_profile_list)
+        result.attest_ref = fields.get("attest_ref")
+        result.attest_sha256 = fields.get("attest_sha256")
+        result.signer_kid = fields.get("signer_kid")
+        result.exp = fields.get("exp")
+
+        for key in sorted(V3_LOCATOR_FIELDS):
+            if not fields.get(key):
+                result.errors.append(f"missing {key}")
+
+        if expected_target is not None and result.target != expected_target:
+            result.errors.append(f"target mismatch: {result.target!r} != {expected_target!r}")
+
+        if result.rpm not in accepted_rpms:
+            result.errors.append("marker rpm is not accepted")
+
+        if not result.attest_sha256 or not SHA256_RE.match(result.attest_sha256):
+            result.errors.append("attest_sha256 is not 64 lowercase hex")
+
+        if not result.signer_kid or not SIGNER_KID_RE.match(result.signer_kid):
+            result.errors.append("signer_kid is not lowercase SKI hex")
+
+        try:
+            result.generation = _parse_generation(fields.get("generation"))
+        except ValueError as exc:
+            result.errors.append(str(exc))
+
+        try:
+            exp_dt = _parse_expiry(fields.get("exp"))
+        except ValueError as exc:
+            result.errors.append(str(exc))
+        else:
+            if exp_dt <= datetime.datetime.now(datetime.timezone.utc):
+                result.errors.append("marker has expired")
+
+        known_profiles = registry.get("profiles", {})
+        unknown_profiles = sorted(result.profiles - set(known_profiles))
+        for profile_name in unknown_profiles:
+            result.errors.append(f"unknown profile: {profile_name}")
+        for profile_name in sorted(required_profiles - set(known_profiles)):
+            result.errors.append(f"unknown required profile: {profile_name}")
+
+        if not required_profiles.issubset(result.profiles):
+            result.errors.append("required profile missing")
+
+        dry_run_profiles: set[str] = set()
+        if not unknown_profiles:
+            if raw_profile_list:
+                try:
+                    expected_profiles = canonical_profile_list(registry, raw_profile_list)
+                except ValueError as exc:
+                    result.errors.append(str(exc))
+                    expected_profiles = []
+                if expected_profiles and raw_profile_list != expected_profiles:
+                    result.errors.append(
+                        "marker profiles are not canonical: expected "
+                        f"{','.join(expected_profiles)}"
+                    )
+            profile_statuses = _collect_profile_statuses(registry, result.profiles)
+            dry_run_profiles, status_errors = _validate_profile_statuses(
+                profile_statuses,
+                allow_dry_run_profiles=allow_dry_run_profiles,
+            )
+            result.errors.extend(status_errors)
+
+        if result.state not in V2_V3_SUPPORTED_STATES:
+            result.errors.append(f"unsupported marker state: {result.state}")
+        elif result.state == "revoked":
+            result.errors.append("marker is revoked")
+        elif result.state not in {"active", "lab-active"}:
+            result.errors.append(f"marker state is not suitable: {result.state}")
+        else:
+            required_state = PROFILE_STATUS_ACTIVE
+            if dry_run_profiles:
+                required_state = "lab-active"
+            if result.state != required_state:
+                if required_state == PROFILE_STATUS_ACTIVE:
+                    result.errors.append("marker state is not active")
+                else:
+                    result.errors.append("marker state must be lab-active for dry-run profiles")
+
+        result.hint = not result.errors
+        result.suitable = False
+        return result
+
+    if marker_version is not None:
+        try:
+            result.version = int(marker_version)
+        except ValueError:
+            result.version = None
+        result.errors.append(f"unsupported marker version: {marker_version}")
+        return result
+
     result.version = 1
     result.legacy = True
     result.state = fields.get("state")
@@ -372,6 +523,65 @@ def emit_marker_v2(
         f"v=2;state={state};target={target};rpm={rpm};"
         f"registry_sha256={registry_hash};policy_sha256={policy_hash};"
         f"profiles={','.join(profile_list)};scopes={','.join(ordered_scopes)}"
+    )
+
+
+def emit_marker_v3(
+    *,
+    registry: dict[str, Any],
+    rpm: str,
+    profiles: list[str] | None = None,
+    target: str = "rhel-login",
+    state: str = "active",
+    attest_ref: str,
+    attest_sha256: str,
+    signer_kid: str,
+    exp: str | datetime.datetime,
+    generation: int | str,
+    allow_dry_run_profiles: bool = False,
+) -> str:
+    profile_list = canonical_profile_list(registry, profiles or ["base"])
+    profile_set = set(profile_list)
+    profile_statuses = _collect_profile_statuses(registry, profile_set)
+    dry_run_profiles, status_errors = _validate_profile_statuses(
+        profile_statuses,
+        allow_dry_run_profiles=allow_dry_run_profiles,
+    )
+    if status_errors:
+        raise ValueError("; ".join(status_errors))
+    if state == PROFILE_STATUS_ACTIVE and dry_run_profiles:
+        state = "lab-active"
+    if state not in V2_V3_SUPPORTED_STATES:
+        raise ValueError(f"unsupported marker state: {state}")
+    if not attest_ref:
+        raise ValueError("missing attest_ref")
+    if not SHA256_RE.match(attest_sha256):
+        raise ValueError("attest_sha256 is not 64 lowercase hex")
+    if not SIGNER_KID_RE.match(signer_kid):
+        raise ValueError("signer_kid is not lowercase SKI hex")
+
+    if isinstance(exp, datetime.datetime):
+        exp_dt = exp
+        if exp_dt.tzinfo is None:
+            exp_dt = exp_dt.replace(tzinfo=datetime.timezone.utc)
+        else:
+            exp_dt = exp_dt.astimezone(datetime.timezone.utc)
+        exp_text = exp_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        exp_text = exp
+    exp_dt = _parse_expiry(exp_text)
+    if exp_dt <= datetime.datetime.now(datetime.timezone.utc):
+        raise ValueError("exp must be in the future")
+
+    parsed_generation = _parse_generation(str(generation))
+
+    return (
+        "blastwall:"
+        f"v=3;state={state};target={target};rpm={rpm};"
+        f"profiles={','.join(profile_list)};"
+        f"attest_ref={attest_ref};attest_sha256={attest_sha256};"
+        f"signer_kid={signer_kid};exp={exp_dt:%Y-%m-%dT%H:%M:%SZ};"
+        f"generation={parsed_generation}"
     )
 
 
@@ -454,6 +664,18 @@ def main() -> int:
                 }
                 for item in suitable
             ],
+            "hints": [
+                {
+                    "version": item.version,
+                    "profiles": sorted(item.profiles),
+                    "attest_ref": item.attest_ref,
+                    "attest_sha256": item.attest_sha256,
+                    "signer_kid": item.signer_kid,
+                    "generation": item.generation,
+                }
+                for item in parsed
+                if item.hint
+            ],
             "errors": [item.errors for item in parsed if item.errors],
         }, sort_keys=True))
         return 0 if suitable else 1
@@ -489,6 +711,7 @@ def main() -> int:
         "suitable": parsed.suitable,
         "version": parsed.version,
         "legacy": parsed.legacy,
+        "hint": parsed.hint,
         "profiles": sorted(parsed.profiles),
         "scopes": sorted(parsed.scopes),
         "errors": parsed.errors,

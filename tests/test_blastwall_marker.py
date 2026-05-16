@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import datetime
 import json
 import subprocess
 import sys
@@ -46,6 +47,32 @@ class BlastwallMarkerTests(unittest.TestCase):
             expected_registry_sha256=self.registry_hash,
             expected_target=expected_target,
             required_profiles=required_profiles,
+            allow_dry_run_profiles=allow_dry_run_profiles,
+        )
+
+    def v3_marker(
+        self,
+        state: str = "active",
+        *,
+        profiles: list[str] | None = None,
+        attest_ref: str = "shared/blastwall-attestations/example.json",
+        attest_sha256: str = "e" * 64,
+        signer_kid: str = "4c2a9f12ab34cd56ef7890ab1234567890abcdef",
+        generation: int = 7,
+        exp: datetime.datetime | None = None,
+        allow_dry_run_profiles: bool = False,
+    ) -> str:
+        exp = exp or (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1))
+        return marker.emit_marker_v3(
+            registry=self.registry,
+            rpm=marker.DEFAULT_RPM,
+            profiles=profiles or ["base"],
+            state=state,
+            attest_ref=attest_ref,
+            attest_sha256=attest_sha256,
+            signer_kid=signer_kid,
+            exp=exp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            generation=generation,
             allow_dry_run_profiles=allow_dry_run_profiles,
         )
 
@@ -221,6 +248,115 @@ class BlastwallMarkerTests(unittest.TestCase):
                 parsed = self.parse(f"{text};{field}={fields[field]}")
                 self.assertFalse(parsed.suitable)
                 self.assertIn(f"duplicate reserved marker field: {field}", parsed.errors)
+
+    def _remove_marker_field(self, text: str, field: str) -> str:
+        stripped = text.removeprefix("blastwall:")
+        return "blastwall:" + ";".join(
+            token for token in stripped.split(";") if not token.startswith(f"{field}=") and token
+        )
+
+    def test_valid_v3_marker_parses_as_locator_hint(self) -> None:
+        text = self.v3_marker()
+        parsed = self.parse(text, allow_dry_run_profiles=True)
+        self.assertFalse(parsed.suitable)
+        self.assertTrue(parsed.hint, parsed.errors)
+        self.assertEqual(parsed.version, 3)
+        self.assertEqual(parsed.state, "active")
+        self.assertEqual(parsed.generation, 7)
+        self.assertEqual(parsed.signer_kid, "4c2a9f12ab34cd56ef7890ab1234567890abcdef")
+        self.assertEqual(parsed.attest_ref, "shared/blastwall-attestations/example.json")
+
+    def test_check_cli_does_not_treat_v3_locator_as_suitable(self) -> None:
+        result = self.run_check_cli(self.v3_marker(), expect_success=False)
+        self.assertFalse(result["suitable"])
+        self.assertEqual(result["hints"][0]["version"], 3)
+        self.assertEqual(result["hints"][0]["attest_sha256"], "e" * 64)
+
+    def test_v3_marker_rejects_unknown_version(self) -> None:
+        text = (
+            "blastwall:v=9;state=active;target=rhel-login;"
+            f"rpm={marker.DEFAULT_RPM};profiles=base;"
+            "attest_ref=shared/blastwall-attestations/example.json;"
+            "attest_sha256=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;"
+            "signer_kid=4c2a9f12ab34cd56ef7890ab1234567890abcdef;"
+            "exp=2099-01-01T00:00:00Z;generation=1"
+        )
+        parsed = self.parse(text)
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("unsupported marker version: 9", parsed.errors)
+
+    def test_v3_marker_rejects_missing_required_fields(self) -> None:
+        text = self.v3_marker()
+        for field in ["attest_ref", "attest_sha256", "signer_kid", "exp", "generation"]:
+            with self.subTest(field=field):
+                parsed = self.parse(self._remove_marker_field(text, field))
+                self.assertFalse(parsed.suitable, parsed.errors)
+                self.assertIn(f"missing {field}", parsed.errors)
+
+    def test_v3_marker_rejects_duplicate_reserved_fields(self) -> None:
+        text = self.v3_marker()
+        parsed = self.parse(f"{text};generation=8")
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("duplicate reserved marker field: generation", parsed.errors)
+
+    def test_v3_marker_rejects_invalid_signer_kid(self) -> None:
+        parsed = self.parse(self._remove_marker_field(self.v3_marker(), "signer_kid") + ";signer_kid=AA11")
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("signer_kid is not lowercase SKI hex", parsed.errors)
+
+    def test_v3_marker_rejects_invalid_expiry_format(self) -> None:
+        parsed = self.parse(self._remove_marker_field(self.v3_marker(), "exp") + ";exp=2026-01-01 00:00:00")
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("exp is not RFC3339 UTC timestamp", parsed.errors)
+
+    def test_v3_marker_rejects_expired(self) -> None:
+        text = self.v3_marker()
+        expired = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=1)
+        text = self._remove_marker_field(text, "exp") + f";exp={expired.strftime('%Y-%m-%dT%H:%M:%SZ')}"
+        parsed = self.parse(text)
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("marker has expired", parsed.errors)
+
+    def test_v3_marker_rejects_revoked_state(self) -> None:
+        parsed = self.parse(self.v3_marker(state="revoked"))
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("marker is revoked", parsed.errors)
+
+    def test_v3_marker_rejects_non_integer_generation(self) -> None:
+        parsed = self.parse(self._remove_marker_field(self.v3_marker(), "generation") + ";generation=one")
+        self.assertFalse(parsed.suitable, parsed.errors)
+        self.assertIn("generation is not integer", parsed.errors)
+
+    def test_emit_marker_v3_includes_locator_inputs(self) -> None:
+        text = marker.emit_marker_v3(
+            registry=self.registry,
+            rpm=marker.DEFAULT_RPM,
+            profiles=["base"],
+            state="active",
+            attest_ref="shared/blastwall-attestations/example.json",
+            attest_sha256="a" * 64,
+            signer_kid="4c2a9f12ab34cd56ef7890ab1234567890abcdef",
+            exp=(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            generation=99,
+        )
+        self.assertIn("attest_ref=shared/blastwall-attestations/example.json", text)
+        self.assertIn("attest_sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text)
+        self.assertIn("signer_kid=4c2a9f12ab34cd56ef7890ab1234567890abcdef", text)
+        self.assertIn("generation=99", text)
+
+    def test_emit_marker_v3_rejects_missing_locator(self) -> None:
+        with self.assertRaisesRegex(ValueError, "missing attest_ref"):
+            marker.emit_marker_v3(
+                registry=self.registry,
+                rpm=marker.DEFAULT_RPM,
+                profiles=["base"],
+                state="active",
+                attest_ref="",
+                attest_sha256="a" * 64,
+                signer_kid="4c2a9f12ab34cd56ef7890ab1234567890abcdef",
+                exp=(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                generation=1,
+            )
 
     def test_v2_marker_accepts_reordered_scopes(self) -> None:
         text = marker.emit_marker_v2(

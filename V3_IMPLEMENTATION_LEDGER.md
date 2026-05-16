@@ -3,18 +3,18 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: HEAD (`feat(marker): reject duplicate reserved marker fields`)
+- current commit: pending v3 attestation batch
 
 ## Phase Status
 | Phase | State | Owner | Commit(s) | Tests | Notes |
 |---:|---|---|---|---|---|
 | 00 | complete | PM + architecture lead | HEAD (`docs(v3): freeze signed attestation baseline`) | `policy_static`, profile validation, drift check, pytest | Branch created from the remediated v2 baseline; design doc copied into `docs/blastwall-v3/`; local baseline passed. |
 | 01 | complete | marker agent | HEAD (`feat(marker): reject duplicate reserved marker fields`) | marker, inventory grouping, audit, static | V2 markers reject duplicate reserved fields; inventory and audit fail closed on current+parser-invalid contradictions. |
-| 02 | pending | schema agent | pending | pending | Attestation schema and canonical JSON. |
-| 03 | pending | signer agent | pending | pending | Signer identity and detached signature verification. |
-| 04 | pending | vault/KRA agent | pending | pending | KRA-aware vault custody helpers. |
+| 02 | complete | schema agent | pending | attestation pytest, full pytest | Added payload/envelope schemas, duplicate-key JSON loading, deterministic canonical bytes, payload/envelope digest validation. |
+| 03 | complete | signer agent | pending | crypto pytest, full pytest | Added single-format RSA PKCS1v15 detached payload signatures, SKI extraction, CA trust, allowlist, and signer certificate checks. |
+| 04 | complete | vault/KRA agent | pending | vault pytest, full pytest | Added explicit KRA vault configuration, targeted read/write helpers, retry/error context, digest readback, and health playbook skeleton. |
 | 05 | pending | vault/KRA + schema | pending | pending | Latest-generation index and replay control. |
-| 06 | pending | marker agent | pending | pending | V3 locator marker grammar. |
+| 06 | complete | marker agent | pending | marker unittest, full pytest | Added v3 locator marker parser/emitter; valid v3 markers produce hints but never marker-only suitability. |
 | 07 | pending | preflight agent | pending | pending | AAP preflight attestation verification. |
 | 08 | pending | AAP agent | pending | pending | Signer and marker-promotion workflows. |
 | 09 | pending | inventory agent | pending | pending | Inventory audit and monitoring. |
@@ -61,3 +61,39 @@
 - open issues: none for Phase 01
 - security invariants checked: duplicate reserved fields fail closed; unknown non-reserved duplicate fields remain tolerated; inventory selects only and does not verify v3 proof
 - next recommended phase: start parallel Batch A after Phase 01 commit
+
+### Phase 02
+- phase: 02
+- files changed: `policy/attestation-schema.json`, `policy/attestation-envelope-schema.json`, `tools/blastwall_attestation.py`, `tests/test_blastwall_attestation.py`
+- tests added: canonical byte stability; duplicate JSON key rejection; unknown envelope version rejection; missing required fields; payload digest invariance; envelope digest stability; generation type and validity-window checks
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation.py tests/test_blastwall_attestation_crypto.py`; `python3 -m pytest -q tests`; `python3 tests/policy_static.py`; profile validation; drift check
+- open issues: full RFC 8785 numeric corner cases are intentionally outside the current integer/string payload schema
+- security invariants checked: duplicate JSON properties are rejected before canonicalization; unknown envelope versions reject
+- next recommended phase: Phase 05 latest-generation index
+
+### Phase 03
+- phase: 03
+- files changed: `tools/blastwall_attestation.py`, `tests/test_blastwall_attestation_crypto.py`
+- tests added: valid signature; tampered payload; untrusted CA; unknown signer allowlist; expired certificate; signer SKI formatting
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation.py tests/test_blastwall_attestation_crypto.py`; `python3 -m pytest -q tests`
+- open issues: lab implementation uses `sha256-rsa-pkcs1v15` as the single supported format per phase configuration; PSS remains a future governance decision
+- security invariants checked: signer allowlist is mandatory; signer certificate must chain to configured CA; private key material is not logged by tests or helpers
+- next recommended phase: Phase 05 latest-generation index
+
+### Phase 04
+- phase: 04
+- files changed: `tools/blastwall_attestation_vault.py`, `tests/test_blastwall_attestation_vault.py`, `playbooks/attestation-vault-health.yml`
+- tests added: explicit primary/server validation; command targeting; read/write digest recording; retry-on-not-found; auth failure non-retry; error classification
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation_vault.py`; `python3 -m pytest -q tests`
+- open issues: health playbook is a skeleton until Calabi KRA command details are validated
+- security invariants checked: vault helpers require explicit server input; no implicit IdM discovery path was added; structured error context is available
+- next recommended phase: Phase 05 latest-generation index
+
+### Phase 06
+- phase: 06
+- files changed: `tools/blastwall_marker.py`, `tests/test_blastwall_marker.py`
+- tests added: v3 locator parse; unknown version; missing locator fields; duplicate reserved fields; bad signer SKI; bad/expired expiry; revoked state; non-integer generation; v3 marker emission
+- tests run: `python3 -m unittest tests/test_blastwall_marker.py`; `python3 -m pytest -q tests`
+- open issues: inventory v3 hint grouping is deferred until preflight/audit verification wiring
+- security invariants checked: v3 marker is a locator hint only; marker-only `check` does not report v3 as suitable; revoked markers are recognized and unsuitable
+- next recommended phase: Phase 05 latest-generation index, then Phase 07 preflight verification
