@@ -22,12 +22,22 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PAYLOAD_SCHEMA_PATH = ROOT / "policy" / "attestation-schema.json"
 DEFAULT_ENVELOPE_SCHEMA_PATH = ROOT / "policy" / "attestation-envelope-schema.json"
+DEFAULT_INDEX_SCHEMA_PATH = ROOT / "policy" / "attestation-index-schema.json"
 
 SUPPORTED_SIGNATURE_ALGORITHM = "sha256-rsa-pkcs1v15"
 SUPPORTED_ENVELOPE_VERSION = 1
+SUPPORTED_INDEX_VERSION = 1
 
 RFC3339_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 SKI_HEX_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+class AttestationVerificationError(ValueError):
+    """Verification failure with a stable failure-state identifier."""
+
+    def __init__(self, failure_state: str, message: str) -> None:
+        super().__init__(message)
+        self.failure_state = failure_state
 
 
 def normalize_ski(raw: str) -> str:
@@ -105,13 +115,27 @@ def _validate_schema(value: Any, schema_path: Path) -> None:
 
 
 def _validate_payload_window(payload: Mapping[str, Any]) -> None:
-    issued_at = parse_utc_timestamp(payload["issued_at"])
-    not_before = parse_utc_timestamp(payload["not_before"])
-    not_after = parse_utc_timestamp(payload["not_after"])
+    _validate_time_window(payload)
+
+
+def _validate_time_window(value: Mapping[str, Any]) -> None:
+    issued_at = parse_utc_timestamp(value["issued_at"])
+    not_before = parse_utc_timestamp(value["not_before"])
+    not_after = parse_utc_timestamp(value["not_after"])
     if not_before > not_after:
         raise ValueError("not_before must be <= not_after")
     if not (not_before <= issued_at <= not_after):
         raise ValueError("issued_at must be within validity window")
+
+
+def _assert_current_time_in_window(value: Mapping[str, Any], now: datetime.datetime) -> None:
+    not_before = parse_utc_timestamp(value["not_before"])
+    not_after = parse_utc_timestamp(value["not_after"])
+    if not_before > not_after or not (not_before <= now <= not_after):
+        raise AttestationVerificationError(
+            "FAIL_STALE_ATTESTATION",
+            "attestation evidence is outside validity window",
+        )
 
 
 def validate_attestation_payload(payload: Mapping[str, Any]) -> None:
@@ -131,6 +155,16 @@ def validate_attestation_envelope(envelope: Mapping[str, Any]) -> None:
         raise ValueError(
             f"unsupported signature_algorithm: {envelope.get('signature_algorithm')!r}"
         )
+
+
+def validate_latest_index(index: Mapping[str, Any]) -> None:
+    """Validate a latest-generation index object."""
+
+    if index.get("index_version") != SUPPORTED_INDEX_VERSION:
+        raise ValueError(f"unsupported index_version: {index.get('index_version')!r}")
+    _validate_schema(index, DEFAULT_INDEX_SCHEMA_PATH)
+    _validate_time_window(index)
+    normalize_ski(index["signer_kid"])
 
 
 def parse_attestation_payload(raw: str) -> Mapping[str, Any]:
@@ -155,6 +189,16 @@ def parse_attestation_envelope(raw: str) -> Mapping[str, Any]:
         raise ValueError("payload must be an object")
     validate_attestation_payload(payload)
     return envelope
+
+
+def parse_latest_index(raw: str) -> Mapping[str, Any]:
+    """Parse latest-generation index JSON and validate schema."""
+
+    index = parse_json_no_duplicates(raw)
+    if not isinstance(index, Mapping):
+        raise ValueError("latest index must be a JSON object")
+    validate_latest_index(index)
+    return index
 
 
 def extract_signer_kid(certificate: x509.Certificate) -> str:
@@ -255,17 +299,60 @@ def sign_payload(
 ) -> str:
     """Return base64 signature bytes for canonical payload bytes."""
 
+    return _sign_bytes(
+        canonical_json_bytes(payload),
+        private_key,
+        signature_algorithm=signature_algorithm,
+    )
+
+
+def _sign_bytes(
+    payload_bytes: bytes,
+    private_key: bytes | str | Path,
+    *,
+    signature_algorithm: str = SUPPORTED_SIGNATURE_ALGORITHM,
+) -> str:
     if signature_algorithm != SUPPORTED_SIGNATURE_ALGORITHM:
         raise ValueError(f"unsupported signature_algorithm: {signature_algorithm!r}")
     key = _load_private_key(private_key)
     if not isinstance(key, rsa.RSAPrivateKey):
         raise ValueError("signing key must be RSA")
     signature = key.sign(
-        canonical_json_bytes(payload),
+        payload_bytes,
         padding.PKCS1v15(),
         hashes.SHA256(),
     )
     return base64.b64encode(signature).decode("ascii")
+
+
+def _index_signature_payload(index: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in index.items() if key != "signature"}
+
+
+def build_latest_index(
+    index_payload: Mapping[str, Any],
+    *,
+    private_key: bytes | str | Path,
+    signer_certificate: x509.Certificate | bytes | str | Path,
+    signature_algorithm: str = SUPPORTED_SIGNATURE_ALGORITHM,
+) -> dict[str, Any]:
+    """Build a signed latest-generation index."""
+
+    if not isinstance(signer_certificate, x509.Certificate):
+        signer_certificate = _load_pem_certificate(signer_certificate)
+    signer_kid = extract_signer_kid(signer_certificate)
+    unsigned = dict(index_payload)
+    unsigned["index_version"] = SUPPORTED_INDEX_VERSION
+    unsigned["signer_kid"] = signer_kid
+    validate_latest_index({**unsigned, "signature": "AA=="})
+    signature = _sign_bytes(
+        canonical_json_bytes(unsigned),
+        private_key,
+        signature_algorithm=signature_algorithm,
+    )
+    signed = {**unsigned, "signature": signature}
+    validate_latest_index(signed)
+    return signed
 
 
 def build_attestation_envelope(
@@ -306,6 +393,13 @@ def attestation_envelope_sha256(envelope: Mapping[str, Any]) -> str:
 
     validate_attestation_envelope(envelope)
     return hashlib.sha256(canonical_json_bytes(envelope)).hexdigest()
+
+
+def latest_index_sha256(index: Mapping[str, Any]) -> str:
+    """Return SHA-256 over canonical latest-index bytes."""
+
+    validate_latest_index(index)
+    return hashlib.sha256(canonical_json_bytes(index)).hexdigest()
 
 
 def _load_envelope_payload(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -397,21 +491,157 @@ def verify_attestation_envelope(
     }
 
 
+def _verify_signature_bytes(
+    *,
+    signature_b64: str,
+    payload_bytes: bytes,
+    certificate: x509.Certificate,
+) -> None:
+    try:
+        signature = base64.b64decode(signature_b64, validate=True)
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError("signature is not valid base64") from exc
+
+    public_key = certificate.public_key()
+    if not isinstance(public_key, RSAPublicKey):
+        raise ValueError("signer certificate must contain an RSA public key")
+    try:
+        public_key.verify(signature, payload_bytes, padding.PKCS1v15(), hashes.SHA256())
+    except InvalidSignature as exc:
+        raise ValueError("signature verification failed") from exc
+    except UnsupportedAlgorithm as exc:
+        raise ValueError("unsupported signing algorithm in certificate") from exc
+
+
+def verify_latest_index_signature(
+    index: Mapping[str, Any] | str,
+    signer_certificate: bytes | str | Path,
+    *,
+    ca_bundle: bytes | str | Path,
+    signer_allowlist: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    """Verify latest-generation index signature, signer identity, and CA trust."""
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    if isinstance(index, str):
+        index_obj = parse_latest_index(index)
+    elif isinstance(index, Mapping):
+        index_obj = dict(index)
+        validate_latest_index(index_obj)
+    else:
+        raise TypeError("index must be a JSON string or mapping")
+
+    certificate = _load_pem_certificate(signer_certificate)
+    _verify_certificate_active(certificate, now=now)
+    _verify_certificate_chain(certificate, _load_ca_certs(ca_bundle), now=now)
+    signer_kid = extract_signer_kid(certificate)
+    if normalize_ski(index_obj["signer_kid"]) != signer_kid:
+        raise ValueError("index signer_kid does not match certificate subject key id")
+    if signer_allowlist is not None:
+        allowlist = {normalize_ski(item) for item in signer_allowlist}
+        if signer_kid not in allowlist:
+            raise ValueError("signer_kid is not allowlisted")
+
+    _verify_signature_bytes(
+        signature_b64=index_obj["signature"],
+        payload_bytes=canonical_json_bytes(_index_signature_payload(index_obj)),
+        certificate=certificate,
+    )
+    return {"index": index_obj, "signer_kid": signer_kid}
+
+
+def _marker_value(marker: Mapping[str, Any] | Any, field: str) -> Any:
+    if isinstance(marker, Mapping):
+        return marker.get(field)
+    return getattr(marker, field, None)
+
+
+def verify_latest_index(
+    envelope: Mapping[str, Any] | str,
+    index: Mapping[str, Any] | str,
+    marker: Mapping[str, Any] | Any,
+    *,
+    now: datetime.datetime,
+    signer_certificate: bytes | str | Path,
+    ca_bundle: bytes | str | Path,
+    signer_allowlist: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    """Verify latest-generation index replay protection and marker binding."""
+
+    envelope_result = verify_attestation_envelope(
+        envelope,
+        signer_certificate=signer_certificate,
+        ca_bundle=ca_bundle,
+        signer_allowlist=signer_allowlist,
+    )
+    envelope_obj = envelope_result["envelope"]
+    payload = envelope_result["payload"]
+    index_result = verify_latest_index_signature(
+        index,
+        signer_certificate=signer_certificate,
+        ca_bundle=ca_bundle,
+        signer_allowlist=signer_allowlist,
+    )
+    index_obj = index_result["index"]
+
+    _assert_current_time_in_window(payload, now)
+    _assert_current_time_in_window(index_obj, now)
+
+    if index_obj["state"] == "revoked":
+        raise AttestationVerificationError("FAIL_REVOKED_ATTESTATION", "latest index is revoked")
+    if index_obj["subject_host"] != payload["subject_host"]:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "index subject_host does not match payload")
+    if index_obj["target"] != payload["target"]:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "index target does not match payload")
+    if list(index_obj["profile_set"]) != list(payload["profiles"]):
+        raise AttestationVerificationError("FAIL_PROFILE_MISMATCH", "index profile_set does not match payload profiles")
+    if index_obj["latest_generation"] > payload["generation"]:
+        raise AttestationVerificationError("FAIL_REPLAYED_ATTESTATION", "attestation generation is older than latest index")
+    if index_obj["latest_generation"] != payload["generation"]:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "index latest_generation does not match payload generation")
+    if index_obj["latest_attest_ref"] != _marker_value(marker, "attest_ref"):
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "index latest_attest_ref does not match marker")
+
+    marker_attest_sha256 = _marker_value(marker, "attest_sha256")
+    envelope_digest = attestation_envelope_sha256(envelope_obj)
+    if index_obj["latest_attest_sha256"] != envelope_digest:
+        raise AttestationVerificationError("FAIL_ATTESTATION_DIGEST", "index latest_attest_sha256 does not match envelope")
+    if marker_attest_sha256 and marker_attest_sha256 != envelope_digest:
+        raise AttestationVerificationError("FAIL_ATTESTATION_DIGEST", "marker attest_sha256 does not match envelope")
+
+    return {
+        "envelope": envelope_obj,
+        "payload": payload,
+        "index": index_obj,
+        "attest_sha256": envelope_digest,
+        "attestation_generation": payload["generation"],
+        "index_generation": index_obj["latest_generation"],
+    }
+
+
 __all__ = [
     "SUPPORTED_SIGNATURE_ALGORITHM",
     "SUPPORTED_ENVELOPE_VERSION",
+    "SUPPORTED_INDEX_VERSION",
+    "AttestationVerificationError",
     "canonical_json_bytes",
     "attestation_payload_sha256",
+    "attestation_envelope_sha256",
+    "latest_index_sha256",
     "parse_json_no_duplicates",
     "parse_utc_timestamp",
     "normalize_ski",
     "validate_attestation_payload",
     "validate_attestation_envelope",
+    "validate_latest_index",
     "parse_attestation_payload",
     "parse_attestation_envelope",
+    "parse_latest_index",
     "extract_signer_kid",
     "sign_payload",
     "build_attestation_envelope",
-    "attestation_envelope_sha256",
     "verify_attestation_envelope",
+    "build_latest_index",
+    "verify_latest_index_signature",
+    "verify_latest_index",
 ]

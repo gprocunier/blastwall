@@ -3,18 +3,18 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: pending v3 attestation batch
+- current commit: pending latest-index commit
 
 ## Phase Status
 | Phase | State | Owner | Commit(s) | Tests | Notes |
 |---:|---|---|---|---|---|
 | 00 | complete | PM + architecture lead | HEAD (`docs(v3): freeze signed attestation baseline`) | `policy_static`, profile validation, drift check, pytest | Branch created from the remediated v2 baseline; design doc copied into `docs/blastwall-v3/`; local baseline passed. |
 | 01 | complete | marker agent | HEAD (`feat(marker): reject duplicate reserved marker fields`) | marker, inventory grouping, audit, static | V2 markers reject duplicate reserved fields; inventory and audit fail closed on current+parser-invalid contradictions. |
-| 02 | complete | schema agent | pending | attestation pytest, full pytest | Added payload/envelope schemas, duplicate-key JSON loading, deterministic canonical bytes, payload/envelope digest validation. |
-| 03 | complete | signer agent | pending | crypto pytest, full pytest | Added single-format RSA PKCS1v15 detached payload signatures, SKI extraction, CA trust, allowlist, and signer certificate checks. |
-| 04 | complete | vault/KRA agent | pending | vault pytest, full pytest | Added explicit KRA vault configuration, targeted read/write helpers, retry/error context, digest readback, and health playbook skeleton. |
-| 05 | pending | vault/KRA + schema | pending | pending | Latest-generation index and replay control. |
-| 06 | complete | marker agent | pending | marker unittest, full pytest | Added v3 locator marker parser/emitter; valid v3 markers produce hints but never marker-only suitability. |
+| 02 | complete | schema agent | `a5dbeb0` | attestation pytest, full pytest | Added payload/envelope schemas, duplicate-key JSON loading, deterministic canonical bytes, payload/envelope digest validation. |
+| 03 | complete | signer agent | `a5dbeb0` | crypto pytest, full pytest | Added single-format RSA PKCS1v15 detached payload signatures, SKI extraction, CA trust, allowlist, and signer certificate checks. |
+| 04 | complete | vault/KRA agent | `a5dbeb0` | vault pytest, full pytest | Added explicit KRA vault configuration, targeted read/write helpers, retry/error context, digest readback, and health playbook skeleton. |
+| 05 | complete | vault/KRA + schema | pending | index pytest, full pytest | Added signed latest-generation index schema, signature verification, digest binding, and replay/revocation checks. |
+| 06 | complete | marker agent | `a5dbeb0` | marker unittest, full pytest | Added v3 locator marker parser/emitter; valid v3 markers produce hints but never marker-only suitability. |
 | 07 | pending | preflight agent | pending | pending | AAP preflight attestation verification. |
 | 08 | pending | AAP agent | pending | pending | Signer and marker-promotion workflows. |
 | 09 | pending | inventory agent | pending | pending | Inventory audit and monitoring. |
@@ -88,6 +88,15 @@
 - open issues: health playbook is a skeleton until Calabi KRA command details are validated
 - security invariants checked: vault helpers require explicit server input; no implicit IdM discovery path was added; structured error context is available
 - next recommended phase: Phase 05 latest-generation index
+
+### Phase 05
+- phase: 05
+- files changed: `policy/attestation-index-schema.json`, `tools/blastwall_attestation.py`, `tests/test_blastwall_attestation_index.py`
+- tests added: valid signed latest index; tampered index signature; older attestation generation replay; index digest mismatch; marker digest mismatch; wrong host/profile binding; revoked index
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation.py tests/test_blastwall_attestation_crypto.py tests/test_blastwall_attestation_index.py`; `python3 tests/policy_static.py`; `python3 -m pytest -q tests`; `git diff --check`
+- open issues: vault write/read integration for indexes is deferred to signer/preflight workflow phases, using the explicit KRA helper from Phase 04
+- security invariants checked: stable-v3 latest index is mandatory in verifier surface; stale generations fail as `FAIL_REPLAYED_ATTESTATION`; revoked index fails closed
+- next recommended phase: Phase 07 preflight verification
 
 ### Phase 06
 - phase: 06
