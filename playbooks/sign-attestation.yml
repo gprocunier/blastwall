@@ -182,7 +182,6 @@
           register: blastwall_signed_attestation
           changed_when: false
           failed_when: blastwall_signed_attestation.rc != 0
-          no_log: true
           delegate_to: localhost
           vars:
             blastwall_attestation_sign_argv: >-
