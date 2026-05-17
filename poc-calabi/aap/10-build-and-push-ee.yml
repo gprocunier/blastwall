@@ -6,6 +6,9 @@
   gather_facts: true
   vars_files:
     - vars/calabi-aap.yml
+  environment:
+    HOME: "{{ calabi_operator_home }}"
+    PATH: "{{ calabi_operator_path }}"
   tasks:
     - name: Require ansible-builder
       ansible.builtin.command:
