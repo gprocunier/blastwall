@@ -25,10 +25,18 @@ pytest:
 	$(PYTHON) -m pytest -q tests
 
 test-policy:
-	$(NPM) run test:policy
+	$(PYTHON) tools/validate_blastwall_profiles.py --registry policy/profiles.yml
+	$(PYTHON) tools/check_blastwall_drift.py --registry policy/profiles.yml
+	$(PYTHON) tests/test_validate_blastwall_profiles.py
+	$(PYTHON) tests/test_check_blastwall_drift.py
+	$(PYTHON) tests/test_blastwall_marker.py
+	$(PYTHON) tests/test_strange_socket_probe.py
+	$(PYTHON) tests/policy_static.py
+	$(PYTHON) tests/inventory_grouping.py
+	$(PYTHON) tests/openshift/validate_spo_manifests.py
 
 test-openshift:
-	$(NPM) run test:openshift
+	$(PYTHON) tests/openshift/validate_spo_manifests.py
 
 test-docs:
 	$(NPM) run test:docs
