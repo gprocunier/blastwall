@@ -12,6 +12,14 @@
       default('mirror-registry.workshop.lan', true) }}
     calabi_blastwall_stale_marker: >-
       blastwall:state=active;rpm=blastwall-selinux-0.4.0-1;rpm_sha256=2222222222222222222222222222222222222222222222222222222222222222;alg=deny;bpf=deny;self=deny
+    calabi_ipa_basedn: "dc={{ blastwall_lab_domain | replace('.', ',dc=') }}"
+    calabi_ipa_login_principal: >-
+      {{
+        blastwall_ipaadmin_principal
+        if '@' in blastwall_ipaadmin_principal
+        else blastwall_ipaadmin_principal ~ '@' ~ blastwall_ipa_realm
+      }}
+    calabi_seed_ccache: FILE:/tmp/blastwall_seed_krb5cc
   tasks:
     - name: Require IdM admin password
       ansible.builtin.assert:
@@ -19,27 +27,85 @@
           - blastwall_ipaadmin_password | length > 0
         fail_msg: "Set IPA_ADMIN_PASSWORD before seeding the AAP selection fixture."
 
+    - name: Write FreeIPA client config for selection fixture seeding
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ blastwall_idm_host }}
+          domain = {{ blastwall_lab_domain }}
+          realm = {{ blastwall_ipa_realm }}
+          basedn = {{ calabi_ipa_basedn }}
+          xmlrpc_uri = https://{{ blastwall_idm_host }}/ipa/xml
+
     - name: Ensure stale Blastwall fixture host exists in IdM
-      freeipa.ansible_freeipa.ipahost:
-        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
-        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
-        name: "{{ calabi_blastwall_stale_host }}"
-        userclass:
-          - "{{ calabi_blastwall_stale_marker }}"
-        force: true
-        state: present
-      no_log: true
+      block:
+        - name: Seed stale Blastwall fixture host through FreeIPA collection
+          freeipa.ansible_freeipa.ipahost:
+            ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+            ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+            name: "{{ calabi_blastwall_stale_host }}"
+            userclass:
+              - "{{ calabi_blastwall_stale_marker }}"
+            force: true
+            state: present
+          no_log: true
+      rescue:
+        - name: Seed stale Blastwall fixture host with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_ADMIN_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            if ipa -e "server=${IPA_SERVER}" -f -n host-show "${BLASTWALL_HOST}" >/dev/null 2>&1; then
+              ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
+                --setattr="userclass=${BLASTWALL_MARKER}" >/dev/null
+            else
+              ipa -e "server=${IPA_SERVER}" -f -n host-add "${BLASTWALL_HOST}" \
+                --force \
+                --setattr="userclass=${BLASTWALL_MARKER}" >/dev/null
+            fi
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
+            IPA_LOGIN_PRINCIPAL: "{{ calabi_ipa_login_principal }}"
+            IPA_SERVER: "{{ blastwall_idm_host }}"
+            KRB5CCNAME: "{{ calabi_seed_ccache }}"
+            BLASTWALL_HOST: "{{ calabi_blastwall_stale_host }}"
+            BLASTWALL_MARKER: "{{ calabi_blastwall_stale_marker }}"
+          changed_when: true
+          no_log: true
 
     - name: Add stale fixture host to Blastwall managed-host group
-      freeipa.ansible_freeipa.ipahostgroup:
-        ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
-        ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
-        name: "{{ blastwall_hostgroup }}"
-        host:
-          - "{{ calabi_blastwall_stale_host }}"
-        action: member
-        state: present
-      no_log: true
+      block:
+        - name: Add stale fixture host to Blastwall managed-host group through FreeIPA collection
+          freeipa.ansible_freeipa.ipahostgroup:
+            ipaadmin_principal: "{{ blastwall_ipaadmin_principal }}"
+            ipaadmin_password: "{{ blastwall_ipaadmin_password }}"
+            name: "{{ blastwall_hostgroup }}"
+            host:
+              - "{{ calabi_blastwall_stale_host }}"
+            action: member
+            state: present
+          no_log: true
+      rescue:
+        - name: Add stale fixture host to Blastwall managed-host group with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_ADMIN_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            ipa -e "server=${IPA_SERVER}" -f -n hostgroup-add-member "${BLASTWALL_HOSTGROUP}" \
+              --hosts="${BLASTWALL_HOST}" >/dev/null || true
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
+            IPA_LOGIN_PRINCIPAL: "{{ calabi_ipa_login_principal }}"
+            IPA_SERVER: "{{ blastwall_idm_host }}"
+            KRB5CCNAME: "{{ calabi_seed_ccache }}"
+            BLASTWALL_HOST: "{{ calabi_blastwall_stale_host }}"
+            BLASTWALL_HOSTGROUP: "{{ blastwall_hostgroup }}"
+          changed_when: true
+          no_log: true
 
     - name: Report current/stale selection fixture
       ansible.builtin.debug:

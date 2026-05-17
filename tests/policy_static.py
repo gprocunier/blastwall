@@ -372,6 +372,13 @@ if "BLASTWALL_PROJECT_BRANCH" not in calabi_config:
     fail("Calabi AAP configuration does not pass BLASTWALL_PROJECT_BRANCH")
 if "BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP" not in calabi_config:
     fail("Calabi AAP configuration does not pass the post-promotion preflight target group")
+for required_seed_fallback in [
+    "Seed stale Blastwall fixture host with FreeIPA CLI fallback",
+    "hostgroup-add-member",
+    "KRB5CCNAME",
+]:
+    if required_seed_fallback not in calabi_seed_fixture:
+        fail(f"Calabi AAP seed fixture is missing FreeIPA CLI fallback: {required_seed_fallback}")
 project_url_env_pattern = re.compile(
     r"BLASTWALL_PROJECT_URL:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_PROJECT_URL['\"]\s*\)\s*\|\s*default\("
     r"\s*['\"]https://github\.com/gprocunier/blastwall\.git['\"]\s*,\s*true\s*\)\s*\}\}",
@@ -656,15 +663,10 @@ if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_pr
 
 print("PASS: AAP policy pipeline targets stale candidates before promotion")
 
-collection_backed_marker_paths = [
-    ROOT / "poc-calabi" / "aap" / "25-seed-selection-fixture.yml",
-]
-
-for path in collection_backed_marker_paths:
-    text = path.read_text(encoding="utf-8")
-    for raw_cli in ["ipa host-mod", "ipa host-add", "hostgroup-add-member"]:
-        if raw_cli in text:
-            fail(f"{path.relative_to(ROOT)} uses raw {raw_cli} instead of collection modules")
+if "freeipa.ansible_freeipa.ipahost" not in calabi_seed_fixture:
+    fail("poc-calabi/aap/25-seed-selection-fixture.yml does not use the FreeIPA host collection module")
+if "freeipa.ansible_freeipa.ipahostgroup" not in calabi_seed_fixture:
+    fail("poc-calabi/aap/25-seed-selection-fixture.yml does not use the FreeIPA hostgroup collection module")
 
 if "freeipa.ansible_freeipa.ipahost" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not use freeipa.ansible_freeipa.ipahost for marker writes")
