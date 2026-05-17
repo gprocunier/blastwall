@@ -32,6 +32,9 @@ blastwall_aap_idm_credential_type: Blastwall IdM Runtime
 blastwall_aap_idm_credential: Blastwall IdM Runtime
 blastwall_aap_policy_idm_credential: Blastwall Policy Maintainer IdM
 blastwall_aap_idm_admin_credential: Blastwall IdM Admin
+blastwall_aap_attestation_idm_credential: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_IDM_CREDENTIAL') |
+  default(blastwall_aap_idm_admin_credential, true) }}
 blastwall_aap_machine_credential: svc-ansible-runner
 blastwall_aap_policy_machine_credential: sysop policy maintainer ssh
 blastwall_aap_registry_credential: Blastwall EE Registry
@@ -214,7 +217,7 @@ blastwall_aap_v3_job_templates:
   - name: Blastwall sign attestation
     playbook: playbooks/sign-attestation.yml
     credentials:
-      - "{{ blastwall_aap_policy_idm_credential }}"
+      - "{{ blastwall_aap_attestation_idm_credential }}"
       - "{{ blastwall_aap_attestation_signer_credential }}"
     limit: "{{ blastwall_aap_policy_pipeline_candidate_group }}"
     extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"

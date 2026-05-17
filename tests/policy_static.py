@@ -924,6 +924,7 @@ for required_v3_doc in [
         fail(f"missing v3 documentation file: docs/blastwall-v3/{required_v3_doc}")
 for required_signer_signal in [
     "Blastwall sign attestation",
+    "blastwall_aap_attestation_idm_credential",
     "blastwall_aap_attestation_signer_credential",
     "blastwall_aap_attestation_verifier_credential",
     "BLASTWALL_ATTESTATION_SIGNER_KEY",
@@ -936,6 +937,8 @@ if signer_key_var in v3_preflight or signer_key_var in v3_promote:
     fail("stable-v3 preflight/promotion must not receive the signer private-key credential")
 if verifier_var not in aap_controller:
     fail("AAP stable-v3 preflight/promotion must attach verifier credential")
+if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
+    fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
 if "Build, store, read back, and verify signed attestation" not in v3_sign:
     fail("sign-attestation.yml does not enforce write/readback/verify before marker publication")
 if "Verify stable-v3 attestation before marker publication" not in v3_promote:

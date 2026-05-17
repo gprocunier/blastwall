@@ -14,6 +14,8 @@ Both can be healthy independently. A healthy LDAP path does not guarantee KRA-ba
 - KRA-enabled IdM replicas are explicitly configured.
 - signer writes and preflight reads use the same primary by policy.
 - service principals are scoped by service owner, not by ad-hoc user automation accounts.
+- the AAP credential attached to `Blastwall sign attestation` has explicit
+  KRA vault write/read authority for the configured scope.
 
 ## Service-owned vault recommendation
 
@@ -82,6 +84,12 @@ blastwall_attestation_vault_owner: blastwall-attestation/<kra-primary-fqdn>
 ```
 
 Do not use defaults for these values in stable-v3.
+
+For Calabi shared-vault RC validation, the AAP controller configuration uses
+`BLASTWALL_ATTESTATION_IDM_CREDENTIAL` to select the KRA custody credential for
+the signer job. It defaults to `Blastwall IdM Admin` because the policy
+maintainer identity is not allowed to create shared KRA vault entries. Prefer a
+dedicated service-owned custody principal when that role is provisioned.
 
 ## Readiness gates
 

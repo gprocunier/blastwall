@@ -17,6 +17,9 @@ Use this checklist before claiming stable-v3.
 - `BLASTWALL_ATTESTATION_MODE` = `stable-v3` is explicitly set.
 - Primary KRA server configured and documented.
 - Explicit vault owner and scope are configured for service-owned path.
+- AAP signer-job custody credential has KRA vault write/read authority for the
+  selected scope. For shared-vault RC validation this is normally an IdM admin
+  credential; for production prefer a dedicated service-owned principal.
 - Signer certificate allowlist is populated.
 - CA trust bundle is current and committed to environment.
 - Marker policy includes:

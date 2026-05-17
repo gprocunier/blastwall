@@ -754,6 +754,12 @@ shared/blastwall-attestations/<fqdn>/<profile-key>/<generation>.json
 shared/blastwall-attestation-index/<fqdn>/<profile-key>.json
 ```
 
+Shared-vault RC workflows still require a custody credential with KRA write/read
+authority. In Calabi, `BLASTWALL_ATTESTATION_IDM_CREDENTIAL` selects that AAP
+credential for `Blastwall sign attestation`; it defaults to `Blastwall IdM
+Admin` because the policy maintainer identity cannot create shared KRA vault
+entries.
+
 For stable-v3, prefer service-owned vaults when operationally available:
 
 ```text
