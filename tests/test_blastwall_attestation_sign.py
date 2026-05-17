@@ -266,6 +266,21 @@ class BlastwallAttestationSignTests(unittest.TestCase):
                 index_text=Path(report["index_file"]).read_text(encoding="utf-8"),
             )
 
+    def test_failure_report_includes_structured_vault_context(self) -> None:
+        context = vault.VaultErrorContext(
+            server="idm-01.workshop.lan",
+            vault_ref="shared/blastwall-attestation/test.json",
+            vault_error_type=vault.VaultErrorType.AUTH_FAILURE,
+            message="vault write failed: rc=1",
+            command=["blastwall-ipa-vault", "write"],
+            returncode=1,
+            stderr="ipa: ERROR: Insufficient access",
+        )
+        report = signer._failure_report(vault.VaultCommandError(context))
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["vault_error"]["vault_error_type"], "auth_failure")
+        self.assertEqual(report["vault_error"]["stderr"], "ipa: ERROR: Insufficient access")
+
 
 if __name__ == "__main__":
     unittest.main()

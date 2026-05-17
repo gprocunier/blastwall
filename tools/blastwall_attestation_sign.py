@@ -449,6 +449,13 @@ def verify_existing_artifacts(
     }
 
 
+def _failure_report(exc: Exception) -> dict[str, Any]:
+    report: dict[str, Any] = {"status": "FAIL", "message": str(exc)}
+    if isinstance(exc, blastwall_attestation_vault.VaultCommandError):
+        report["vault_error"] = exc.context.to_dict()
+    return report
+
+
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--registry", type=Path, default=blastwall_marker.DEFAULT_REGISTRY)
     parser.add_argument("--subject-host", required=True)
@@ -516,7 +523,7 @@ def main() -> int:
                 index_text=_read_json_text(args.index_json),
             )
     except Exception as exc:  # noqa: BLE001 - CLI must return structured failure evidence.
-        print(json.dumps({"status": "FAIL", "message": str(exc)}, sort_keys=True))
+        print(json.dumps(_failure_report(exc), sort_keys=True))
         return 1
     print(json.dumps(report, sort_keys=True))
     return 0
