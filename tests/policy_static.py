@@ -972,6 +972,8 @@ for required_live_preflight_signal in [
             "stable-v3 preflight must fall back to live FreeIPA marker hints "
             f"when controller inventory propagation lags: {required_live_preflight_signal}"
         )
+if "^blastwall:.*(?:^blastwall:|;)v=3" in v3_preflight:
+    fail("stable-v3 preflight marker selector does not match blastwall:v=3 prefix markers")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
     fail("AAP policy pipeline does not route verified candidates through sign_attestation before marker promotion")
 v3_verifier = (ROOT / "tools" / "blastwall_attestation_verify.py").read_text(encoding="utf-8")

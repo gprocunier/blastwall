@@ -525,7 +525,7 @@
           {{
             (
               host_marker_values |
-              select('match', '^blastwall:.*(?:^blastwall:|;)v=3(?:;|$)') |
+              select('match', '^blastwall:(?:v=3(?:;|$)|.*;v=3(?:;|$))') |
               list |
               first
             ) | default('', true)
@@ -557,7 +557,7 @@
           {{
             (
               host_marker_values |
-              select('match', '^blastwall:.*(?:^blastwall:|;)v=3(?:;|$)') |
+              select('match', '^blastwall:(?:v=3(?:;|$)|.*;v=3(?:;|$))') |
               list |
               first
             ) | default('', true)
