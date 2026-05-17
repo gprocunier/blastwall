@@ -43,7 +43,7 @@
 
 ## Calabi Evidence
 - Not completed for v3. `virt-01.workshop.lan` was reachable, but the required lab guests were shut off during the Phase 13 attempt.
-- Use `blastwall_v3_codex_implementation_pack/calabi/CALABI_V3_KRA_GATE_RUNBOOK.md` after the lab is powered on and this source commit is available to the Calabi/AAP path.
+- Use the v3 KRA gate runbook after the lab is powered on and this source commit is available to the Calabi/AAP path.
 
 ## Final Decision
 - Local source GO for Phase 13 gate.

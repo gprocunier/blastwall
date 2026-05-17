@@ -39,10 +39,10 @@ Reference documents:
 - `docs/blastwall-v3/operator-runbook.md`
 - `docs/blastwall-v3/kra-topology-runbook.md`
 - `docs/blastwall-v3/revocation-and-breakglass.md`
-- `blastwall_v3_codex_implementation_pack/phases/PHASE_14_DOCS_GOVERNANCE_AND_EXTERNAL_REVIEW.md`
-- `blastwall_v3_codex_implementation_pack/calabi/CALABI_V3_KRA_GATE_RUNBOOK.md`
-- `blastwall_v3_codex_implementation_pack/appendices/ACCEPTANCE_TEST_CATALOG.md`
-- `blastwall_v3_codex_implementation_pack/appendices/V3_FAILURE_STATES.md`
+- `V3_IMPLEMENTATION_LEDGER.md`
+- `tools/blastwall_attestation_verify.py`
+- `tools/blastwall_attestation_sign.py`
+- `tools/audit_blastwall_inventory.py`
 
 ## Calabi evidence placeholders
 
