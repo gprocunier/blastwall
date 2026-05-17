@@ -426,7 +426,6 @@
           {{ blastwall_hbac_result_dir.path }}/{{
           item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.json
       changed_when: false
-      no_log: "{{ ipa_password | length > 0 }}"
       loop: "{{ blastwall_target_hosts }}"
 
     - name: Read isolated HBAC access test results
@@ -435,7 +434,6 @@
           {{ blastwall_hbac_result_dir.path }}/{{
           item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.json
       register: blastwall_hbac_result_files
-      no_log: "{{ ipa_password | length > 0 }}"
       loop: "{{ blastwall_target_hosts }}"
 
     - name: Store isolated HBAC access test results
@@ -447,7 +445,6 @@
               item.item: item.content | b64decode | from_json
             })
           }}
-      no_log: "{{ ipa_password | length > 0 }}"
       loop: "{{ blastwall_hbac_result_files.results | default([]) }}"
 
     - name: Remove isolated HBAC result directory

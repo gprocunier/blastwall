@@ -76,11 +76,9 @@
                     ipaadmin_password=ipa_password,
                     kerberos_keytab=ipa_keytab,
                     verify=ipa_ca) }}
-      no_log: "{{ ipa_password | length > 0 }}"
 
     - name: Write isolated HBAC access test result
       ansible.builtin.copy:
         dest: "{{ blastwall_hbac_output }}"
         mode: "0600"
         content: "{{ blastwall_hbac_access_test | to_json }}"
-      no_log: "{{ ipa_password | length > 0 }}"
