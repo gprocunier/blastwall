@@ -404,6 +404,11 @@ if "idm_userclass" not in calabi_eigenstate:
     fail("poc-calabi/inventory-eigenstate.yml does not include idm_userclass")
 if "BLASTWALL_AAP_VERIFY_TARGET_GROUP" not in calabi_config:
     fail("Calabi AAP configuration does not pass the managed-host verify target group")
+calabi_aap_registry = (ROOT / "poc-calabi" / "aap" / "05-configure-ee-registry.yml").read_text(encoding="utf-8")
+if "{{ ansible_env.HOME }}/.ssh/id_ed25519" in calabi_aap_registry:
+    fail("Calabi AAP registry prep must not derive the bastion key path from ansible_env.HOME")
+if "{{ calabi_operator_home }}/.ssh/id_ed25519" not in calabi_aap_registry:
+    fail("Calabi AAP registry prep must use calabi_operator_home for the bastion key path")
 if "BLASTWALL_IDM_ADMIN_PRINCIPAL" not in calabi_config or "BLASTWALL_IDM_ADMIN_PASSWORD" not in calabi_config:
     fail("Calabi AAP configuration does not pass the IdM admin credential for marker promotion")
 if "default(calabi_aap_runtime_password.stdout, true)" not in calabi_config:
