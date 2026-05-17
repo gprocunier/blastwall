@@ -149,6 +149,7 @@ blastwall_aap_spo_apply_extra_vars:
   BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1: "{{ blastwall_aap_spo_validate_strange_socket_v1 }}"
 blastwall_aap_inventory_source_vars:
   BLASTWALL_ALLOW_DRY_RUN_PROFILES: "{{ blastwall_aap_allow_dry_run_profiles }}"
+  BLASTWALL_ATTESTATION_MODE: "{{ blastwall_aap_attestation_mode }}"
 
 blastwall_aap_registry_host: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_HOST') |

@@ -326,6 +326,7 @@
     - name: Store installed Blastwall policy payload hash
       ansible.builtin.set_fact:
         blastwall_policy_module_sha256: "{{ blastwall_policy_payload_hash.stdout | trim }}"
+        blastwall_policy_artifact_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
 
     - name: Assert installed Blastwall policy payload hash is valid
       ansible.builtin.assert:
@@ -339,8 +340,32 @@
           policy_nevra: "{{ blastwall_policy_nevra }}"
           policy_rpm: "{{ blastwall_policy_artifact_path }}"
           blastwall_policy_sha256: "{{ blastwall_policy_module_sha256 }}"
-          blastwall_policy_artifact_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
-          blastwall_policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
+          blastwall_policy_artifact_sha256: "{{ blastwall_policy_artifact_sha256 }}"
+          blastwall_policy_rpm_sha256: "{{ blastwall_policy_artifact_sha256 }}"
+          BLASTWALL_POLICY_SHA256: "{{ blastwall_policy_module_sha256 }}"
+          BLASTWALL_CURRENT_POLICY_SHA256: "{{ blastwall_policy_module_sha256 }}"
+          BLASTWALL_POLICY_RPM_SHA256: "{{ blastwall_policy_artifact_sha256 }}"
+
+    - name: Publish installed policy hashes by host
+      ansible.builtin.set_stats:
+        data:
+          blastwall_policy_sha256_by_host: >-
+            {{
+              dict(ansible_play_hosts_all | zip(
+                ansible_play_hosts_all |
+                map('extract', hostvars, 'blastwall_policy_module_sha256')
+              ))
+            }}
+          blastwall_policy_rpm_sha256_by_host: >-
+            {{
+              dict(ansible_play_hosts_all | zip(
+                ansible_play_hosts_all |
+                map('extract', hostvars, 'blastwall_policy_artifact_sha256')
+              ))
+            }}
+      run_once: true
+      become: false
+      delegate_to: localhost
 
     - name: Report policy installation evidence
       ansible.builtin.debug:
@@ -348,6 +373,6 @@
           policy_pipeline_install: passed
           policy_nevra: "{{ blastwall_policy_nevra }}"
           policy_sha256: "{{ blastwall_policy_module_sha256 }}"
-          artifact_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
-          policy_rpm_sha256: "{{ blastwall_policy_artifact_checksum.stat.checksum }}"
+          artifact_sha256: "{{ blastwall_policy_artifact_sha256 }}"
+          policy_rpm_sha256: "{{ blastwall_policy_artifact_sha256 }}"
           strange_socket_v1_dry_run: "{{ blastwall_enable_strange_socket_v1_dry_run }}"

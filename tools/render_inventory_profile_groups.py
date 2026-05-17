@@ -109,6 +109,47 @@ def _v2_marker_match_expr(state: str, fields: dict[str, str], registry_hash: str
     )
 
 
+def _v3_marker_hint_match_expr(state: str, fields: dict[str, str]) -> str:
+    rpm_expr = (
+        "(BLASTWALL_REQUIRED_POLICY_MARKER | "
+        "default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | "
+        f"default({_jinja_string(blastwall_marker.DEFAULT_RPM)}, true), true) | regex_escape)"
+    )
+    profile_pattern = re.escape(fields["profiles"])
+    target_pattern = re.escape(fields["target"])
+
+    pattern_parts = [
+        _jinja_string("^"),
+        *(_jinja_string(pattern) for pattern in _reserved_field_uniqueness_patterns()),
+        *[
+            _jinja_string("(?=.*(?:^blastwall:|;)v=3(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)state={re.escape(state)}(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)target={target_pattern}(?:;|$))"),
+            _jinja_string("(?=.*(?:^blastwall:|;)rpm="),
+            rpm_expr,
+            _jinja_string("(?:;|$))"),
+            _jinja_string(f"(?=.*(?:^blastwall:|;)profiles={profile_pattern}(?:;|$))"),
+            _jinja_string(
+                "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/"
+                "[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+            ),
+            _jinja_string("(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))"),
+            _jinja_string("(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"),
+            _jinja_string(
+                "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+                "[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))"
+            ),
+            _jinja_string("(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"),
+            _jinja_string("blastwall:"),
+        ],
+    ]
+    pattern_expr = " ~ ".join(pattern_parts)
+    return (
+        f"(([idm_userclass] if idm_userclass is string else idm_userclass) | "
+        f"select('match', {pattern_expr}) | list | length) > 0"
+    )
+
+
 def _legacy_v1_match_expr() -> str:
     marker_values = "([idm_userclass] if idm_userclass is string else idm_userclass)"
     marker_list = f"({marker_values} | select('match', '^blastwall:') | list)"
@@ -162,13 +203,44 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         profiles=["base", DEFAULT_STRANGE_PROFILE],
         allow_dry_run_profiles=True,
     )
+    v3_base_marker = blastwall_marker.emit_marker_v3(
+        registry=registry,
+        rpm=blastwall_marker.DEFAULT_RPM,
+        profiles=["base"],
+        attest_ref="shared/blastwall-attestation/blastwall-attestations/example/base/1.json",
+        attest_sha256="b" * 64,
+        signer_kid="c" * 40,
+        exp="2099-01-01T00:00:00Z",
+        generation=1,
+    )
+    v3_strange_marker = blastwall_marker.emit_marker_v3(
+        registry=registry,
+        rpm=blastwall_marker.DEFAULT_RPM,
+        profiles=["base", DEFAULT_STRANGE_PROFILE],
+        attest_ref="shared/blastwall-attestation/blastwall-attestations/example/base-strange-socket-v1/1.json",
+        attest_sha256="b" * 64,
+        signer_kid="c" * 40,
+        exp="2099-01-01T00:00:00Z",
+        generation=1,
+        allow_dry_run_profiles=True,
+    )
 
     base_fields = _marker_fields(v2_base_marker)
     strange_fields = _marker_fields(v2_strange_marker)
+    v3_base_fields = _marker_fields(v3_base_marker)
+    v3_strange_fields = _marker_fields(v3_strange_marker)
 
     base_match = _maybe_indent(_v2_marker_match_expr("active", base_fields, registry_hash), 6)
     strange_match = _maybe_indent(
         _v2_marker_match_expr(strange_fields["state"], strange_fields, registry_hash),
+        6,
+    )
+    v3_base_match = _maybe_indent(
+        _v3_marker_hint_match_expr("active", v3_base_fields),
+        6,
+    )
+    v3_strange_match = _maybe_indent(
+        _v3_marker_hint_match_expr(v3_strange_fields["state"], v3_strange_fields),
         6,
     )
     legacy_match = _legacy_v1_match_expr()
@@ -177,6 +249,11 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         "(BLASTWALL_ALLOW_DRY_RUN_PROFILES | "
         "default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | "
         "bool)"
+    )
+    signed_attestation_mode = (
+        "((BLASTWALL_ATTESTATION_MODE | "
+        "default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) "
+        "in ['stable-v3', 'breakglass'])"
     )
     schema_error = _and_block(
         "idm_userclass is defined and",
@@ -197,8 +274,9 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         "(idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0)"
     )
 
-    profile_base = _and_block(
-        "idm_userclass is defined and",
+    reference_current = _and_block(
+        "not " + signed_attestation_mode,
+        "and",
         "(",
         f"{base_match}",
         "or",
@@ -209,44 +287,57 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         "      and",
         f"{strange_match}",
         "    )",
+        ")",
+    )
+    signed_current = _and_block(
+        signed_attestation_mode,
+        "and",
+        "(",
+        f"{v3_base_match}",
+        "or",
+        "(",
+        f"      {allow_dry_run}",
+        "      and",
+        f"{v3_strange_match}",
+        "    )",
+        ")",
+    )
+
+    profile_base = _and_block(
+        "idm_userclass is defined and",
+        "(",
+        f"{reference_current}",
+        "or",
+        f"{signed_current}",
         ")",
     )
 
     profile_strange = _and_block(
         "idm_userclass is defined and",
         "(",
-        f"        {allow_dry_run}",
-        "        and",
-        f"{strange_match}",
-        "    )",
-    )
-
-    profile_current = _and_block(
-        "idm_userclass is defined and",
         "(",
-        f"{base_match}",
-        "or",
-        f"{legacy_match}",
-        "or",
-        "(",
+        f"      not {signed_attestation_mode}",
+        "      and",
         f"      {allow_dry_run}",
         "      and",
         f"{strange_match}",
+        "    )",
+        "or",
+        "(",
+        f"      {signed_attestation_mode}",
+        "      and",
+        f"      {allow_dry_run}",
+        "      and",
+        f"{v3_strange_match}",
         "    )",
         ")",
     )
 
+    profile_current = profile_base
+
     profile_stale = _and_block(
         "idm_userclass is not defined or not (",
-        f"{base_match}",
-        "or",
-        f"{legacy_match}",
-        "or",
-        "(",
-        f"      {allow_dry_run}",
-        "      and",
-        f"{strange_match}",
-        "    )",
+        f"{profile_current}",
         ")",
     )
     marker_parse_error = _and_block(

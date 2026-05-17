@@ -75,6 +75,45 @@
         BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP: >-
           {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP') |
           default('', true) }}
+        BLASTWALL_REQUIRED_POLICY_PROFILES: >-
+          {{ lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true) }}
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES: >-
+          {{ lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true) }}
+        BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN: >-
+          {{ lookup('env', 'BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN') | default('', true) }}
+        BLASTWALL_AAP_ATTESTATION_ENABLED: >-
+          {{ lookup('env', 'BLASTWALL_AAP_ATTESTATION_ENABLED') | default('false', true) }}
+        BLASTWALL_ATTESTATION_MODE: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true) }}
+        BLASTWALL_ATTESTATION_SIGNER_KEY_FILE: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_KEY_FILE') | default('', true) }}
+        BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE_FILE: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_CERTIFICATE_FILE') | default('', true) }}
+        BLASTWALL_ATTESTATION_CA_BUNDLE_FILE: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE_FILE') | default('', true) }}
+        BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true) }}
+        BLASTWALL_ATTESTATION_VAULT_PRIMARY: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+        BLASTWALL_ATTESTATION_VAULT_SERVERS: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true) }}
+        BLASTWALL_ATTESTATION_VAULT_SCOPE: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+        BLASTWALL_ATTESTATION_VAULT_OWNER: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true) }}
+        BLASTWALL_ATTESTATION_ENVELOPE_DIR: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') |
+          default('/tmp/blastwall-attestations/envelopes', true) }}
+        BLASTWALL_ATTESTATION_INDEX_DIR: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
+          default('/tmp/blastwall-attestations/indexes', true) }}
+        BLASTWALL_CURRENT_POLICY_SHA256: >-
+          {{ lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
+          default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true) }}
+        BLASTWALL_PROBE_REPORT_SHA256: >-
+          {{ lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true) }}
+        BLASTWALL_SPO_EVIDENCE_JSON: >-
+          {{ lookup('env', 'BLASTWALL_SPO_EVIDENCE_JSON') | default('', true) }}
         BLASTWALL_IDM_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
         BLASTWALL_IDM_ADMIN_PASSWORD: >-
           {{ lookup('env', 'IPA_ADMIN_PASSWORD') |

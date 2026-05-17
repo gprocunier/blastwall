@@ -47,7 +47,7 @@ def jinja_bool_filter(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def build_inventory_environment(allow_dry_run_profiles: bool) -> Environment:
+def build_inventory_environment(allow_dry_run_profiles: bool, attestation_mode: str) -> Environment:
     env = Environment()
     env.filters["bool"] = jinja_bool_filter
     env.filters["regex_escape"] = re.escape
@@ -58,6 +58,7 @@ def build_inventory_environment(allow_dry_run_profiles: bool) -> Environment:
             return ""
         values = {
             "BLASTWALL_ALLOW_DRY_RUN_PROFILES": "true" if allow_dry_run_profiles else "false",
+            "BLASTWALL_ATTESTATION_MODE": attestation_mode,
             "BLASTWALL_PROFILE_REGISTRY_SHA256": registry_hash,
             "BLASTWALL_REQUIRED_POLICY_MARKER": marker.DEFAULT_RPM,
         }
@@ -80,7 +81,7 @@ def substitute_placeholders(value, registry_hash: str, policy_hash: str):
     return value
 
 
-def run_ansible_inventory(allow_dry_run_profiles: bool) -> dict[str, list[str]]:
+def run_ansible_inventory(allow_dry_run_profiles: bool, attestation_mode: str) -> dict[str, list[str]]:
     with tempfile.TemporaryDirectory(prefix="blastwall-inventory-") as inventory_dir:
         inventory_path = Path(inventory_dir)
         static_inventory = {
@@ -110,6 +111,7 @@ def run_ansible_inventory(allow_dry_run_profiles: bool) -> dict[str, list[str]]:
 
         env = os.environ.copy()
         env["BLASTWALL_ALLOW_DRY_RUN_PROFILES"] = "true" if allow_dry_run_profiles else "false"
+        env["BLASTWALL_ATTESTATION_MODE"] = attestation_mode
         env["BLASTWALL_PROFILE_REGISTRY_SHA256"] = registry_hash
         env["BLASTWALL_REQUIRED_POLICY_MARKER"] = marker.DEFAULT_RPM
         result = subprocess.run(
@@ -140,8 +142,10 @@ fixture = substitute_placeholders(
 
 mode_expected = fixture["expected"]
 modes = (
-    ("default", False),
-    ("allow_dry_run", True),
+    ("default", False, "reference-v2"),
+    ("allow_dry_run", True, "reference-v2"),
+    ("stable_v3", False, "stable-v3"),
+    ("stable_v3_allow_dry_run", True, "stable-v3"),
 )
 policy_groups = (
     "blastwall_policy_current",
@@ -163,10 +167,10 @@ inventory_groups = (
 
 actual = {
     mode: {group: [] for group in policy_groups}
-    for mode, _ in modes
+    for mode, _, _ in modes
 }
 
-for mode, allow_dry_run in modes:
+for mode, allow_dry_run, attestation_mode in modes:
     for host in fixture["hosts"]:
         if "description" in host:
             fail("fixture host entries should use idm_userclass, not description")
@@ -201,14 +205,29 @@ for mode, allow_dry_run in modes:
             for raw in markers
             if isinstance(raw, str) and raw.startswith("blastwall:")
         ]
-        current = any(result.suitable and "base" in result.profiles for result in parsed)
+        signed_mode = attestation_mode in {"stable-v3", "breakglass"}
+        current = any(
+            (
+                (signed_mode and result.hint)
+                or (not signed_mode and result.suitable)
+            )
+            and "base" in result.profiles
+            for result in parsed
+        )
         group = "blastwall_policy_current" if current else "blastwall_policy_stale"
         actual[mode][group].append(host["name"])
         if markers and not current and not schema_error:
             actual[mode]["blastwall_inventory_marker_parse_error"].append(host["name"])
         if current:
             actual[mode]["blastwall_profile_base"].append(host["name"])
-            if any(result.suitable and "strange-socket-v1" in result.profiles for result in parsed):
+            if any(
+                (
+                    (signed_mode and result.hint)
+                    or (not signed_mode and result.suitable)
+                )
+                and "strange-socket-v1" in result.profiles
+                for result in parsed
+            ):
                 actual[mode]["blastwall_profile_strange_socket_v1"].append(host["name"])
 
 rendered_group_expressions = renderer.render_profile_group_expressions()
@@ -222,15 +241,15 @@ inventory_expected = {
         **mode_expected[mode],
         "blastwall_policy_candidate": mode_expected[mode]["blastwall_policy_stale"],
     }
-    for mode, _ in modes
+    for mode, _, _ in modes
 }
 inventory_actual = {
     mode: {group: [] for group in inventory_groups}
-    for mode, _ in modes
+    for mode, _, _ in modes
 }
 
-for mode, allow_dry_run in modes:
-    env = build_inventory_environment(allow_dry_run)
+for mode, allow_dry_run, attestation_mode in modes:
+    env = build_inventory_environment(allow_dry_run, attestation_mode)
     compiled = {
         group: env.compile_expression(rendered_group_expressions[group])
         for group in inventory_actual[mode]
@@ -268,15 +287,15 @@ if inventory_actual != inventory_expected:
     raise SystemExit(1)
 
 ansible_inventory_actual = {
-    mode: run_ansible_inventory(allow_dry_run)
-    for mode, allow_dry_run in modes
+    mode: run_ansible_inventory(allow_dry_run, attestation_mode)
+    for mode, allow_dry_run, attestation_mode in modes
 }
 ansible_inventory_expected = {
     mode: {
         group: sorted(hosts)
         for group, hosts in inventory_expected[mode].items()
     }
-    for mode, _ in modes
+    for mode, _, _ in modes
 }
 if ansible_inventory_actual != ansible_inventory_expected:
     print("FAIL: ansible-inventory profile grouping mismatch", file=sys.stderr)
@@ -319,5 +338,15 @@ if canonical_strange_host not in actual[allow_dry_run_mode]["blastwall_profile_s
         "allow_dry_run mode: canonical strange-socket host must be selected for "
         "blastwall_profile_strange_socket_v1"
     )
+
+stable_v3_mode = "stable_v3"
+if "v3-base-current.example.com" not in actual[stable_v3_mode]["blastwall_profile_base"]:
+    fail("stable_v3 mode: v3 base marker hint must select blastwall_profile_base")
+if "v2-base-current.example.com" in actual[stable_v3_mode]["blastwall_profile_base"]:
+    fail("stable_v3 mode: v2 base marker must not satisfy signed current routing")
+
+stable_v3_dry_run_mode = "stable_v3_allow_dry_run"
+if "v3-strange-socket-lab-active.example.com" not in actual[stable_v3_dry_run_mode]["blastwall_profile_strange_socket_v1"]:
+    fail("stable_v3_allow_dry_run mode: v3 strange-socket hint must select dry-run profile group")
 
 print("PASS: inventory marker grouping selects profile-compatible current and stale hosts")

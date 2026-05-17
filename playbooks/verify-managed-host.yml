@@ -272,3 +272,73 @@
       ansible.builtin.debug:
         var: blastwall_strange_socket_v1_trigger.stdout
       when: blastwall_enable_strange_socket_v1_dry_run | bool
+
+    - name: Build managed-host probe evidence report
+      ansible.builtin.set_fact:
+        blastwall_probe_report:
+          subject_host: "{{ inventory_hostname }}"
+          target: rhel-login
+          required_profiles: "{{ required_blastwall_profiles }}"
+          login_context: "{{ blastwall_idz.stdout }}"
+          sudo_uid: "{{ blastwall_sudo_id.stdout_lines[0] }}"
+          sudo_context: "{{ blastwall_sudo_id.stdout_lines[1] }}"
+          probes:
+            af_alg:
+              rc: "{{ blastwall_trigger.rc }}"
+              stdout: "{{ blastwall_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_trigger.stderr | default('') }}"
+            bpf:
+              rc: "{{ blastwall_bpf_trigger.rc }}"
+              stdout: "{{ blastwall_bpf_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_bpf_trigger.stderr | default('') }}"
+            packet_socket:
+              rc: "{{ blastwall_packet_socket_trigger.rc }}"
+              stdout: "{{ blastwall_packet_socket_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_packet_socket_trigger.stderr | default('') }}"
+            userns:
+              rc: "{{ blastwall_userns_trigger.rc }}"
+              stdout: "{{ blastwall_userns_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_userns_trigger.stderr | default('') }}"
+            io_uring:
+              rc: "{{ blastwall_io_uring_trigger.rc }}"
+              stdout: "{{ blastwall_io_uring_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_io_uring_trigger.stderr | default('') }}"
+            dirtyfrag_fragnesia:
+              rc: "{{ blastwall_dirtyfrag_trigger.rc }}"
+              stdout: "{{ blastwall_dirtyfrag_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_dirtyfrag_trigger.stderr | default('') }}"
+            strange_socket_v1:
+              requested: "{{ blastwall_enable_strange_socket_v1_dry_run | bool }}"
+              rc: "{{ blastwall_strange_socket_v1_trigger.rc | default('') }}"
+              stdout: "{{ blastwall_strange_socket_v1_trigger.stdout | default('') }}"
+              stderr: "{{ blastwall_strange_socket_v1_trigger.stderr | default('') }}"
+
+    - name: Hash managed-host probe evidence report
+      ansible.builtin.set_fact:
+        blastwall_probe_report_sha256: "{{ blastwall_probe_report | to_json | hash('sha256') }}"
+
+    - name: Publish managed-host probe evidence hash
+      ansible.builtin.set_stats:
+        data:
+          blastwall_probe_report_sha256: "{{ blastwall_probe_report_sha256 }}"
+          BLASTWALL_PROBE_REPORT_SHA256: "{{ blastwall_probe_report_sha256 }}"
+
+    - name: Publish managed-host probe evidence hashes by host
+      ansible.builtin.set_stats:
+        data:
+          blastwall_probe_report_sha256_by_host: >-
+            {{
+              dict(ansible_play_hosts_all | zip(
+                ansible_play_hosts_all |
+                map('extract', hostvars, 'blastwall_probe_report_sha256')
+              ))
+            }}
+      run_once: true
+      delegate_to: localhost
+
+    - name: Report managed-host probe evidence digest
+      ansible.builtin.debug:
+        msg:
+          managed_host_probe_report: passed
+          subject_host: "{{ inventory_hostname }}"
+          probe_report_sha256: "{{ blastwall_probe_report_sha256 }}"

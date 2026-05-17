@@ -23,14 +23,26 @@
         BLASTWALL_CURRENT_POLICY_SHA256 |
         default(
           BLASTWALL_POLICY_SHA256 |
+          default(
+            (blastwall_policy_sha256_by_host | default({})).get(inventory_hostname, '') |
+            default(blastwall_policy_sha256 | default('', true), true),
+            true
+          ) |
           default(lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
           default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true), true),
           true
         )
       }}
     blastwall_probe_report_sha256: >-
-      {{ BLASTWALL_PROBE_REPORT_SHA256 |
-      default(lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true), true) }}
+      {{
+        BLASTWALL_PROBE_REPORT_SHA256 |
+        default(
+          (blastwall_probe_report_sha256_by_host | default({})).get(inventory_hostname, '') |
+          default(blastwall_probe_report_sha256 | default('', true), true),
+          true
+        ) |
+        default(lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true), true)
+      }}
     blastwall_required_profiles_env: >-
       {{ BLASTWALL_REQUIRED_POLICY_PROFILES |
       default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true), true) }}
