@@ -939,6 +939,9 @@ if signer_key_var in v3_preflight or signer_key_var in v3_promote:
     fail("stable-v3 preflight/promotion must not receive the signer private-key credential")
 if verifier_var not in aap_controller:
     fail("AAP stable-v3 preflight/promotion must attach verifier credential")
+stable_v3_preflight_block = aap_controller.partition("Attach attestation verifier credential to stable-v3 preflight")[2].partition("Attach attestation verifier credential to stable-v3 marker promotion")[0]
+if "blastwall_aap_attestation_idm_credential" not in stable_v3_preflight_block:
+    fail("AAP stable-v3 preflight must authenticate with the attestation custody IdM credential for KRA reads")
 if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
 if "Build, store, read back, and verify signed attestation" not in v3_sign:

@@ -757,7 +757,7 @@
         execution_environment: "{{ blastwall_aap_ee_name }}"
         playbook: playbooks/preflight.yml
         credentials:
-          - "{{ blastwall_aap_idm_credential }}"
+          - "{{ blastwall_aap_attestation_idm_credential }}"
           - "{{ blastwall_aap_attestation_verifier_credential }}"
         extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"
         ask_variables_on_launch: true
