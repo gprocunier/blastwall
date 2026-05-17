@@ -235,4 +235,4 @@ blastwall_aap_policy_pipeline_candidate_group: >-
   default('blastwall_policy_stale', true) }}
 blastwall_aap_post_promotion_preflight_target_group: >-
   {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP') |
-  default('', true) }}
+  default(blastwall_aap_policy_pipeline_candidate_group, true) }}

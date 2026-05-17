@@ -279,11 +279,11 @@ if "default('blastwall_profile_base', true)" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not default AAP verify targeting to blastwall_profile_base")
 controller_post_promotion_group_pattern = re.compile(
     r"blastwall_aap_post_promotion_preflight_target_group:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
-    r"\|\s*default\(\s*['\"]['\"]\s*,\s*true\s*\)\s*\}\}",
+    r"\|\s*default\(\s*blastwall_aap_policy_pipeline_candidate_group\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not controller_post_promotion_group_pattern.search(controller_vars):
-    fail("aap/vars/blastwall-controller.yml must default post-promotion preflight targeting to the profile-derived group")
+    fail("aap/vars/blastwall-controller.yml must default post-promotion preflight targeting to the candidate group")
 
 calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").read_text(encoding="utf-8")
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
@@ -1095,6 +1095,12 @@ for required_live_preflight_signal in [
             "stable-v3 preflight must fall back to live FreeIPA marker hints "
             f"when controller inventory propagation lags: {required_live_preflight_signal}"
         )
+preflight_ipa_config_index = v3_preflight.find("Write FreeIPA client config for controller-side lookups")
+preflight_vault_health_index = v3_preflight.find("Check stable-v3 KRA vault health")
+if preflight_ipa_config_index == -1 or preflight_vault_health_index == -1:
+    fail("stable-v3 preflight is missing FreeIPA client bootstrap or KRA health check")
+if preflight_ipa_config_index > preflight_vault_health_index:
+    fail("stable-v3 preflight must write FreeIPA client config before KRA vault health")
 if "lookup('eigenstate.ipa.selinuxmap'" in v3_preflight:
     fail("stable-v3 preflight must use eigenstate.ipa.access_path instead of lookup('eigenstate.ipa.selinuxmap'")
 if "lookup('eigenstate.ipa.hbacrule'" in v3_preflight and "operation='test'" not in v3_preflight:

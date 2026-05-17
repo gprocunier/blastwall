@@ -321,6 +321,28 @@
           and live current policy hash. A v3 marker alone is not evidence.
       when: blastwall_attestation_signed_mode
 
+    - name: Write FreeIPA client config for controller-side lookups
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ ipa_server }}
+          domain = {{ ipa_domain }}
+          realm = {{ ipa_realm }}
+          basedn = {{ ipa_basedn }}
+          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
+
+    - name: Install injected FreeIPA CA for controller-side lookups
+      ansible.builtin.copy:
+        src: "{{ ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - ipa_ca | length > 0
+        - ipa_ca != "/etc/ipa/ca.crt"
+
     - name: Check stable-v3 KRA vault health
       eigenstate.ipa.vault_health:
         server: "{{ blastwall_attestation_vault_primary }}"
@@ -388,28 +410,6 @@
           Raw IPA CLI fallback is disabled by default for stable-v3. Set
           BLASTWALL_ALLOW_IPA_CLI_FALLBACK=true and
           BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON=<ticket/reason> to use it.
-
-    - name: Write FreeIPA client config for controller-side lookups
-      ansible.builtin.copy:
-        dest: /etc/ipa/default.conf
-        mode: "0644"
-        content: |
-          [global]
-          server = {{ ipa_server }}
-          domain = {{ ipa_domain }}
-          realm = {{ ipa_realm }}
-          basedn = {{ ipa_basedn }}
-          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
-
-    - name: Install injected FreeIPA CA for controller-side lookups
-      ansible.builtin.copy:
-        src: "{{ ipa_ca }}"
-        dest: /etc/ipa/ca.crt
-        mode: "0644"
-        remote_src: true
-      when:
-        - ipa_ca | length > 0
-        - ipa_ca != "/etc/ipa/ca.crt"
 
     - name: Fail closed when no eligible Blastwall hosts exist
       ansible.builtin.assert:
