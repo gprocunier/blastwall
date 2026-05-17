@@ -1648,8 +1648,8 @@ The design should proceed as a new v3 feature branch from the latest remediated 
 
 ## 23. References
 
-- `claude_v3_review_3.md`, IdM vault replication and KRA topology addendum.
-- `claude_v3_review_1.md`, uploaded review of the original Blastwall v3 signed attestation design.
+- External review addendum on IdM vault replication and KRA topology.
+- External review of the original Blastwall v3 signed attestation design.
 - `blastwall-skeptic-review.md`, adversarial technical review of Blastwall v2.
 - `blastwall-report-index.html` and `pre-mortem-report.md`, v2 pre-mortem and launch-blocking risk analysis.
 - `blastwall_v2_proposal.md`, original profile/scope/target/evidence proposal.
