@@ -301,6 +301,8 @@ if "allow_sudocmdgroup:" not in calabi_idm_config:
     fail("poc-calabi/10-configure-idm.yml must attach the Blastwall sudo command group")
 if "blastwall_eigen_sudo_rule.cmdcategory != 'all'" not in calabi_idm_validate:
     fail("poc-calabi/15-validate-idm-with-eigenstate.yml must reject cmdcategory=all")
+if 'chdir: "{{ playbook_dir }}"' not in calabi_idm_validate:
+    fail("poc-calabi/15-validate-idm-with-eigenstate.yml must render inventory relative to playbook_dir")
 generic_inventory = (ROOT / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
 inventory_renderer_spec = importlib.util.spec_from_file_location(
     "render_inventory_profile_groups",

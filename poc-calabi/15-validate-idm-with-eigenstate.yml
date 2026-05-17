@@ -114,6 +114,7 @@
           - -i
           - inventory-eigenstate.yml
           - --list
+        chdir: "{{ playbook_dir }}"
       environment:
         IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
       register: blastwall_eigen_inventory
