@@ -12,6 +12,7 @@
       default('mirror-registry.workshop.lan', true) }}
     calabi_blastwall_stale_marker: >-
       blastwall:state=active;rpm=blastwall-selinux-0.4.0-1;rpm_sha256=2222222222222222222222222222222222222222222222222222222222222222;alg=deny;bpf=deny;self=deny
+    calabi_ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
     calabi_ipa_basedn: "dc={{ blastwall_lab_domain | replace('.', ',dc=') }}"
     calabi_ipa_login_principal: >-
       {{
@@ -19,6 +20,7 @@
         if '@' in blastwall_ipaadmin_principal
         else blastwall_ipaadmin_principal ~ '@' ~ blastwall_ipa_realm
       }}
+    calabi_krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
     calabi_seed_ccache: FILE:/tmp/blastwall_seed_krb5cc
   tasks:
     - name: Require IdM admin password
@@ -38,6 +40,16 @@
           realm = {{ blastwall_ipa_realm }}
           basedn = {{ calabi_ipa_basedn }}
           xmlrpc_uri = https://{{ blastwall_idm_host }}/ipa/xml
+
+    - name: Install injected FreeIPA CA for selection fixture seeding
+      ansible.builtin.copy:
+        src: "{{ calabi_ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - calabi_ipa_ca | length > 0
+        - calabi_ipa_ca != "/etc/ipa/ca.crt"
 
     - name: Ensure stale Blastwall fixture host exists in IdM
       block:
@@ -70,11 +82,11 @@
             IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
             IPA_LOGIN_PRINCIPAL: "{{ calabi_ipa_login_principal }}"
             IPA_SERVER: "{{ blastwall_idm_host }}"
+            KRB5_CONFIG: "{{ calabi_krb5_config }}"
             KRB5CCNAME: "{{ calabi_seed_ccache }}"
             BLASTWALL_HOST: "{{ calabi_blastwall_stale_host }}"
             BLASTWALL_MARKER: "{{ calabi_blastwall_stale_marker }}"
           changed_when: true
-          no_log: true
 
     - name: Add stale fixture host to Blastwall managed-host group
       block:
@@ -101,11 +113,11 @@
             IPA_ADMIN_PASSWORD: "{{ blastwall_ipaadmin_password }}"
             IPA_LOGIN_PRINCIPAL: "{{ calabi_ipa_login_principal }}"
             IPA_SERVER: "{{ blastwall_idm_host }}"
+            KRB5_CONFIG: "{{ calabi_krb5_config }}"
             KRB5CCNAME: "{{ calabi_seed_ccache }}"
             BLASTWALL_HOST: "{{ calabi_blastwall_stale_host }}"
             BLASTWALL_HOSTGROUP: "{{ blastwall_hostgroup }}"
           changed_when: true
-          no_log: true
 
     - name: Report current/stale selection fixture
       ansible.builtin.debug:
