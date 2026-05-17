@@ -10,6 +10,8 @@ calabi_oc_bin: >-
   default('/opt/openshift/aws-metal-openshift-demo/generated/tools/4.20.15/bin/oc', true) }}
 calabi_kubeconfig: >-
   {{ lookup('env', 'KUBECONFIG') | default(ansible_env.HOME + '/etc/kubeconfig.local', true) }}
+calabi_ansible_playbook_bin: >-
+  {{ lookup('env', 'ANSIBLE_PLAYBOOK') | default('/usr/bin/ansible-playbook', true) }}
 
 calabi_registry_host: mirror-registry.workshop.lan
 calabi_registry_port: 8443

@@ -38,11 +38,12 @@
     - name: Apply Blastwall Controller configuration
       ansible.builtin.command:
         argv:
-          - ansible-playbook
+          - "{{ calabi_ansible_playbook_bin }}"
           - aap/configure-controller.yml
       args:
         chdir: "{{ calabi_blastwall_root }}"
       environment:
+        PATH: "{{ ansible_env.PATH | default('/usr/local/bin:/usr/bin:/bin') }}"
         CONTROLLER_HOST: "{{ calabi_aap_controller_url }}"
         CONTROLLER_USERNAME: admin
         CONTROLLER_PASSWORD: "{{ calabi_aap_controller_password.stdout }}"
