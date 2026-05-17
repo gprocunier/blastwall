@@ -8,13 +8,17 @@ calabi_aap_gateway_secret: workshop-aap-admin-password
 calabi_oc_bin: >-
   {{ lookup('env', 'OC') |
   default('/opt/openshift/aws-metal-openshift-demo/generated/tools/4.20.15/bin/oc', true) }}
+calabi_operator_home: >-
+  {{ lookup('env', 'HOME') | default(ansible_env.HOME, true) }}
+calabi_operator_path: >-
+  {{ lookup('env', 'PATH') | default(ansible_env.PATH, true) }}
 calabi_kubeconfig: >-
-  {{ lookup('env', 'KUBECONFIG') | default(ansible_env.HOME + '/etc/kubeconfig.local', true) }}
+  {{ lookup('env', 'KUBECONFIG') | default(calabi_operator_home + '/etc/kubeconfig.local', true) }}
 calabi_ansible_playbook_bin: >-
   {{ lookup('env', 'ANSIBLE_PLAYBOOK') | default('/usr/bin/ansible-playbook', true) }}
 calabi_ansible_collections_path: >-
   {{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') |
-  default(ansible_env.HOME + '/.ansible/collections:/usr/share/ansible/collections', true) }}
+  default(calabi_operator_home + '/.ansible/collections:/usr/share/ansible/collections', true) }}
 
 calabi_registry_host: mirror-registry.workshop.lan
 calabi_registry_port: 8443

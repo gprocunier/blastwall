@@ -40,16 +40,16 @@
       ansible.builtin.command:
         argv:
           - /usr/bin/env
-          - "HOME={{ ansible_env.HOME }}"
-          - "PATH={{ ansible_env.PATH | default('/usr/local/bin:/usr/bin:/bin') }}"
+          - "HOME={{ calabi_operator_home }}"
+          - "PATH={{ calabi_operator_path }}"
           - "ANSIBLE_COLLECTIONS_PATH={{ calabi_ansible_collections_path }}"
           - "{{ calabi_ansible_playbook_bin }}"
           - aap/configure-controller.yml
       args:
         chdir: "{{ calabi_blastwall_root }}"
       environment:
-        HOME: "{{ ansible_env.HOME }}"
-        PATH: "{{ ansible_env.PATH | default('/usr/local/bin:/usr/bin:/bin') }}"
+        HOME: "{{ calabi_operator_home }}"
+        PATH: "{{ calabi_operator_path }}"
         ANSIBLE_COLLECTIONS_PATH: "{{ calabi_ansible_collections_path }}"
         CONTROLLER_HOST: "{{ calabi_aap_controller_url }}"
         CONTROLLER_USERNAME: admin
