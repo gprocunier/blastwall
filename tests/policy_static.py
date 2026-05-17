@@ -1148,6 +1148,8 @@ if 'principal: "{{ blastwall_target_identity }}"' not in v3_preflight:
     fail("stable-v3 preflight access-path proof must validate the runtime target identity")
 if "'%s' | format(blastwall_target_identity)" not in v3_hbac_access:
     fail("stable-v3 preflight HBAC proof must validate the runtime target identity")
+if "targethost=blastwall_target_host | string" not in v3_hbac_access:
+    fail("stable-v3 isolated HBAC proof must pass targethost as a string to eigenstate.ipa.hbacrule")
 if "Write FreeIPA client config for isolated HBAC lookup" not in v3_hbac_access:
     fail("stable-v3 HBAC proof must bootstrap FreeIPA config inside the isolated process")
 if "lookup('eigenstate.ipa.selinuxmap'" in v3_preflight:

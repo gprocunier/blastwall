@@ -69,7 +69,7 @@
           {{ lookup('eigenstate.ipa.hbacrule',
                     '%s' | format(blastwall_target_identity),
                     operation='test',
-                    targethost=blastwall_target_host,
+                    targethost=blastwall_target_host | string,
                     service='sshd',
                     server=ipa_server,
                     ipaadmin_principal=ipa_login_principal,
