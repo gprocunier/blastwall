@@ -449,6 +449,98 @@ def verify_existing_artifacts(
     }
 
 
+def retrieve_existing_artifacts(
+    inputs: SignInputs,
+    *,
+    registry: Mapping[str, Any],
+    vault_config: blastwall_attestation_vault.VaultConfig,
+    marker_text: str,
+    envelope_dir: Path | None = DEFAULT_ENVELOPE_DIR,
+    index_dir: Path | None = DEFAULT_INDEX_DIR,
+    command_runner: Callable[[list[str], bytes | None], blastwall_attestation_vault.VaultCommandResult] = blastwall_attestation_vault._run_command,
+) -> dict[str, Any]:
+    """Retrieve marker-referenced artifacts from KRA and verify them locally."""
+
+    required_profiles = blastwall_marker.canonical_profile_list(dict(registry), inputs.profiles)
+    parsed_marker = blastwall_marker.parse_marker(
+        marker_text,
+        registry=dict(registry),
+        expected_registry_sha256=inputs.registry_sha256,
+        expected_target=inputs.target,
+        accepted_rpms={inputs.rpm_nevra},
+        required_profiles=set(required_profiles),
+        allow_dry_run_profiles=inputs.allow_dry_run_profiles,
+    )
+    if parsed_marker.version != 3 or parsed_marker.errors or not parsed_marker.hint:
+        raise ValueError(f"invalid v3 marker locator: {'; '.join(parsed_marker.errors)}")
+    if not parsed_marker.attest_ref or not parsed_marker.attest_sha256:
+        raise ValueError("v3 marker locator is missing attestation reference or digest")
+    if parsed_marker.generation is None:
+        raise ValueError("v3 marker locator is missing generation")
+
+    marker_profiles = blastwall_marker.canonical_profile_list(dict(registry), list(parsed_marker.profiles))
+    expected_scope_owner = "/".join([vault_config.scope, vault_config.owner])
+    if not parsed_marker.attest_ref.startswith(expected_scope_owner + "/"):
+        raise ValueError("v3 marker attestation reference does not match configured vault scope/owner")
+    _, index_ref = _artifact_refs(
+        config=vault_config,
+        host=inputs.subject_host,
+        profiles=marker_profiles,
+        generation=parsed_marker.generation,
+    )
+    envelope_read = blastwall_attestation_vault.read_vault_artifact_with_digest(
+        server=vault_config.primary,
+        config=vault_config,
+        vault_ref=parsed_marker.attest_ref,
+        expected_digest=parsed_marker.attest_sha256,
+        command_runner=command_runner,
+    )
+    index_read = blastwall_attestation_vault.read_vault_artifact(
+        server=vault_config.primary,
+        config=vault_config,
+        vault_ref=index_ref,
+        command_runner=command_runner,
+    )
+    envelope_text = envelope_read.payload.decode("utf-8")
+    index_text = index_read.payload.decode("utf-8")
+    verification = _verify_marker_artifacts(
+        marker_text=marker_text,
+        envelope_text=envelope_text,
+        index_text=index_text,
+        registry=registry,
+        inputs=inputs,
+    )
+    envelope_path, index_path = _materialize_artifacts(
+        envelope_text=envelope_text,
+        index_text=index_text,
+        envelope_dir=envelope_dir,
+        index_dir=index_dir,
+        host=inputs.subject_host,
+    )
+    index = blastwall_attestation.parse_latest_index(index_text)
+    return {
+        "status": "PASS",
+        "marker": marker_text,
+        "attestation_ref": parsed_marker.attest_ref,
+        "attestation_sha256": parsed_marker.attest_sha256,
+        "index_ref": index_ref,
+        "index_sha256": blastwall_attestation.latest_index_sha256(index),
+        "index_generation": index["latest_generation"],
+        "signer_kid": parsed_marker.signer_kid,
+        "vault_server": vault_config.primary,
+        "workflow_job_id": verification["details"].get("aap_workflow_job_id", inputs.aap_workflow_job_id),
+        "source_revision": inputs.source_revision,
+        "envelope_file": envelope_path,
+        "index_file": index_path,
+        "vault_readback": {
+            "envelope_attempts": envelope_read.attempts,
+            "index_attempts": index_read.attempts,
+            "retry_attempted": envelope_read.retry_attempted or index_read.retry_attempted,
+        },
+        "verification": verification,
+    }
+
+
 def _failure_report(exc: Exception) -> dict[str, Any]:
     report: dict[str, Any] = {"status": "FAIL", "message": str(exc)}
     if isinstance(exc, blastwall_attestation_vault.VaultCommandError):
@@ -456,7 +548,7 @@ def _failure_report(exc: Exception) -> dict[str, Any]:
     return report
 
 
-def _add_common_args(parser: argparse.ArgumentParser) -> None:
+def _add_common_args(parser: argparse.ArgumentParser, *, generation_required: bool = True) -> None:
     parser.add_argument("--registry", type=Path, default=blastwall_marker.DEFAULT_REGISTRY)
     parser.add_argument("--subject-host", required=True)
     parser.add_argument("--target", default="rhel-login")
@@ -467,7 +559,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--profile", action="append", default=[])
     parser.add_argument("--profiles-csv", default="")
     parser.add_argument("--state", default="active")
-    parser.add_argument("--generation", type=int, required=True)
+    parser.add_argument("--generation", type=int, required=generation_required, default=0)
     parser.add_argument("--source-revision", default="")
     parser.add_argument("--aap-workflow-job-id", type=int, default=_workflow_job_id_default())
     parser.add_argument("--valid-for-seconds", type=int, default=DEFAULT_VALID_FOR_SECONDS)
@@ -503,6 +595,20 @@ def main() -> int:
     verify_parser.add_argument("--index-json", type=Path, required=True)
     verify_parser.set_defaults(signer_key=Path("/dev/null"))
 
+    retrieve_parser = subparsers.add_parser("retrieve-existing")
+    _add_common_args(retrieve_parser, generation_required=False)
+    retrieve_parser.add_argument("--marker", required=True)
+    retrieve_parser.add_argument("--vault-primary", required=True)
+    retrieve_parser.add_argument("--vault-servers-csv", required=True)
+    retrieve_parser.add_argument("--vault-scope", default=blastwall_attestation_vault.DEFAULT_VAULT_SCOPE)
+    retrieve_parser.add_argument("--vault-owner", default=blastwall_attestation_vault.DEFAULT_VAULT_OWNER)
+    retrieve_parser.add_argument("--vault-retry-not-found", action="store_true", default=True)
+    retrieve_parser.add_argument("--vault-retry-attempts", type=int, default=blastwall_attestation_vault.DEFAULT_RETRY_ATTEMPTS)
+    retrieve_parser.add_argument("--vault-retry-delay-seconds", type=int, default=blastwall_attestation_vault.DEFAULT_RETRY_DELAY_SECONDS)
+    retrieve_parser.add_argument("--envelope-dir", type=Path, default=DEFAULT_ENVELOPE_DIR)
+    retrieve_parser.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR)
+    retrieve_parser.set_defaults(signer_key=Path("/dev/null"))
+
     args = parser.parse_args()
     registry = blastwall_marker.load_registry(args.registry)
     inputs = _build_sign_inputs(args, args.registry)
@@ -515,12 +621,21 @@ def main() -> int:
                 envelope_dir=args.envelope_dir,
                 index_dir=args.index_dir,
             )
-        else:
+        elif args.mode == "verify-existing":
             report = verify_existing_artifacts(
                 inputs,
                 registry=registry,
                 envelope_text=_read_json_text(args.envelope_json),
                 index_text=_read_json_text(args.index_json),
+            )
+        else:
+            report = retrieve_existing_artifacts(
+                inputs,
+                registry=registry,
+                vault_config=_vault_config(args),
+                marker_text=args.marker,
+                envelope_dir=args.envelope_dir,
+                index_dir=args.index_dir,
             )
     except Exception as exc:  # noqa: BLE001 - CLI must return structured failure evidence.
         print(json.dumps(_failure_report(exc), sort_keys=True))

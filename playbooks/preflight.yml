@@ -169,6 +169,21 @@
         BLASTWALL_ATTESTATION_VAULT_PRIMARY |
         default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true), true)
       }}
+    blastwall_attestation_vault_servers: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_SERVERS |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true), true)
+      }}
+    blastwall_attestation_vault_scope: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_SCOPE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true), true)
+      }}
+    blastwall_attestation_vault_owner: >-
+      {{
+        BLASTWALL_ATTESTATION_VAULT_OWNER |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true), true)
+      }}
     blastwall_attestation_envelope_dir: >-
       {{
         BLASTWALL_ATTESTATION_ENVELOPE_DIR |
@@ -259,6 +274,9 @@
       ansible.builtin.assert:
         that:
           - blastwall_attestation_vault_primary | length > 0
+          - blastwall_attestation_vault_servers | length > 0
+          - blastwall_attestation_vault_scope | length > 0
+          - blastwall_attestation_vault_owner | length > 0
           - blastwall_attestation_envelope_dir | length > 0
           - blastwall_attestation_index_dir | length > 0
           - blastwall_attestation_signer_certificate | length > 0
@@ -533,6 +551,71 @@
       loop: "{{ blastwall_target_hosts }}"
       when: blastwall_attestation_signed_mode
 
+    - name: Retrieve stable-v3 signed attestation artifacts before launch
+      ansible.builtin.command:
+        argv: "{{ blastwall_attestation_retrieve_argv }}"
+      environment:
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      register: blastwall_attestation_retrieve
+      changed_when: false
+      failed_when: blastwall_attestation_retrieve.rc != 0
+      vars:
+        raw_inventory_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        inventory_userclass_values: >-
+          {{
+            raw_inventory_userclass_values
+            if raw_inventory_userclass_values is not string
+            else [raw_inventory_userclass_values]
+          }}
+        live_userclass_values: "{{ (blastwall_live_userclass_by_host | default({})).get(item, []) }}"
+        host_userclass_values: >-
+          {{
+            (inventory_userclass_values + live_userclass_values) | unique | list
+          }}
+        host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
+        host_v3_marker: >-
+          {{
+            (
+              host_marker_values |
+              select('match', '^blastwall:(?:v=3(?:;|$)|.*;v=3(?:;|$))') |
+              list |
+              first
+            ) | default('', true)
+          }}
+        blastwall_attestation_retrieve_argv: >-
+          {{
+            [
+              ansible_playbook_python | default('/usr/bin/python3'),
+              playbook_dir ~ '/../tools/blastwall_attestation_sign.py',
+              'retrieve-existing',
+              '--registry', blastwall_profile_registry_path,
+              '--marker', host_v3_marker,
+              '--subject-host', item,
+              '--target', 'rhel-login',
+              '--rpm', blastwall_required_policy_marker,
+              '--policy-sha256', blastwall_current_policy_sha256,
+              '--registry-sha256', blastwall_profile_registry_sha256,
+              '--signer-certificate', blastwall_attestation_signer_certificate,
+              '--ca-bundle', blastwall_attestation_ca_bundle,
+              '--signer-allowlist-csv', blastwall_attestation_signer_allowlist_csv,
+              '--vault-primary', blastwall_attestation_vault_primary,
+              '--vault-servers-csv', blastwall_attestation_vault_servers,
+              '--vault-scope', blastwall_attestation_vault_scope,
+              '--vault-owner', blastwall_attestation_vault_owner,
+              '--envelope-dir', blastwall_attestation_envelope_dir,
+              '--index-dir', blastwall_attestation_index_dir
+            ]
+            + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+            + (
+              required_blastwall_profiles
+              | map('regex_replace', '^', '--profile=')
+              | list
+            )
+          }}
+      loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_attestation_signed_mode
+
     - name: Verify stable-v3 signed attestation before launch
       ansible.builtin.command:
         argv: "{{ blastwall_attestation_verify_argv }}"
@@ -624,6 +707,7 @@
           marker_validation_bypass_reason: "{{ blastwall_danger_skip_marker_validation_reason }}"
           attestation_mode: "{{ blastwall_attestation_mode }}"
           attestation_vault_primary: "{{ blastwall_attestation_vault_primary }}"
+          stable_v3_retrieval: "{{ blastwall_attestation_retrieve.results | default([]) }}"
           stable_v3_verification: "{{ blastwall_attestation_verify.results | default([]) }}"
           registry_sha256: "{{ blastwall_profile_registry_sha256 }}"
           hbac_rule: "{{ blastwall_hbac_rule_name }}"

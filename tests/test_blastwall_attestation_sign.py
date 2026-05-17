@@ -192,6 +192,33 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertNotIn("PRIVATE KEY", json.dumps(report))
         self.assertTrue(any("--server" in command and "idm-01.workshop.lan" in command for command in memory_vault.commands))
 
+    def test_retrieve_existing_materializes_marker_referenced_artifacts(self) -> None:
+        memory_vault = MemoryVault()
+        signed = signer.sign_store_readback(
+            self.inputs,
+            registry=self.registry,
+            vault_config=self.vault_config,
+            envelope_dir=None,
+            index_dir=None,
+            command_runner=memory_vault,
+        )
+        retrieved = signer.retrieve_existing_artifacts(
+            self.inputs,
+            registry=self.registry,
+            vault_config=self.vault_config,
+            marker_text=signed["marker"],
+            envelope_dir=self.temp_path / "retrieved_envelopes",
+            index_dir=self.temp_path / "retrieved_indexes",
+            command_runner=memory_vault,
+        )
+        self.assertEqual(retrieved["status"], "PASS")
+        self.assertEqual(retrieved["attestation_ref"], signed["attestation_ref"])
+        self.assertEqual(retrieved["attestation_sha256"], signed["attestation_sha256"])
+        self.assertEqual(retrieved["verification"]["status"], "PASS")
+        self.assertTrue(Path(retrieved["envelope_file"]).exists())
+        self.assertTrue(Path(retrieved["index_file"]).exists())
+        self.assertTrue(any(command[1] == "read" for command in memory_vault.commands))
+
     def test_sign_store_readback_with_ocp_spo_evidence(self) -> None:
         memory_vault = MemoryVault()
         report = signer.sign_store_readback(

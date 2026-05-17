@@ -964,6 +964,9 @@ if "Verify stable-v3 attestation before marker publication" not in v3_promote:
     fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
 for required_live_preflight_signal in [
     "Read live stable-v3 host marker hints from FreeIPA",
+    "Retrieve stable-v3 signed attestation artifacts before launch",
+    "retrieve-existing",
+    "blastwall_attestation_vault_servers",
     "blastwall_live_userclass_by_host",
     "KRB5CCNAME",
 ]:
