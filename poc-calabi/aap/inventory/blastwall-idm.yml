@@ -280,6 +280,9 @@ groups:
 
     )
   blastwall_policy_candidate: >-
+    idm_fqdn == 'mirror-registry.workshop.lan'
+
+  blastwall_policy_candidate_marker_state: >-
     idm_fqdn == 'mirror-registry.workshop.lan' and
 
     (

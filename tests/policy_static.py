@@ -402,7 +402,7 @@ for path_name, inventory_text in [
             fail(f"{path_name} is missing rendered group expression {key}")
         actual_normalized = re.sub(r"\s+", "", actual_expr)
         if path_name == "poc-calabi/aap/inventory/blastwall-idm.yml" and key == "blastwall_policy_candidate":
-            expected_expr = f"idm_fqdn == 'mirror-registry.workshop.lan' and\n(\n{expected_expr}\n)"
+            expected_expr = "idm_fqdn == 'mirror-registry.workshop.lan'"
         expected_normalized = re.sub(r"\s+", "", expected_expr)
         if actual_normalized != expected_normalized:
             fail(f"{path_name} has stale expression for {key}")
@@ -511,7 +511,7 @@ for template, limit in [
         template_index: next_template_index if next_template_index != -1 else len(controller_vars)
     ]
     if limit not in template_block:
-        fail(f"{template} is not limited to blastwall_policy_stale for the policy pipeline")
+        fail(f"{template} is not limited to the configured policy pipeline candidate group")
 
 for playbook in [
     ROOT / "playbooks" / "build-policy-rpm.yml",
@@ -716,7 +716,7 @@ if "blastwall_validate_selected_markers | bool" not in marker_check_block:
 if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group" not in aap_config:
     fail("AAP policy pipeline post-promotion preflight cannot override the target group")
 
-print("PASS: AAP policy pipeline targets stale candidates before promotion")
+print("PASS: AAP policy pipeline targets configured candidates before promotion")
 
 if "freeipa.ansible_freeipa.ipahost" not in calabi_seed_fixture:
     fail("poc-calabi/aap/25-seed-selection-fixture.yml does not use the FreeIPA host collection module")
