@@ -43,7 +43,10 @@
       args:
         chdir: "{{ calabi_blastwall_root }}"
       environment:
+        HOME: "{{ ansible_env.HOME }}"
         PATH: "{{ ansible_env.PATH | default('/usr/local/bin:/usr/bin:/bin') }}"
+        ANSIBLE_COLLECTIONS_PATH: "{{ calabi_ansible_collections_path }}"
+        ANSIBLE_COLLECTIONS_PATHS: "{{ calabi_ansible_collections_path }}"
         CONTROLLER_HOST: "{{ calabi_aap_controller_url }}"
         CONTROLLER_USERNAME: admin
         CONTROLLER_PASSWORD: "{{ calabi_aap_controller_password.stdout }}"
