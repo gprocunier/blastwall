@@ -119,19 +119,25 @@
           Expected one of {{ blastwall_expected_contexts }}, got
           {{ blastwall_idz.stdout }}.
 
-    - name: Capture sudo identity and SELinux context
-      ansible.builtin.command: sudo sh -c 'id -u; id -Z'
-      register: blastwall_sudo_id
+    - name: Capture sudo UID through allowed command
+      ansible.builtin.command: sudo /usr/bin/id -u
+      register: blastwall_sudo_uid
+      changed_when: false
+
+    - name: Capture sudo SELinux context through allowed command
+      ansible.builtin.command: sudo /usr/bin/id -Z
+      register: blastwall_sudo_context
       changed_when: false
 
     - name: Assert sudo reaches UID 0 without leaving Blastwall type
       ansible.builtin.assert:
         that:
-          - blastwall_sudo_id.stdout_lines[0] == '0'
-          - blastwall_sudo_id.stdout_lines[1] in blastwall_expected_contexts
+          - blastwall_sudo_uid.stdout == '0'
+          - blastwall_sudo_context.stdout in blastwall_expected_contexts
         fail_msg: >-
           sudo did not preserve Blastwall confinement:
-          {{ blastwall_sudo_id.stdout_lines }}
+          uid={{ blastwall_sudo_uid.stdout | default('') }},
+          context={{ blastwall_sudo_context.stdout | default('') }}.
 
     - name: Copy AF_ALG trigger to target
       ansible.builtin.copy:

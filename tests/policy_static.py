@@ -528,6 +528,11 @@ if "blastwall_verify_target_hosts | default('blastwall_profile_base')" not in ve
     fail("playbooks/verify-managed-host.yml does not default managed-host verification to blastwall_profile_base")
 if "required_blastwall_profiles:" not in verify_policy:
     fail("playbooks/verify-managed-host.yml does not derive required profile set for verify path")
+if "sudo sh -c" in verify_policy:
+    fail("playbooks/verify-managed-host.yml must not require a sudo shell wrapper")
+for allowed_sudo_probe in ["sudo /usr/bin/id -u", "sudo /usr/bin/id -Z"]:
+    if allowed_sudo_probe not in verify_policy:
+        fail(f"playbooks/verify-managed-host.yml must use allowed sudo probe: {allowed_sudo_probe}")
 if (
     "blastwall_required_profiles_env" not in verify_policy
     or "else ['base']" not in verify_policy
