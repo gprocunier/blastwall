@@ -18,8 +18,12 @@
     ipa_password: >-
       {{ lookup('env', 'IPA_PASSWORD') |
       default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
     ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
+    krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
+    krb5_ccache: FILE:/tmp/blastwall_preflight_krb5cc
     blastwall_identity: "{{ lookup('env', 'BLASTWALL_IDENTITY') }}"
     blastwall_selinux_map_name: blastwall-root-local-map
     blastwall_expected_selinux_user: blastwall_u:s0
@@ -306,6 +310,16 @@
           basedn = {{ ipa_basedn }}
           xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
 
+    - name: Install injected FreeIPA CA for controller-side lookups
+      ansible.builtin.copy:
+        src: "{{ ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - ipa_ca | length > 0
+        - ipa_ca != "/etc/ipa/ca.crt"
+
     - name: Read Blastwall SELinux user map
       ansible.builtin.set_fact:
         blastwall_selinux_map: >-
@@ -390,6 +404,68 @@
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_no_eligible_hosts | bool
 
+    - name: Authenticate FreeIPA client for live stable-v3 marker lookups
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if [ -n "${IPA_KEYTAB}" ]; then
+          kinit -k -t "${IPA_KEYTAB}" "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+        else
+          printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+        fi
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_KEYTAB: "{{ ipa_keytab }}"
+        IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      changed_when: false
+      no_log: true
+      when:
+        - blastwall_attestation_signed_mode
+        - blastwall_validate_selected_markers | bool
+
+    - name: Read live stable-v3 host marker hints from FreeIPA
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - -e
+          - "server={{ ipa_server }}"
+          - -f
+          - -n
+          - host-show
+          - "{{ item }}"
+          - --all
+          - --raw
+      environment:
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      register: blastwall_live_host_show
+      changed_when: false
+      failed_when: blastwall_live_host_show.rc != 0
+      loop: "{{ blastwall_target_hosts }}"
+      when:
+        - blastwall_attestation_signed_mode
+        - blastwall_validate_selected_markers | bool
+
+    - name: Store live stable-v3 host marker hints
+      ansible.builtin.set_fact:
+        blastwall_live_userclass_by_host: >-
+          {{
+            blastwall_live_userclass_by_host | default({}) |
+            combine({
+              item.item: (
+                item.stdout |
+                regex_findall('(?m)^\\s*userclass:\\s*(.+)$')
+              )
+            })
+          }}
+      loop: "{{ blastwall_live_host_show.results | default([]) }}"
+      when:
+        - blastwall_attestation_signed_mode
+        - blastwall_validate_selected_markers | bool
+
     - name: Fail closed when selected hosts lack required Blastwall profile evidence
       ansible.builtin.command:
         argv: "{{ blastwall_marker_check_argv }}"
@@ -438,12 +514,19 @@
         fail_msg: >-
           stable-v3 selected host {{ item }} does not expose a v3 attestation marker hint.
       vars:
-        raw_host_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        raw_inventory_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        inventory_userclass_values: >-
+          {{
+            raw_inventory_userclass_values
+            if raw_inventory_userclass_values is not string
+            else [raw_inventory_userclass_values]
+          }}
+        live_userclass_values: "{{ (blastwall_live_userclass_by_host | default({})).get(item, []) }}"
         host_userclass_values: >-
           {{
-            raw_host_userclass_values
-            if raw_host_userclass_values is not string
-            else [raw_host_userclass_values]
+            inventory_userclass_values
+            if inventory_userclass_values | length > 0
+            else live_userclass_values
           }}
         host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
         host_v3_marker: >-
@@ -465,12 +548,19 @@
       changed_when: false
       failed_when: blastwall_attestation_verify.rc != 0
       vars:
-        raw_host_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        raw_inventory_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
+        inventory_userclass_values: >-
+          {{
+            raw_inventory_userclass_values
+            if raw_inventory_userclass_values is not string
+            else [raw_inventory_userclass_values]
+          }}
+        live_userclass_values: "{{ (blastwall_live_userclass_by_host | default({})).get(item, []) }}"
         host_userclass_values: >-
           {{
-            raw_host_userclass_values
-            if raw_host_userclass_values is not string
-            else [raw_host_userclass_values]
+            inventory_userclass_values
+            if inventory_userclass_values | length > 0
+            else live_userclass_values
           }}
         host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
         host_v3_marker: >-

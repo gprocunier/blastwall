@@ -960,6 +960,16 @@ if "map('regex_replace', '^', '--profile=')" not in v3_promote:
     fail("promote-policy-rpm.yml must prefix required profiles without regex backrefs")
 if "Verify stable-v3 attestation before marker publication" not in v3_promote:
     fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
+for required_live_preflight_signal in [
+    "Read live stable-v3 host marker hints from FreeIPA",
+    "blastwall_live_userclass_by_host",
+    "KRB5CCNAME",
+]:
+    if required_live_preflight_signal not in v3_preflight:
+        fail(
+            "stable-v3 preflight must fall back to live FreeIPA marker hints "
+            f"when controller inventory propagation lags: {required_live_preflight_signal}"
+        )
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
     fail("AAP policy pipeline does not route verified candidates through sign_attestation before marker promotion")
 v3_verifier = (ROOT / "tools" / "blastwall_attestation_verify.py").read_text(encoding="utf-8")
