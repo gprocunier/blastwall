@@ -977,6 +977,7 @@ print("PASS: deploy-policy marker publication fallbacks are guarded by rescue bl
 v3_sign = (ROOT / "playbooks" / "sign-attestation.yml").read_text(encoding="utf-8")
 v3_promote = (ROOT / "playbooks" / "promote-policy-rpm.yml").read_text(encoding="utf-8")
 v3_preflight = (ROOT / "playbooks" / "preflight.yml").read_text(encoding="utf-8")
+v3_hbac_access = (ROOT / "playbooks" / "hbac-access-test.yml").read_text(encoding="utf-8")
 aap_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")
 aap_controller = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
 for required_v3_file in [
@@ -1053,6 +1054,11 @@ if (
     or "blastwall_aap_identity" not in stable_v3_preflight_block
 ):
     fail("AAP stable-v3 preflight must validate the runtime Blastwall identity, not the KRA custody principal")
+if (
+    "BLASTWALL_TARGET_IDENTITY" not in aap_vars
+    or "blastwall_aap_attestation_extra_vars:" not in aap_vars
+):
+    fail("AAP attestation workflow extra vars must carry the runtime Blastwall target identity")
 if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
 for required_sign_custody_signal in [
@@ -1092,6 +1098,7 @@ for required_live_preflight_signal in [
     "Check stable-v3 KRA vault health",
     "eigenstate.ipa.vault_health",
     "eigenstate.ipa.access_path",
+    "hbac-access-test.yml",
     "Run collection-backed HBAC access test for group-scoped readiness",
     "eigenstate.ipa.sudo_risk",
     "Resolve stable-v3 signed attestation artifact locations",
@@ -1130,11 +1137,15 @@ if "blastwall_target_identity" not in v3_preflight:
     fail("stable-v3 preflight must separate target identity from the IdM credential auth principal")
 if 'principal: "{{ blastwall_target_identity }}"' not in v3_preflight:
     fail("stable-v3 preflight access-path proof must validate the runtime target identity")
-if "'%s' | format(blastwall_target_identity)" not in v3_preflight:
+if "'%s' | format(blastwall_target_identity)" not in v3_hbac_access:
     fail("stable-v3 preflight HBAC proof must validate the runtime target identity")
+if "Write FreeIPA client config for isolated HBAC lookup" not in v3_hbac_access:
+    fail("stable-v3 HBAC proof must bootstrap FreeIPA config inside the isolated process")
 if "lookup('eigenstate.ipa.selinuxmap'" in v3_preflight:
     fail("stable-v3 preflight must use eigenstate.ipa.access_path instead of lookup('eigenstate.ipa.selinuxmap'")
-if "lookup('eigenstate.ipa.hbacrule'" in v3_preflight and "operation='test'" not in v3_preflight:
+if "lookup('eigenstate.ipa.hbacrule'" in v3_preflight:
+    fail("stable-v3 preflight must run hbacrule lookup in an isolated process to avoid parent ipalib state drift")
+if "lookup('eigenstate.ipa.hbacrule'" not in v3_hbac_access or "operation='test'" not in v3_hbac_access:
     fail("stable-v3 preflight may use hbacrule only for collection-backed operation=test group-scope proof")
 if "retrieve-existing" in v3_preflight:
     fail("stable-v3 preflight must use vault_artifact retrieval, not raw-vault retrieve-existing")

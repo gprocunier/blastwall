@@ -397,26 +397,63 @@
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_no_eligible_hosts | bool
 
+    - name: Create isolated HBAC result directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: blastwall-hbac-
+      register: blastwall_hbac_result_dir
+
     - name: Run collection-backed HBAC access test for group-scoped readiness
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/env
+          - ansible-playbook
+          - -i
+          - localhost,
+          - "{{ playbook_dir }}/hbac-access-test.yml"
+      environment:
+        IPA_SERVER: "{{ ipa_server }}"
+        IPA_DOMAIN: "{{ ipa_domain }}"
+        IPA_REALM: "{{ ipa_realm }}"
+        IPA_PRINCIPAL: "{{ ipa_login_principal }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        IPA_KEYTAB: "{{ ipa_keytab }}"
+        IPA_CERT: "{{ ipa_ca }}"
+        KRB5_CONFIG: "{{ krb5_config }}"
+        BLASTWALL_TARGET_IDENTITY: "{{ blastwall_target_identity }}"
+        BLASTWALL_TARGET_HOST: "{{ item }}"
+        BLASTWALL_HBAC_OUTPUT: >-
+          {{ blastwall_hbac_result_dir.path }}/{{
+          item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.json
+      changed_when: false
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Read isolated HBAC access test results
+      ansible.builtin.slurp:
+        src: >-
+          {{ blastwall_hbac_result_dir.path }}/{{
+          item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.json
+      register: blastwall_hbac_result_files
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Store isolated HBAC access test results
       ansible.builtin.set_fact:
         blastwall_hbac_access_tests: >-
           {{
             (blastwall_hbac_access_tests | default({})) |
             combine({
-              item: lookup('eigenstate.ipa.hbacrule',
-                           '%s' | format(blastwall_target_identity),
-                           operation='test',
-                           targethost=item,
-                           service='sshd',
-                           server=ipa_server,
-                           ipaadmin_principal=ipa_login_principal,
-                           ipaadmin_password=ipa_password,
-                           kerberos_keytab=ipa_keytab,
-                           verify=ipa_ca)
+              item.item: item.content | b64decode | from_json
             })
           }}
       no_log: "{{ ipa_password | length > 0 }}"
-      loop: "{{ blastwall_target_hosts }}"
+      loop: "{{ blastwall_hbac_result_files.results | default([]) }}"
+
+    - name: Remove isolated HBAC result directory
+      ansible.builtin.file:
+        path: "{{ blastwall_hbac_result_dir.path }}"
+        state: absent
 
     - name: Assert collection-backed HBAC access test allows selected hosts
       ansible.builtin.assert:

@@ -149,6 +149,7 @@ blastwall_aap_attestation_extra_vars:
   BLASTWALL_ATTESTATION_ENVELOPE_DIR: "{{ blastwall_aap_attestation_envelope_dir }}"
   BLASTWALL_ATTESTATION_INDEX_DIR: "{{ blastwall_aap_attestation_index_dir }}"
   BLASTWALL_SPO_EVIDENCE_JSON: "{{ blastwall_aap_spo_evidence_json }}"
+  BLASTWALL_TARGET_IDENTITY: "{{ blastwall_aap_identity }}"
 blastwall_aap_spo_render_extra_vars:
   BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1: "{{ blastwall_aap_spo_include_strange_socket_v1 }}"
 blastwall_aap_spo_apply_extra_vars:

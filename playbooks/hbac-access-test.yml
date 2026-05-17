@@ -1,0 +1,86 @@
+---
+- name: Run isolated collection-backed HBAC access test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ipa_server: "{{ lookup('env', 'IPA_SERVER') }}"
+    ipa_domain: >-
+      {{ lookup('env', 'IPA_DOMAIN') |
+      default((ipa_server.split('.')[1:] | join('.')), true) }}
+    ipa_realm: >-
+      {{ lookup('env', 'IPA_REALM') |
+      default((ipa_domain | upper), true) }}
+    ipa_basedn: >-
+      dc={{ ipa_domain | replace('.', ',dc=') }}
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') }}"
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
+    ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
+    blastwall_target_identity: "{{ lookup('env', 'BLASTWALL_TARGET_IDENTITY') }}"
+    blastwall_target_host: "{{ lookup('env', 'BLASTWALL_TARGET_HOST') }}"
+    blastwall_hbac_output: "{{ lookup('env', 'BLASTWALL_HBAC_OUTPUT') }}"
+  tasks:
+    - name: Require isolated HBAC inputs
+      ansible.builtin.assert:
+        that:
+          - ipa_server | length > 0
+          - ipa_domain | length > 0
+          - ipa_realm | length > 0
+          - ipa_principal | length > 0
+          - ipa_keytab | length > 0 or ipa_password | length > 0
+          - blastwall_target_identity | length > 0
+          - blastwall_target_host | length > 0
+          - blastwall_hbac_output | length > 0
+        fail_msg: >-
+          Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_PRINCIPAL,
+          BLASTWALL_TARGET_IDENTITY, BLASTWALL_TARGET_HOST, and
+          BLASTWALL_HBAC_OUTPUT for the isolated HBAC access test.
+
+    - name: Write FreeIPA client config for isolated HBAC lookup
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ ipa_server }}
+          domain = {{ ipa_domain }}
+          realm = {{ ipa_realm }}
+          basedn = {{ ipa_basedn }}
+          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
+
+    - name: Install injected FreeIPA CA for isolated HBAC lookup
+      ansible.builtin.copy:
+        src: "{{ ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - ipa_ca | length > 0
+        - ipa_ca != "/etc/ipa/ca.crt"
+
+    - name: Run collection-backed HBAC operation test
+      ansible.builtin.set_fact:
+        blastwall_hbac_access_test: >-
+          {{ lookup('eigenstate.ipa.hbacrule',
+                    '%s' | format(blastwall_target_identity),
+                    operation='test',
+                    targethost=blastwall_target_host,
+                    service='sshd',
+                    server=ipa_server,
+                    ipaadmin_principal=ipa_login_principal,
+                    ipaadmin_password=ipa_password,
+                    kerberos_keytab=ipa_keytab,
+                    verify=ipa_ca) }}
+      no_log: "{{ ipa_password | length > 0 }}"
+
+    - name: Write isolated HBAC access test result
+      ansible.builtin.copy:
+        dest: "{{ blastwall_hbac_output }}"
+        mode: "0600"
+        content: "{{ blastwall_hbac_access_test | to_json }}"
+      no_log: "{{ ipa_password | length > 0 }}"
