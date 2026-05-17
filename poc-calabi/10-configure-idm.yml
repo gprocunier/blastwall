@@ -150,7 +150,9 @@
           - "{{ blastwall_auto_group }}"
         hostgroup:
           - "{{ blastwall_hostgroup }}"
-        cmdcategory: all
+        cmdcategory: ""
+        allow_sudocmdgroup:
+          - "{{ blastwall_sudo_command_group }}"
         runasuser:
           - root
         sudooption: "{{ blastwall_sudo_options }}"

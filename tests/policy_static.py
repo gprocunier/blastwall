@@ -289,8 +289,18 @@ calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").re
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
 calabi_eigenstate = (ROOT / "poc-calabi" / "inventory-eigenstate.yml").read_text(encoding="utf-8")
 calabi_seed_fixture = (ROOT / "poc-calabi" / "aap" / "25-seed-selection-fixture.yml").read_text(encoding="utf-8")
+calabi_idm_config = (ROOT / "poc-calabi" / "10-configure-idm.yml").read_text(encoding="utf-8")
+calabi_idm_validate = (ROOT / "poc-calabi" / "15-validate-idm-with-eigenstate.yml").read_text(encoding="utf-8")
 if "idm_description" in calabi_eigenstate:
     fail("poc-calabi/inventory-eigenstate.yml still references idm_description in hostvars")
+if re.search(r"^\s*cmdcategory:\s*all\s*$", calabi_idm_config, re.MULTILINE):
+    fail("poc-calabi/10-configure-idm.yml must not create broad cmdcategory=all sudo rules")
+if "cmdcategory: \"\"" not in calabi_idm_config:
+    fail("poc-calabi/10-configure-idm.yml must clear sudo cmdcategory before using command groups")
+if "allow_sudocmdgroup:" not in calabi_idm_config:
+    fail("poc-calabi/10-configure-idm.yml must attach the Blastwall sudo command group")
+if "blastwall_eigen_sudo_rule.cmdcategory != 'all'" not in calabi_idm_validate:
+    fail("poc-calabi/15-validate-idm-with-eigenstate.yml must reject cmdcategory=all")
 generic_inventory = (ROOT / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
 inventory_renderer_spec = importlib.util.spec_from_file_location(
     "render_inventory_profile_groups",
