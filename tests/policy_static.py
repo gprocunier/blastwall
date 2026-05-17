@@ -1050,6 +1050,12 @@ if verifier_var not in aap_controller:
 stable_v3_preflight_block = aap_controller.partition("Attach attestation verifier credential to stable-v3 preflight")[2].partition("Attach attestation verifier credential to stable-v3 marker promotion")[0]
 if "blastwall_aap_attestation_idm_credential" not in stable_v3_preflight_block:
     fail("AAP stable-v3 preflight must authenticate with the attestation custody IdM credential for KRA reads")
+idm_admin_credential_block = aap_controller.partition("Ensure Blastwall IdM admin credential exists")[2].partition("Ensure optional Blastwall OpenShift credential exists")[0]
+if (
+    'ipa_principal: "{{ blastwall_aap_idm_admin_principal }}"' not in idm_admin_credential_block
+    or 'blastwall_identity: "{{ blastwall_aap_identity }}"' not in idm_admin_credential_block
+):
+    fail("AAP IdM admin credential must authenticate as admin while injecting the runtime Blastwall identity")
 if (
     "BLASTWALL_TARGET_IDENTITY" not in stable_v3_preflight_block
     or "blastwall_target_identity" not in stable_v3_preflight_block

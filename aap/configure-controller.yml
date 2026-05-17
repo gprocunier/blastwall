@@ -583,7 +583,7 @@
           ipa_keytab: ""
           ipa_ca: "{{ blastwall_aap_ipa_cert_content }}"
           krb5_config: "{{ blastwall_aap_krb5_config_content }}"
-          blastwall_identity: "{{ blastwall_aap_idm_admin_principal }}"
+          blastwall_identity: "{{ blastwall_aap_identity }}"
         state: present
       no_log: true
 
