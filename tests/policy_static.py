@@ -944,6 +944,10 @@ if "Build, store, read back, and verify signed attestation" not in v3_sign:
 sign_task = v3_sign.partition("Build, store, read back, and verify signed attestation")[2]
 if "KRB5CCNAME" not in sign_task or "krb5_ccache" not in sign_task:
     fail("sign-attestation.yml does not pass the authenticated Kerberos cache to the signer helper")
+if "Write FreeIPA client config for attestation vault writes" not in v3_sign:
+    fail("sign-attestation.yml must configure the FreeIPA client before using ipa vault CLI")
+if "Install injected FreeIPA CA for attestation vault writes" not in v3_sign:
+    fail("sign-attestation.yml must install the injected FreeIPA CA before using ipa vault CLI")
 if "--profile=\\\\1" in v3_sign or "--profile=\\\\1" in v3_promote:
     fail("stable-v3 signing/promotion must not emit literal --profile=\\1 argv entries")
 if "map('regex_replace', '^', '--profile=')" not in v3_sign:

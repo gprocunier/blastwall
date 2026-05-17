@@ -107,6 +107,14 @@
     blastwall_attestation_index_dir: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
       default('/tmp/blastwall-attestations/indexes', true) }}
+    ipa_server: >-
+      {{ lookup('env', 'IPA_SERVER') | default(blastwall_attestation_vault_primary, true) }}
+    ipa_domain: >-
+      {{ lookup('env', 'IPA_DOMAIN') |
+      default((ipa_server.split('.')[1:] | join('.')), true) }}
+    ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
+    ipa_basedn: >-
+      dc={{ ipa_domain | replace('.', ',dc=') }}
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') | default('', true) }}"
     ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
     ipa_login_principal: >-
@@ -141,6 +149,8 @@
               - blastwall_attestation_signer_allowlist | length > 0
               - blastwall_attestation_vault_primary | length > 0
               - blastwall_attestation_vault_servers | length > 0
+              - ipa_server | length > 0
+              - ipa_domain | length > 0
               - ipa_principal | length > 0
               - ipa_realm | length > 0 or '@' in ipa_principal
               - ipa_keytab | length > 0 or ipa_password | length > 0
@@ -149,6 +159,32 @@
               probe report hash, signer key/certificate/CA/allowlist, explicit
               KRA vault primary, explicit KRA vault server list, and Kerberos
               credentials for the vault client.
+          run_once: true
+          delegate_to: localhost
+
+        - name: Write FreeIPA client config for attestation vault writes
+          ansible.builtin.copy:
+            dest: /etc/ipa/default.conf
+            mode: "0644"
+            content: |
+              [global]
+              server = {{ ipa_server }}
+              domain = {{ ipa_domain }}
+              realm = {{ ipa_realm }}
+              basedn = {{ ipa_basedn }}
+              xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
+          run_once: true
+          delegate_to: localhost
+
+        - name: Install injected FreeIPA CA for attestation vault writes
+          ansible.builtin.copy:
+            src: "{{ ipa_ca }}"
+            dest: /etc/ipa/ca.crt
+            mode: "0644"
+            remote_src: true
+          when:
+            - ipa_ca | length > 0
+            - ipa_ca != "/etc/ipa/ca.crt"
           run_once: true
           delegate_to: localhost
 
