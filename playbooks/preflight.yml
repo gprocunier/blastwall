@@ -984,4 +984,4 @@
           stable_v3_verification: "{{ blastwall_attestation_verify.results | default([]) }}"
           registry_sha256: "{{ blastwall_profile_registry_sha256 }}"
           hbac_rule: "{{ blastwall_hbac_rule_name }}"
-          selinux_user: "{{ blastwall_selinux_map.selinuxuser }}"
+          selinux_user: "{{ blastwall_expected_selinux_user }}"

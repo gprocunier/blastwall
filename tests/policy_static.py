@@ -1158,6 +1158,8 @@ if "lookup('eigenstate.ipa.hbacrule'" in v3_preflight:
     fail("stable-v3 preflight must run hbacrule lookup in an isolated process to avoid parent ipalib state drift")
 if "lookup('eigenstate.ipa.hbacrule'" not in v3_hbac_access or "operation='test'" not in v3_hbac_access:
     fail("stable-v3 preflight may use hbacrule only for collection-backed operation=test group-scope proof")
+if "blastwall_selinux_map.selinuxuser" in v3_preflight:
+    fail("stable-v3 preflight report must not reference removed selinuxmap lookup state")
 if "retrieve-existing" in v3_preflight:
     fail("stable-v3 preflight must use vault_artifact retrieval, not raw-vault retrieve-existing")
 if "^blastwall:.*(?:^blastwall:|;)v=3" in v3_preflight:
