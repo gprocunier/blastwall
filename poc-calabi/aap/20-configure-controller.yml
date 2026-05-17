@@ -107,6 +107,8 @@
         BLASTWALL_ATTESTATION_INDEX_DIR: >-
           {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
           default('/tmp/blastwall-attestations/indexes', true) }}
+        BLASTWALL_ATTESTATION_IDM_CREDENTIAL: >-
+          {{ lookup('env', 'BLASTWALL_ATTESTATION_IDM_CREDENTIAL') | default('', true) }}
         BLASTWALL_CURRENT_POLICY_SHA256: >-
           {{ lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
           default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true) }}
@@ -114,6 +116,12 @@
           {{ lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true) }}
         BLASTWALL_SPO_EVIDENCE_JSON: >-
           {{ lookup('env', 'BLASTWALL_SPO_EVIDENCE_JSON') | default('', true) }}
+        BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1: >-
+          {{ lookup('env', 'BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1') | default('false', true) }}
+        BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1: >-
+          {{ lookup('env', 'BLASTWALL_SPO_VALIDATE_STRANGE_SOCKET_V1') | default('false', true) }}
+        BLASTWALL_OPENSHIFT_KUBECONFIG: >-
+          {{ lookup('env', 'BLASTWALL_OPENSHIFT_KUBECONFIG') | default(calabi_kubeconfig, true) }}
         BLASTWALL_IDM_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
         BLASTWALL_IDM_ADMIN_PASSWORD: >-
           {{ lookup('env', 'IPA_ADMIN_PASSWORD') |
