@@ -457,7 +457,7 @@
             combine({
               item.item: (
                 item.stdout |
-                regex_findall('(?m)^\\s*userclass:\\s*(.+)$')
+                regex_findall('(?m)^\s*userclass:\s*(.+)$')
               )
             })
           }}
