@@ -732,6 +732,7 @@ if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_pr
 policy_pipeline_preflight_block = aap_config.partition("identifier: post_promotion_preflight")[2].partition("when: item.identifier")[0]
 if (
     "'BLASTWALL_TARGET_IDENTITY': blastwall_aap_identity" not in policy_pipeline_preflight_block
+    or "'blastwall_target_identity': blastwall_aap_identity" not in policy_pipeline_preflight_block
     or "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group" not in policy_pipeline_preflight_block
 ):
     fail("AAP policy pipeline post-promotion preflight must validate the runtime identity on the promoted candidate group")
@@ -1051,11 +1052,13 @@ if "blastwall_aap_attestation_idm_credential" not in stable_v3_preflight_block:
     fail("AAP stable-v3 preflight must authenticate with the attestation custody IdM credential for KRA reads")
 if (
     "BLASTWALL_TARGET_IDENTITY" not in stable_v3_preflight_block
+    or "blastwall_target_identity" not in stable_v3_preflight_block
     or "blastwall_aap_identity" not in stable_v3_preflight_block
 ):
     fail("AAP stable-v3 preflight must validate the runtime Blastwall identity, not the KRA custody principal")
 if (
     "BLASTWALL_TARGET_IDENTITY" not in aap_vars
+    or "blastwall_target_identity" not in aap_vars
     or "blastwall_aap_attestation_extra_vars:" not in aap_vars
 ):
     fail("AAP attestation workflow extra vars must carry the runtime Blastwall target identity")
