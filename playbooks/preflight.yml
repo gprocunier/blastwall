@@ -427,18 +427,15 @@
         - blastwall_validate_selected_markers | bool
 
     - name: Read live stable-v3 host marker hints from FreeIPA
-      ansible.builtin.command:
-        argv:
-          - ipa
-          - -e
-          - "server={{ ipa_server }}"
-          - -f
-          - -n
-          - host-show
-          - "{{ item }}"
-          - --all
-          - --raw
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ipa -e "server=${IPA_SERVER}" -f -n host-show "${BLASTWALL_HOST}" --all --raw |
+          sed -n 's/^  userclass: //p'
+      args:
+        executable: /bin/bash
       environment:
+        IPA_SERVER: "{{ ipa_server }}"
+        BLASTWALL_HOST: "{{ item }}"
         KRB5_CONFIG: "{{ krb5_config }}"
         KRB5CCNAME: "{{ krb5_ccache }}"
       register: blastwall_live_host_show
@@ -455,10 +452,7 @@
           {{
             blastwall_live_userclass_by_host | default({}) |
             combine({
-              item.item: (
-                item.stdout |
-                regex_findall('(?m)^\s*userclass:\s*(.+)$')
-              )
+              item.item: item.stdout_lines | default([]) | select('match', '^blastwall:') | list
             })
           }}
       loop: "{{ blastwall_live_host_show.results | default([]) }}"
@@ -524,9 +518,7 @@
         live_userclass_values: "{{ (blastwall_live_userclass_by_host | default({})).get(item, []) }}"
         host_userclass_values: >-
           {{
-            inventory_userclass_values
-            if inventory_userclass_values | length > 0
-            else live_userclass_values
+            (inventory_userclass_values + live_userclass_values) | unique | list
           }}
         host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
         host_v3_marker: >-
@@ -558,9 +550,7 @@
         live_userclass_values: "{{ (blastwall_live_userclass_by_host | default({})).get(item, []) }}"
         host_userclass_values: >-
           {{
-            inventory_userclass_values
-            if inventory_userclass_values | length > 0
-            else live_userclass_values
+            (inventory_userclass_values + live_userclass_values) | unique | list
           }}
         host_marker_values: "{{ host_userclass_values | select('match', '^blastwall:') | list }}"
         host_v3_marker: >-
