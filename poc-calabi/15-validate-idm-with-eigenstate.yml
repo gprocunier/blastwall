@@ -119,7 +119,6 @@
         IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
       register: blastwall_eigen_inventory
       changed_when: false
-      no_log: true
 
     - name: Assert automation endpoint is visible in eigenstate inventory
       ansible.builtin.assert:
