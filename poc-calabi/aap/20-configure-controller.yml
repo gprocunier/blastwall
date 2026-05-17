@@ -2,6 +2,7 @@
 - name: Configure AAP Controller for Blastwall in Calabi
   hosts: localhost
   connection: local
+  become: false
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
@@ -46,7 +47,6 @@
         HOME: "{{ ansible_env.HOME }}"
         PATH: "{{ ansible_env.PATH | default('/usr/local/bin:/usr/bin:/bin') }}"
         ANSIBLE_COLLECTIONS_PATH: "{{ calabi_ansible_collections_path }}"
-        ANSIBLE_COLLECTIONS_PATHS: "{{ calabi_ansible_collections_path }}"
         CONTROLLER_HOST: "{{ calabi_aap_controller_url }}"
         CONTROLLER_USERNAME: admin
         CONTROLLER_PASSWORD: "{{ calabi_aap_controller_password.stdout }}"
