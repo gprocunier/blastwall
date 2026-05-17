@@ -248,8 +248,8 @@ def _sha256(payload: bytes) -> str:
 
 def _run_command(
     command: list[str],
-    *,
     input_data: bytes | None = None,
+    *,
     timeout: int | None = None,
 ) -> VaultCommandResult:
     if command and command[0] == "blastwall-ipa-vault":

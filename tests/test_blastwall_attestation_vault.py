@@ -147,6 +147,23 @@ class BlastwallVaultTests(unittest.TestCase):
                 command_runner=runner,
             )
 
+    def test_default_runner_accepts_readwrite_call_shape(self) -> None:
+        original = vault._run_ipa_vault_command
+        calls = []
+
+        def fake_run_ipa_vault_command(command, *, input_data=None, timeout=None):
+            calls.append({"command": command, "input_data": input_data, "timeout": timeout})
+            return vault.VaultCommandResult(stdout=b"", stderr=b"", returncode=0)
+
+        vault._run_ipa_vault_command = fake_run_ipa_vault_command
+        try:
+            result = vault._run_command(["blastwall-ipa-vault", "write"], b"payload")
+        finally:
+            vault._run_ipa_vault_command = original
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(calls[0]["input_data"], b"payload")
+
     def test_read_retry_on_not_found_when_enabled(self) -> None:
         ref = "service/blastwall-attestation/blastwall-attestation-index/host/base.json"
         payload = b'{"index":1}'
