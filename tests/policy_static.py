@@ -944,6 +944,12 @@ if "Build, store, read back, and verify signed attestation" not in v3_sign:
 sign_task = v3_sign.partition("Build, store, read back, and verify signed attestation")[2]
 if "KRB5CCNAME" not in sign_task or "krb5_ccache" not in sign_task:
     fail("sign-attestation.yml does not pass the authenticated Kerberos cache to the signer helper")
+if "--profile=\\\\1" in v3_sign or "--profile=\\\\1" in v3_promote:
+    fail("stable-v3 signing/promotion must not emit literal --profile=\\1 argv entries")
+if "map('regex_replace', '^', '--profile=')" not in v3_sign:
+    fail("sign-attestation.yml must prefix required profiles without regex backrefs")
+if "map('regex_replace', '^', '--profile=')" not in v3_promote:
+    fail("promote-policy-rpm.yml must prefix required profiles without regex backrefs")
 if "Verify stable-v3 attestation before marker publication" not in v3_promote:
     fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:

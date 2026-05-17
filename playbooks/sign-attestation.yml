@@ -216,7 +216,7 @@
                 + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
                 + (
                   required_blastwall_profiles
-                  | map('regex_replace', '^(.*)$', '--profile=\\1')
+                  | map('regex_replace', '^', '--profile=')
                   | list
                 )
                 + (['--spo-evidence', blastwall_spo_evidence_json] if blastwall_spo_evidence_json | length > 0 else [])

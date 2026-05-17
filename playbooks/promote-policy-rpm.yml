@@ -249,7 +249,7 @@
             + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
             + (
               required_blastwall_profiles
-              | map('regex_replace', '^(.*)$', '--profile=\\1')
+              | map('regex_replace', '^', '--profile=')
               | list
             )
           }}
