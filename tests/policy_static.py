@@ -948,6 +948,10 @@ if "Write FreeIPA client config for attestation vault writes" not in v3_sign:
     fail("sign-attestation.yml must configure the FreeIPA client before using ipa vault CLI")
 if "Install injected FreeIPA CA for attestation vault writes" not in v3_sign:
     fail("sign-attestation.yml must install the injected FreeIPA CA before using ipa vault CLI")
+if "blastwall_v3_attestation_marker_by_host" not in v3_sign:
+    fail("sign-attestation.yml must propagate signed locator markers to downstream workflow jobs")
+if "Use signed stable-v3 locator marker from pipeline signing evidence" not in v3_promote:
+    fail("promote-policy-rpm.yml must consume signer-provided markers across AAP job boundaries")
 if "--profile=\\\\1" in v3_sign or "--profile=\\\\1" in v3_promote:
     fail("stable-v3 signing/promotion must not emit literal --profile=\\1 argv entries")
 if "map('regex_replace', '^', '--profile=')" not in v3_sign:

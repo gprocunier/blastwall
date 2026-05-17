@@ -78,6 +78,11 @@
     blastwall_attestation_index_dir: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
       default('/tmp/blastwall-attestations/indexes', true) }}
+    blastwall_signed_attestation_marker: >-
+      {{
+        (blastwall_v3_attestation_marker_by_host | default({})).get(inventory_hostname, '') |
+        default(blastwall_v3_attestation_marker | default('', true), true)
+      }}
     blastwall_required_profiles_env: >-
       {{
         BLASTWALL_REQUIRED_POLICY_PROFILES |
@@ -256,6 +261,7 @@
       when:
         - blastwall_update_idm_marker | bool
         - blastwall_stable_v3_promotion | bool
+        - blastwall_signed_attestation_marker | length == 0
 
     - name: Store stable-v3 attestation promotion evidence
       ansible.builtin.set_fact:
@@ -263,6 +269,7 @@
       when:
         - blastwall_update_idm_marker | bool
         - blastwall_stable_v3_promotion | bool
+        - blastwall_signed_attestation_marker | length == 0
 
     - name: Use verified stable-v3 locator marker for IdM publication
       ansible.builtin.set_fact:
@@ -271,6 +278,16 @@
       when:
         - blastwall_update_idm_marker | bool
         - blastwall_stable_v3_promotion | bool
+        - blastwall_signed_attestation_marker | length == 0
+
+    - name: Use signed stable-v3 locator marker from pipeline signing evidence
+      ansible.builtin.set_fact:
+        blastwall_policy_marker:
+          stdout: "{{ blastwall_signed_attestation_marker }}"
+      when:
+        - blastwall_update_idm_marker | bool
+        - blastwall_stable_v3_promotion | bool
+        - blastwall_signed_attestation_marker | length > 0
 
     - name: Report stable-v3 attestation promotion evidence
       ansible.builtin.debug:
@@ -284,6 +301,20 @@
       when:
         - blastwall_update_idm_marker | bool
         - blastwall_stable_v3_promotion | bool
+        - blastwall_signed_attestation_marker | length == 0
+
+    - name: Report stable-v3 pipeline signing evidence
+      ansible.builtin.debug:
+        msg:
+          attestation_ref: "{{ blastwall_v3_attestation_ref | default('') }}"
+          attestation_sha256: "{{ blastwall_v3_attestation_sha256 | default('') }}"
+          index_generation: "{{ blastwall_v3_attestation_index_generation | default('') }}"
+          signer_kid: "{{ blastwall_v3_attestation_signer_kid | default('') }}"
+          source: pipeline-signing-evidence
+      when:
+        - blastwall_update_idm_marker | bool
+        - blastwall_stable_v3_promotion | bool
+        - blastwall_signed_attestation_marker | length > 0
 
     - name: Pre-validate promoted Blastwall marker before IdM publication
       ansible.builtin.command:

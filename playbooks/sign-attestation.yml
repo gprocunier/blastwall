@@ -263,6 +263,19 @@
             blastwall_signed_attestation_evidence: "{{ blastwall_signed_attestation.stdout | from_json }}"
           no_log: true
 
+        - name: Propagate signed attestation evidence to downstream workflow jobs
+          ansible.builtin.set_stats:
+            data:
+              BLASTWALL_ATTESTATION_GENERATION: "{{ blastwall_signed_attestation_evidence.index_generation }}"
+              blastwall_attestation_generation: "{{ blastwall_signed_attestation_evidence.index_generation }}"
+              blastwall_v3_attestation_marker: "{{ blastwall_signed_attestation_evidence.marker }}"
+              blastwall_v3_attestation_marker_by_host: >-
+                {{ {inventory_hostname: blastwall_signed_attestation_evidence.marker} }}
+              blastwall_v3_attestation_ref: "{{ blastwall_signed_attestation_evidence.attestation_ref }}"
+              blastwall_v3_attestation_sha256: "{{ blastwall_signed_attestation_evidence.attestation_sha256 }}"
+              blastwall_v3_attestation_index_generation: "{{ blastwall_signed_attestation_evidence.index_generation }}"
+              blastwall_v3_attestation_signer_kid: "{{ blastwall_signed_attestation_evidence.signer_kid }}"
+
         - name: Report attestation signing evidence
           ansible.builtin.debug:
             msg:
