@@ -1041,6 +1041,11 @@ if verifier_var not in aap_controller:
 stable_v3_preflight_block = aap_controller.partition("Attach attestation verifier credential to stable-v3 preflight")[2].partition("Attach attestation verifier credential to stable-v3 marker promotion")[0]
 if "blastwall_aap_attestation_idm_credential" not in stable_v3_preflight_block:
     fail("AAP stable-v3 preflight must authenticate with the attestation custody IdM credential for KRA reads")
+if (
+    "BLASTWALL_TARGET_IDENTITY" not in stable_v3_preflight_block
+    or "blastwall_aap_identity" not in stable_v3_preflight_block
+):
+    fail("AAP stable-v3 preflight must validate the runtime Blastwall identity, not the KRA custody principal")
 if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
 for required_sign_custody_signal in [
@@ -1097,10 +1102,29 @@ for required_live_preflight_signal in [
         )
 preflight_ipa_config_index = v3_preflight.find("Write FreeIPA client config for controller-side lookups")
 preflight_vault_health_index = v3_preflight.find("Check stable-v3 KRA vault health")
-if preflight_ipa_config_index == -1 or preflight_vault_health_index == -1:
-    fail("stable-v3 preflight is missing FreeIPA client bootstrap or KRA health check")
+preflight_hbac_test_index = v3_preflight.find("Run collection-backed HBAC access test for group-scoped readiness")
+preflight_access_path_index = v3_preflight.find("Read Blastwall IdM access path")
+if (
+    preflight_ipa_config_index == -1
+    or preflight_vault_health_index == -1
+    or preflight_hbac_test_index == -1
+    or preflight_access_path_index == -1
+):
+    fail("stable-v3 preflight is missing FreeIPA client bootstrap, HBAC proof, KRA health, or access-path checks")
 if preflight_ipa_config_index > preflight_vault_health_index:
     fail("stable-v3 preflight must write FreeIPA client config before KRA vault health")
+if preflight_ipa_config_index > preflight_hbac_test_index:
+    fail("stable-v3 preflight must write FreeIPA client config before collection-backed HBAC proof")
+if preflight_hbac_test_index > preflight_vault_health_index:
+    fail("stable-v3 preflight must prove HBAC before KRA health to avoid shared FreeIPA client-state drift")
+if preflight_hbac_test_index > preflight_access_path_index:
+    fail("stable-v3 preflight must prove group-scoped HBAC before access-path detail reads")
+if "blastwall_target_identity" not in v3_preflight:
+    fail("stable-v3 preflight must separate target identity from the IdM credential auth principal")
+if 'principal: "{{ blastwall_target_identity }}"' not in v3_preflight:
+    fail("stable-v3 preflight access-path proof must validate the runtime target identity")
+if "'%s' | format(blastwall_target_identity)" not in v3_preflight:
+    fail("stable-v3 preflight HBAC proof must validate the runtime target identity")
 if "lookup('eigenstate.ipa.selinuxmap'" in v3_preflight:
     fail("stable-v3 preflight must use eigenstate.ipa.access_path instead of lookup('eigenstate.ipa.selinuxmap'")
 if "lookup('eigenstate.ipa.hbacrule'" in v3_preflight and "operation='test'" not in v3_preflight:

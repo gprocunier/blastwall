@@ -25,6 +25,11 @@
     krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
     krb5_ccache: FILE:/tmp/blastwall_preflight_krb5cc
     blastwall_identity: "{{ lookup('env', 'BLASTWALL_IDENTITY') }}"
+    blastwall_target_identity: >-
+      {{
+        BLASTWALL_TARGET_IDENTITY |
+        default(lookup('env', 'BLASTWALL_TARGET_IDENTITY') | default(blastwall_identity, true), true)
+      }}
     blastwall_selinux_map_name: blastwall-root-local-map
     blastwall_expected_selinux_user: blastwall_u:s0
     blastwall_hbac_rule_name: blastwall-ssh
@@ -261,9 +266,12 @@
           - ipa_realm | length > 0
           - ipa_keytab | length > 0 or ipa_password | length > 0
           - blastwall_identity | length > 0
+          - blastwall_target_identity | length > 0
         fail_msg: >-
-          Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, BLASTWALL_IDENTITY, and
-          either IPA_KEYTAB or IPA_PASSWORD for preflight.
+          Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, BLASTWALL_IDENTITY,
+          BLASTWALL_TARGET_IDENTITY, and either IPA_KEYTAB or IPA_PASSWORD for
+          preflight. BLASTWALL_TARGET_IDENTITY may match BLASTWALL_IDENTITY when
+          the same principal is used for auth and target access validation.
 
     - name: Assert strange-socket-v1 dry-run intent is consistent
       ansible.builtin.assert:
@@ -343,38 +351,6 @@
         - ipa_ca | length > 0
         - ipa_ca != "/etc/ipa/ca.crt"
 
-    - name: Check stable-v3 KRA vault health
-      eigenstate.ipa.vault_health:
-        server: "{{ blastwall_attestation_vault_primary }}"
-        ipaadmin_principal: "{{ ipa_login_principal }}"
-        ipaadmin_password: "{{ ipa_password }}"
-        kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
-        verify: "{{ ipa_ca }}"
-        require_direct_kra: true
-        canary_vault: "{{ blastwall_attestation_health_canary if blastwall_attestation_health_canary | length > 0 else omit }}"
-        canary_max_age_seconds: >-
-          {{ blastwall_attestation_canary_max_age_seconds
-             if blastwall_attestation_canary_max_age_seconds | string | length > 0 else omit }}
-        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
-        service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
-        username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
-      register: blastwall_vault_health
-      no_log: "{{ ipa_password | length > 0 }}"
-      when: blastwall_attestation_signed_mode
-
-    - name: Assert stable-v3 KRA vault health passed
-      ansible.builtin.assert:
-        that:
-          - blastwall_vault_health.idm_reachable | bool
-          - blastwall_vault_health.vault_reachable | bool
-          - blastwall_vault_health.kra_available is sameas true
-          - blastwall_vault_health.failure_class == 'none'
-          - blastwall_vault_health.canary_stale is not sameas true
-        fail_msg: >-
-          FAIL_INFRA_VAULT_KRA: stable-v3 KRA vault health failed:
-          {{ blastwall_vault_health | to_json }}.
-      when: blastwall_attestation_signed_mode
-
     - name: Assert breakglass metadata is complete when breakglass is active
       ansible.builtin.assert:
         that:
@@ -421,6 +397,68 @@
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_no_eligible_hosts | bool
 
+    - name: Run collection-backed HBAC access test for group-scoped readiness
+      ansible.builtin.set_fact:
+        blastwall_hbac_access_tests: >-
+          {{
+            (blastwall_hbac_access_tests | default({})) |
+            combine({
+              item: lookup('eigenstate.ipa.hbacrule',
+                           '%s' | format(blastwall_target_identity),
+                           operation='test',
+                           targethost=item,
+                           service='sshd',
+                           server=ipa_server,
+                           ipaadmin_principal=ipa_login_principal,
+                           ipaadmin_password=ipa_password,
+                           kerberos_keytab=ipa_keytab,
+                           verify=ipa_ca)
+            })
+          }}
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Assert collection-backed HBAC access test allows selected hosts
+      ansible.builtin.assert:
+        that:
+          - not (blastwall_hbac_access_tests[item].denied | bool)
+        fail_msg: >-
+          Blastwall HBAC access test denied {{ blastwall_target_identity }} on {{ item }}:
+          {{ blastwall_hbac_access_tests[item] | to_json }}.
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Check stable-v3 KRA vault health
+      eigenstate.ipa.vault_health:
+        server: "{{ blastwall_attestation_vault_primary }}"
+        ipaadmin_principal: "{{ ipa_login_principal }}"
+        ipaadmin_password: "{{ ipa_password }}"
+        kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
+        verify: "{{ ipa_ca }}"
+        require_direct_kra: true
+        canary_vault: "{{ blastwall_attestation_health_canary if blastwall_attestation_health_canary | length > 0 else omit }}"
+        canary_max_age_seconds: >-
+          {{ blastwall_attestation_canary_max_age_seconds
+             if blastwall_attestation_canary_max_age_seconds | string | length > 0 else omit }}
+        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
+        username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
+      register: blastwall_vault_health
+      no_log: "{{ ipa_password | length > 0 }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Assert stable-v3 KRA vault health passed
+      ansible.builtin.assert:
+        that:
+          - blastwall_vault_health.idm_reachable | bool
+          - blastwall_vault_health.vault_reachable | bool
+          - blastwall_vault_health.kra_available is sameas true
+          - blastwall_vault_health.failure_class == 'none'
+          - blastwall_vault_health.canary_stale is not sameas true
+        fail_msg: >-
+          FAIL_INFRA_VAULT_KRA: stable-v3 KRA vault health failed:
+          {{ blastwall_vault_health | to_json }}.
+      when: blastwall_attestation_signed_mode
+
     - name: Read Blastwall IdM access path
       eigenstate.ipa.access_path:
         server: "{{ ipa_server }}"
@@ -428,7 +466,7 @@
         ipaadmin_password: "{{ ipa_password }}"
         kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
         verify: "{{ ipa_ca }}"
-        principal: "{{ blastwall_identity }}"
+        principal: "{{ blastwall_target_identity }}"
         host: "{{ item }}"
         hbac_service: sshd
         hbac_rule: "{{ blastwall_hbac_rule_name }}"
@@ -464,36 +502,6 @@
       loop: "{{ blastwall_access_path_results.results | default([]) }}"
       loop_control:
         label: "{{ item.item | default('unknown') }}"
-
-    - name: Run collection-backed HBAC access test for group-scoped readiness
-      ansible.builtin.set_fact:
-        blastwall_hbac_access_tests: >-
-          {{
-            (blastwall_hbac_access_tests | default({})) |
-            combine({
-              item: lookup('eigenstate.ipa.hbacrule',
-                           '%s' | format(blastwall_identity),
-                           operation='test',
-                           targethost=item,
-                           service='sshd',
-                           server=ipa_server,
-                           ipaadmin_principal=ipa_login_principal,
-                           ipaadmin_password=ipa_password,
-                           kerberos_keytab=ipa_keytab,
-                           verify=ipa_ca)
-            })
-          }}
-      no_log: "{{ ipa_password | length > 0 }}"
-      loop: "{{ blastwall_target_hosts }}"
-
-    - name: Assert collection-backed HBAC access test allows selected hosts
-      ansible.builtin.assert:
-        that:
-          - not (blastwall_hbac_access_tests[item].denied | bool)
-        fail_msg: >-
-          Blastwall HBAC access test denied {{ blastwall_identity }} on {{ item }}:
-          {{ blastwall_hbac_access_tests[item] | to_json }}.
-      loop: "{{ blastwall_target_hosts }}"
 
     - name: Read supplemental sudo policy for risk classification
       ansible.builtin.set_fact:
