@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import sys
 import tempfile
@@ -190,6 +191,14 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertIn("blastwall:v=3;", report["marker"])
         self.assertTrue(Path(report["envelope_file"]).exists())
         self.assertTrue(Path(report["index_file"]).exists())
+        envelope = json.loads(Path(report["envelope_file"]).read_text(encoding="utf-8"))
+        index = json.loads(Path(report["index_file"]).read_text(encoding="utf-8"))
+        self.assertEqual(attestation.attestation_envelope_sha256(envelope), report["attestation_sha256"])
+        self.assertEqual(attestation.latest_index_sha256(index), report["index_sha256"])
+        envelope_file_sha = hashlib.sha256(Path(report["envelope_file"]).read_bytes()).hexdigest()
+        index_file_sha = hashlib.sha256(Path(report["index_file"]).read_bytes()).hexdigest()
+        self.assertEqual(envelope_file_sha, report["attestation_sha256"])
+        self.assertEqual(index_file_sha, report["index_sha256"])
         self.assertNotIn("PRIVATE KEY", json.dumps(report))
         self.assertTrue(any("--server" in command and "idm-01.workshop.lan" in command for command in memory_vault.commands))
 

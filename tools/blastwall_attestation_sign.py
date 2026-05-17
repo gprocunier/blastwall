@@ -271,11 +271,11 @@ def _materialize_artifacts(
     if envelope_dir is not None:
         envelope_dir.mkdir(parents=True, exist_ok=True)
         envelope_path = envelope_dir / f"{host}.json"
-        envelope_path.write_text(envelope_text + "\n", encoding="utf-8")
+        envelope_path.write_text(envelope_text, encoding="utf-8")
     if index_dir is not None:
         index_dir.mkdir(parents=True, exist_ok=True)
         index_path = index_dir / f"{host}.json"
-        index_path.write_text(index_text + "\n", encoding="utf-8")
+        index_path.write_text(index_text, encoding="utf-8")
     return (str(envelope_path) if envelope_path else None, str(index_path) if index_path else None)
 
 
