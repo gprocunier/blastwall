@@ -15,6 +15,12 @@ Current branch:
 blastwall-v3-signed-attestation
 ```
 
+Required collection baseline:
+
+```text
+eigenstate.ipa >= 1.18.1
+```
+
 Current release-candidate RPM identity:
 
 ```text
@@ -196,8 +202,10 @@ Revoked indexes and tombstoned artifacts fail closed.
 
 ### KRA-Backed IdM Vault Storage
 
-v3 stores attestation artifacts in IdM vault paths backed by KRA. That adds an
-explicit trust dependency:
+v3 stores attestation artifacts in IdM vault paths backed by KRA. The stable
+path now uses `eigenstate.ipa.vault_health` before retrieval and
+`eigenstate.ipa.vault_artifact` for envelope and latest-index custody. That
+adds an explicit trust dependency:
 
 - LDAP marker visibility is not the same as KRA vault artifact visibility.
 - Signer writes and preflight reads must target configured KRA-enabled servers.
@@ -222,6 +230,12 @@ retrieved artifact is the one the marker claimed.
 
 Stable-v3 preflight requires:
 
+- normalized IdM inventory fields from `eigenstate.ipa.idm`,
+- an `eigenstate.ipa.access_path` readiness result for principal, HBAC, sudo,
+  and SELinux map state,
+- `eigenstate.ipa.sudo_risk` classification without an unapproved high-risk
+  finding,
+- a healthy KRA/vault plane reported by `eigenstate.ipa.vault_health`,
 - a parseable v3 marker,
 - successful KRA retrieval of the marker-referenced envelope,
 - successful KRA retrieval of the latest-generation index,

@@ -256,6 +256,7 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         "in ['stable-v3', 'breakglass'])"
     )
     schema_error = _and_block(
+        "(",
         "idm_userclass is defined and",
         "(",
         "  idm_userclass is none",
@@ -265,6 +266,23 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
         "    idm_userclass is sequence",
         "    and idm_userclass is not string",
         "    and (idm_userclass | select('string') | list | length) != (idm_userclass | list | length)",
+        "  )",
+        ")",
+        ")",
+        "or",
+        "(",
+        "  idm_userclass is defined",
+        "  and (",
+        "    (idm_schema_warnings is defined and (idm_schema_warnings | list | length) > 0 and " + (
+            "((idm_userclass is string and idm_userclass is match('^blastwall:')) or "
+            "(idm_userclass is sequence and idm_userclass is not string and "
+            "(idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0))"
+        ) + ")",
+        "    or (idm_userclass_type is defined and idm_userclass_type not in ['list', 'missing'] and " + (
+            "((idm_userclass is string and idm_userclass is match('^blastwall:')) or "
+            "(idm_userclass is sequence and idm_userclass is not string and "
+            "(idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0))"
+        ) + ")",
         "  )",
         ")",
     )

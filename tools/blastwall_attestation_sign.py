@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import secrets
 import subprocess
@@ -232,6 +233,23 @@ def _artifact_refs(
     return envelope_ref, index_ref
 
 
+def _vault_artifact_name(vault_ref: str) -> str:
+    return "blastwall-" + hashlib.sha256(vault_ref.encode("utf-8")).hexdigest()[:48]
+
+
+def _vault_artifacts(envelope_ref: str, index_ref: str) -> dict[str, dict[str, str]]:
+    return {
+        "envelope": {
+            "ref": envelope_ref,
+            "name": _vault_artifact_name(envelope_ref),
+        },
+        "index": {
+            "ref": index_ref,
+            "name": _vault_artifact_name(index_ref),
+        },
+    }
+
+
 def _materialize_artifacts(
     *,
     envelope_text: str,
@@ -403,6 +421,93 @@ def sign_store_readback(
     }
 
 
+def build_signed_artifacts(
+    inputs: SignInputs,
+    *,
+    registry: Mapping[str, Any],
+    vault_config: blastwall_attestation_vault.VaultConfig,
+    envelope_dir: Path | None = DEFAULT_ENVELOPE_DIR,
+    index_dir: Path | None = DEFAULT_INDEX_DIR,
+) -> dict[str, Any]:
+    """Build signed artifacts locally for collection-backed vault custody."""
+
+    payload = build_payload(inputs, registry=registry)
+    envelope_ref, index_ref = _artifact_refs(
+        config=vault_config,
+        host=inputs.subject_host,
+        profiles=payload["profiles"],
+        generation=inputs.generation,
+    )
+    envelope = blastwall_attestation.build_attestation_envelope(
+        payload,
+        private_key=inputs.signer_key,
+        signer_certificate=inputs.signer_certificate,
+    )
+    envelope_sha = blastwall_attestation.attestation_envelope_sha256(envelope)
+    index = blastwall_attestation.build_latest_index(
+        {
+            "subject_host": inputs.subject_host,
+            "target": inputs.target,
+            "profile_set": payload["profiles"],
+            "latest_generation": inputs.generation,
+            "latest_attest_ref": envelope_ref,
+            "latest_attest_sha256": envelope_sha,
+            "state": payload["state"],
+            "issued_at": payload["issued_at"],
+            "not_before": payload["not_before"],
+            "not_after": payload["not_after"],
+        },
+        private_key=inputs.signer_key,
+        signer_certificate=inputs.signer_certificate,
+    )
+    envelope_text = _canonical_text(envelope)
+    index_text = _canonical_text(index)
+    marker_text = blastwall_marker.emit_marker_v3(
+        registry=dict(registry),
+        rpm=inputs.rpm_nevra,
+        profiles=payload["profiles"],
+        target=inputs.target,
+        state=payload["state"],
+        attest_ref=envelope_ref,
+        attest_sha256=envelope_sha,
+        signer_kid=payload["signer_kid"],
+        exp=payload["not_after"],
+        generation=inputs.generation,
+        allow_dry_run_profiles=inputs.allow_dry_run_profiles,
+    )
+    verification = _verify_marker_artifacts(
+        marker_text=marker_text,
+        envelope_text=envelope_text,
+        index_text=index_text,
+        registry=registry,
+        inputs=inputs,
+    )
+    envelope_path, index_path = _materialize_artifacts(
+        envelope_text=envelope_text,
+        index_text=index_text,
+        envelope_dir=envelope_dir,
+        index_dir=index_dir,
+        host=inputs.subject_host,
+    )
+    return {
+        "status": "PASS",
+        "marker": marker_text,
+        "attestation_ref": envelope_ref,
+        "attestation_sha256": envelope_sha,
+        "index_ref": index_ref,
+        "index_sha256": blastwall_attestation.latest_index_sha256(index),
+        "index_generation": inputs.generation,
+        "signer_kid": payload["signer_kid"],
+        "vault_server": vault_config.primary,
+        "workflow_job_id": inputs.aap_workflow_job_id,
+        "source_revision": inputs.source_revision,
+        "envelope_file": envelope_path,
+        "index_file": index_path,
+        "vault_artifacts": _vault_artifacts(envelope_ref, index_ref),
+        "verification": verification,
+    }
+
+
 def verify_existing_artifacts(
     inputs: SignInputs,
     *,
@@ -446,6 +551,61 @@ def verify_existing_artifacts(
         "workflow_job_id": payload["aap_workflow_job_id"],
         "source_revision": payload["source_revision"],
         "verification": verification,
+    }
+
+
+def resolve_existing_artifacts(
+    inputs: SignInputs,
+    *,
+    registry: Mapping[str, Any],
+    vault_config: blastwall_attestation_vault.VaultConfig,
+    marker_text: str,
+    envelope_dir: Path | None = DEFAULT_ENVELOPE_DIR,
+    index_dir: Path | None = DEFAULT_INDEX_DIR,
+) -> dict[str, Any]:
+    """Resolve marker-referenced artifact refs and local materialization paths."""
+
+    required_profiles = blastwall_marker.canonical_profile_list(dict(registry), inputs.profiles)
+    parsed_marker = blastwall_marker.parse_marker(
+        marker_text,
+        registry=dict(registry),
+        expected_registry_sha256=inputs.registry_sha256,
+        expected_target=inputs.target,
+        accepted_rpms={inputs.rpm_nevra},
+        required_profiles=set(required_profiles),
+        allow_dry_run_profiles=inputs.allow_dry_run_profiles,
+    )
+    if parsed_marker.version != 3 or parsed_marker.errors or not parsed_marker.hint:
+        raise ValueError(f"invalid v3 marker locator: {'; '.join(parsed_marker.errors)}")
+    if not parsed_marker.attest_ref or not parsed_marker.attest_sha256:
+        raise ValueError("v3 marker locator is missing attestation reference or digest")
+    if parsed_marker.generation is None:
+        raise ValueError("v3 marker locator is missing generation")
+
+    marker_profiles = blastwall_marker.canonical_profile_list(dict(registry), list(parsed_marker.profiles))
+    expected_scope_owner = "/".join([vault_config.scope, vault_config.owner])
+    if not parsed_marker.attest_ref.startswith(expected_scope_owner + "/"):
+        raise ValueError("v3 marker attestation reference does not match configured vault scope/owner")
+    _, index_ref = _artifact_refs(
+        config=vault_config,
+        host=inputs.subject_host,
+        profiles=marker_profiles,
+        generation=parsed_marker.generation,
+    )
+    envelope_path = envelope_dir / f"{inputs.subject_host}.json" if envelope_dir else Path("")
+    index_path = index_dir / f"{inputs.subject_host}.json" if index_dir else Path("")
+    return {
+        "status": "PASS",
+        "marker": marker_text,
+        "attestation_ref": parsed_marker.attest_ref,
+        "attestation_sha256": parsed_marker.attest_sha256,
+        "index_ref": index_ref,
+        "index_generation": parsed_marker.generation,
+        "signer_kid": parsed_marker.signer_kid,
+        "vault_server": vault_config.primary,
+        "envelope_file": str(envelope_path),
+        "index_file": str(index_path),
+        "vault_artifacts": _vault_artifacts(parsed_marker.attest_ref, index_ref),
     }
 
 
@@ -589,6 +749,16 @@ def main() -> int:
     sign_parser.add_argument("--envelope-dir", type=Path, default=DEFAULT_ENVELOPE_DIR)
     sign_parser.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR)
 
+    build_parser = subparsers.add_parser("build-artifacts")
+    _add_common_args(build_parser)
+    build_parser.add_argument("--signer-key", type=Path, required=True)
+    build_parser.add_argument("--vault-primary", required=True)
+    build_parser.add_argument("--vault-servers-csv", required=True)
+    build_parser.add_argument("--vault-scope", default=blastwall_attestation_vault.DEFAULT_VAULT_SCOPE)
+    build_parser.add_argument("--vault-owner", default=blastwall_attestation_vault.DEFAULT_VAULT_OWNER)
+    build_parser.add_argument("--envelope-dir", type=Path, default=DEFAULT_ENVELOPE_DIR)
+    build_parser.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR)
+
     verify_parser = subparsers.add_parser("verify-existing")
     _add_common_args(verify_parser)
     verify_parser.add_argument("--envelope-json", type=Path, required=True)
@@ -609,12 +779,31 @@ def main() -> int:
     retrieve_parser.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR)
     retrieve_parser.set_defaults(signer_key=Path("/dev/null"))
 
+    resolve_parser = subparsers.add_parser("resolve-existing")
+    _add_common_args(resolve_parser, generation_required=False)
+    resolve_parser.add_argument("--marker", required=True)
+    resolve_parser.add_argument("--vault-primary", required=True)
+    resolve_parser.add_argument("--vault-servers-csv", required=True)
+    resolve_parser.add_argument("--vault-scope", default=blastwall_attestation_vault.DEFAULT_VAULT_SCOPE)
+    resolve_parser.add_argument("--vault-owner", default=blastwall_attestation_vault.DEFAULT_VAULT_OWNER)
+    resolve_parser.add_argument("--envelope-dir", type=Path, default=DEFAULT_ENVELOPE_DIR)
+    resolve_parser.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR)
+    resolve_parser.set_defaults(signer_key=Path("/dev/null"))
+
     args = parser.parse_args()
     registry = blastwall_marker.load_registry(args.registry)
     inputs = _build_sign_inputs(args, args.registry)
     try:
         if args.mode == "sign-store-readback":
             report = sign_store_readback(
+                inputs,
+                registry=registry,
+                vault_config=_vault_config(args),
+                envelope_dir=args.envelope_dir,
+                index_dir=args.index_dir,
+            )
+        elif args.mode == "build-artifacts":
+            report = build_signed_artifacts(
                 inputs,
                 registry=registry,
                 vault_config=_vault_config(args),
@@ -628,8 +817,17 @@ def main() -> int:
                 envelope_text=_read_json_text(args.envelope_json),
                 index_text=_read_json_text(args.index_json),
             )
-        else:
+        elif args.mode == "retrieve-existing":
             report = retrieve_existing_artifacts(
+                inputs,
+                registry=registry,
+                vault_config=_vault_config(args),
+                marker_text=args.marker,
+                envelope_dir=args.envelope_dir,
+                index_dir=args.index_dir,
+            )
+        else:
+            report = resolve_existing_artifacts(
                 inputs,
                 registry=registry,
                 vault_config=_vault_config(args),

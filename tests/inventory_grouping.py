@@ -81,6 +81,14 @@ def substitute_placeholders(value, registry_hash: str, policy_hash: str):
     return value
 
 
+def userclass_type(value) -> str:
+    if isinstance(value, list):
+        return "list"
+    if value is None:
+        return "missing"
+    return type(value).__name__
+
+
 def run_ansible_inventory(allow_dry_run_profiles: bool, attestation_mode: str) -> dict[str, list[str]]:
     with tempfile.TemporaryDirectory(prefix="blastwall-inventory-") as inventory_dir:
         inventory_path = Path(inventory_dir)
@@ -88,8 +96,30 @@ def run_ansible_inventory(allow_dry_run_profiles: bool, attestation_mode: str) -
             "all": {
                 "hosts": {
                     host["name"]: {
-                        "idm_fqdn": host["name"],
-                        "idm_userclass": host.get("idm_userclass", []),
+                        key: value
+                        for key, value in {
+                            "idm_fqdn": host["name"],
+                            **(
+                                {"idm_userclass": host["idm_userclass"]}
+                                if "idm_userclass" in host
+                                else {"idm_userclass": []}
+                            ),
+                            **(
+                                {"idm_userclass_raw": host["idm_userclass_raw"]}
+                                if "idm_userclass_raw" in host
+                                else {}
+                            ),
+                            **(
+                                {"idm_userclass_type": host["idm_userclass_type"]}
+                                if "idm_userclass_type" in host
+                                else {}
+                            ),
+                            **(
+                                {"idm_schema_warnings": host["idm_schema_warnings"]}
+                                if "idm_schema_warnings" in host
+                                else {}
+                            ),
+                        }.items()
                     }
                     for host in fixture["hosts"]
                 }
@@ -261,6 +291,12 @@ for mode, allow_dry_run, attestation_mode in modes:
             if isinstance(host_markers, str):
                 host_markers = [host_markers]
             context["idm_userclass"] = host_markers
+            if "idm_userclass_raw" in host:
+                context["idm_userclass_raw"] = host["idm_userclass_raw"]
+            if "idm_userclass_type" in host:
+                context["idm_userclass_type"] = host["idm_userclass_type"]
+            if "idm_schema_warnings" in host:
+                context["idm_schema_warnings"] = host["idm_schema_warnings"]
         for group, expression in compiled.items():
             if bool(expression(**context)):
                 inventory_actual[mode][group].append(host["name"])

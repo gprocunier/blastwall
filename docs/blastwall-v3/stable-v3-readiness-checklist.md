@@ -14,6 +14,8 @@ Use this checklist before claiming stable-v3.
 
 ## Configuration and ownership
 
+- `eigenstate.ipa` `1.18.1` or newer is installed in the AAP execution
+  environment and bastion validation path.
 - `BLASTWALL_ATTESTATION_MODE` = `stable-v3` is explicitly set.
 - Primary KRA server configured and documented.
 - Explicit vault owner and scope are configured for service-owned path.
@@ -33,6 +35,16 @@ Use this checklist before claiming stable-v3.
 
 ## Verification behavior checks
 
+- Inventory exposes `idm_userclass`, `idm_userclass_raw`,
+  `idm_userclass_type`, and `idm_schema_warnings`; marker-bearing hosts with
+  schema warnings are not silently accepted.
+- `eigenstate.ipa.access_path` reports principal, HBAC, sudo, and SELinux map
+  readiness before host launch.
+- `eigenstate.ipa.sudo_risk` reports no unapproved high or unknown risk.
+- `eigenstate.ipa.vault_health` reports `failure_class=none` before any
+  stable-v3 artifact read.
+- `eigenstate.ipa.vault_artifact` verifies envelope and latest-index custody
+  digests.
 - Marker parse accepts v3 only where expected.
 - v3 marker is treated as locator; signature is the proof.
 - Stable-v3 requires successful envelope fetch and signature verification.

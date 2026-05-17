@@ -14,6 +14,8 @@ Both can be healthy independently. A healthy LDAP path does not guarantee KRA-ba
 - KRA-enabled IdM replicas are explicitly configured.
 - signer writes and preflight reads use the same primary by policy.
 - service principals are scoped by service owner, not by ad-hoc user automation accounts.
+- `eigenstate.ipa >= 1.18.1` is installed wherever stable-v3 signing or
+  preflight runs.
 - the AAP credential attached to `Blastwall sign attestation` has explicit
   KRA vault write/read authority for the configured scope.
 
@@ -55,10 +57,12 @@ Run in this order:
 
 - IdM CA trust present.
 - signer certificate still valid and allowed.
-- configured primary is KRA-enabled.
-- signer write path succeeds.
-- signer readback succeeds.
-- preflight read path succeeds from primary.
+- `eigenstate.ipa.vault_health` reports the configured primary is KRA-enabled
+  and has `failure_class=none`.
+- signer writes envelope and index through `eigenstate.ipa.vault_artifact`.
+- signer readback succeeds through the same artifact helper.
+- preflight reads envelope and index through `eigenstate.ipa.vault_artifact`
+  from primary.
 - health canary freshness check for the primary.
 
 Record each check result as pass/fail per run.

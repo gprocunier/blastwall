@@ -5,6 +5,13 @@
 This runbook gives operators a practical flow for running Blastwall signed attestation in production-like environments.
 It assumes v3 code is already deployed and focuses on interpretation, diagnosis, and safe recovery.
 
+Stable-v3 requires `eigenstate.ipa >= 1.18.1`. Inventory selection consumes the
+normalized `idm_userclass` companion fields, preflight reads the IdM access path
+through `eigenstate.ipa.access_path`, classifies sudo expansion through
+`eigenstate.ipa.sudo_risk`, checks KRA reachability through
+`eigenstate.ipa.vault_health`, and retrieves artifacts through
+`eigenstate.ipa.vault_artifact`.
+
 ## Scope
 
 - Read and respond to preflight outcomes for marker-based host gating.
@@ -117,11 +124,25 @@ Start
 
 ### KRA outage
 
-- Symptoms: `FAIL_KRA_UNAVAILABLE` in audit, or `FAIL_ATTESTATION_NOT_VISIBLE` / `FAIL_INDEX_NOT_VISIBLE` in preflight.
+- Symptoms: `FAIL_INFRA_VAULT_KRA` during stable-v3 preflight,
+  `FAIL_KRA_UNAVAILABLE` in audit, or `FAIL_ATTESTATION_NOT_VISIBLE` /
+  `FAIL_INDEX_NOT_VISIBLE` after the health gate passes.
 - Action:
   - confirm KRA DNS and pod status,
+  - inspect the `vault_health` fields for `failure_class`, `kra_available`,
+    `vault_reachable`, and canary freshness,
   - confirm canary staleness,
   - use breakglass only for infrastructure failure if allowed and justified.
+
+### Access path or sudo risk failure
+
+- Symptoms: preflight reports `access_path` errors or high/unknown sudo risk.
+- Action:
+  - repair the IdM principal, HBAC rule, sudo rule, or SELinux map;
+  - remove package-management, policy-management, shell-escape, broad file
+    write, or unconfined sudo expansion from the Blastwall rule;
+  - use `BLASTWALL_DANGER_ACCEPT_SUDO_RISK` only with a named reason for a
+    temporary transition exception, not as a stable operating default.
 
 ### Revoked marker
 

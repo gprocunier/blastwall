@@ -41,6 +41,28 @@
         - eigenstate.ipa.sudo
       changed_when: false
 
+    - name: Check eigenstate.ipa 1.18.1 modules are available
+      ansible.builtin.command:
+        argv:
+          - ansible-doc
+          - -t
+          - module
+          - "{{ item }}"
+      loop:
+        - eigenstate.ipa.vault_health
+        - eigenstate.ipa.vault_artifact
+        - eigenstate.ipa.access_path
+      changed_when: false
+
+    - name: Check eigenstate.ipa sudo risk filter is available
+      ansible.builtin.command:
+        argv:
+          - ansible-doc
+          - -t
+          - filter
+          - eigenstate.ipa.sudo_risk
+      changed_when: false
+
     - name: Check eigenstate.ipa inventory plugin is available
       ansible.builtin.command:
         argv:

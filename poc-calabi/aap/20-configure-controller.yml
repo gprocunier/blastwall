@@ -76,7 +76,7 @@
           default('https://github.com/gprocunier/blastwall.git', true) }}
         BLASTWALL_PROJECT_BRANCH: >-
           {{ lookup('env', 'BLASTWALL_PROJECT_BRANCH') |
-          default('blastwall-v2-phase-08-rc1k', true) }}
+          default('blastwall-v3-signed-attestation', true) }}
         BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP: >-
           {{ lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
           default('blastwall_policy_candidate', true) }}

@@ -73,9 +73,12 @@ Install the required collections on bastion:
 ansible-galaxy collection install -r requirements.yml -p ./collections
 ```
 
-For this PoC, use an
-[`eigenstate.ipa`](https://gprocunier.github.io/eigenstate-ipa/) version that
-includes the `selinuxmap`, `hbacrule`, `sudo`, and `idm` inventory plugins.
+For v3 work, use
+[`eigenstate.ipa`](https://gprocunier.github.io/eigenstate-ipa/) `1.18.1` or
+newer. The reference PoC still checks the older `selinuxmap`, `hbacrule`, and
+`sudo` lookup plugins, while the v3 signed-attestation gate also requires
+`access_path`, `sudo_risk`, `vault_health`, `vault_artifact`, and the `idm`
+inventory plugin.
 
 ## Run
 

@@ -2,189 +2,421 @@
 plugin: eigenstate.ipa.idm
 server: idm.example.com
 ipaadmin_principal: svc-ansible-runner
-
 sources:
-  - hosts
-  - hbacrules
-
+- hosts
+- hbacrules
 hbacrule_filter:
-  - blastwall-ssh
-
+- blastwall-ssh
 host_filter_from_groups: true
-
 hostvars_include:
-  - idm_fqdn
-  - idm_description
-  - idm_userclass
-  - idm_os
-  - idm_hostgroups
-
+- idm_fqdn
+- idm_description
+- idm_userclass
+- idm_os
+- idm_hostgroups
 compose:
   ansible_host: idm_fqdn
-
 groups:
   blastwall_policy_current: >-
     idm_userclass is defined and
-    (
-    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
-    and
-    (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))" ~ "blastwall:") | list | length) > 0
-    or
+
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
+    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
+    true)) in ['stable-v3', 'breakglass'])
+
+    and
+
+    (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
+    or
+
+    (
+
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match',
+    '^blastwall:') | list) | join(';')))
             and
-            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match',
+    '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
           )
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     or
-    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+
+    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
+    in ['stable-v3', 'breakglass'])
+
     and
+
     (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     )
   blastwall_policy_stale: >-
     idm_userclass is not defined or not (
+
     idm_userclass is defined and
-    (
-    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
-    and
-    (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))" ~ "blastwall:") | list | length) > 0
-    or
+
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
+    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
+    true)) in ['stable-v3', 'breakglass'])
+
+    and
+
+    (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
+    or
+
+    (
+
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match',
+    '^blastwall:') | list) | join(';')))
             and
-            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match',
+    '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
           )
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     or
-    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+
+    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
+    in ['stable-v3', 'breakglass'])
+
     and
+
     (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     )
+
     )
   blastwall_policy_candidate: >-
     idm_userclass is not defined or not (
+
     idm_userclass is defined and
-    (
-    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
-    and
-    (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))" ~ "blastwall:") | list | length) > 0
-    or
+
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
+    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
+    true)) in ['stable-v3', 'breakglass'])
+
+    and
+
+    (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
+    or
+
+    (
+
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match',
+    '^blastwall:') | list) | join(';')))
             and
-            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match',
+    '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
           )
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     or
-    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+
+    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
+    in ['stable-v3', 'breakglass'])
+
     and
+
     (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     )
+
     )
   blastwall_inventory_schema_error: >-
+    (
+
     idm_userclass is defined and
+
     (
       idm_userclass is none
       or idm_userclass is mapping
@@ -193,11 +425,31 @@ groups:
         idm_userclass is sequence
         and idm_userclass is not string
         and (idm_userclass | select('string') | list | length) != (idm_userclass | list | length)
+      )
+    )
+
+    )
+
+    or
+
+    (
+      idm_userclass is defined
+      and (
+        (idm_schema_warnings is defined and (idm_schema_warnings | list | length) > 0 and ((idm_userclass is string and idm_userclass
+    is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass is not string and (idm_userclass | select('string')
+    | select('match', '^blastwall:') | list | length) > 0)))
+        or (idm_userclass_type is defined and idm_userclass_type not in ['list', 'missing'] and ((idm_userclass is string
+    and idm_userclass is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass is not string and (idm_userclass
+    | select('string') | select('match', '^blastwall:') | list | length) > 0)))
       )
     )
   blastwall_inventory_marker_parse_error: >-
     not (
+
+    (
+
     idm_userclass is defined and
+
     (
       idm_userclass is none
       or idm_userclass is mapping
@@ -208,133 +460,343 @@ groups:
         and (idm_userclass | select('string') | list | length) != (idm_userclass | list | length)
       )
     )
+
     )
-    and
-    (
-      (idm_userclass is string and idm_userclass is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass is not string and (idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0)
-    )
-    and
-    not (
-    idm_userclass is defined and
-    (
-    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
-    and
-    (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+
     or
+
+    (
+      idm_userclass is defined
+      and (
+        (idm_schema_warnings is defined and (idm_schema_warnings | list | length) > 0 and ((idm_userclass is string and idm_userclass
+    is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass is not string and (idm_userclass | select('string')
+    | select('match', '^blastwall:') | list | length) > 0)))
+        or (idm_userclass_type is defined and idm_userclass_type not in ['list', 'missing'] and ((idm_userclass is string
+    and idm_userclass is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass is not string and (idm_userclass
+    | select('string') | select('match', '^blastwall:') | list | length) > 0)))
+      )
+    )
+
+    )
+
+    and
+
+    (
+      (idm_userclass is string and idm_userclass is match('^blastwall:')) or (idm_userclass is sequence and idm_userclass
+    is not string and (idm_userclass | select('string') | select('match', '^blastwall:') | list | length) > 0)
+    )
+
+    and
+
+    not (
+
+    idm_userclass is defined and
+
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
+    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
+    true)) in ['stable-v3', 'breakglass'])
+
+    and
+
+    (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
+    or
+
+    (
+
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match',
+    '^blastwall:') | list) | join(';')))
             and
-            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match',
+    '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
           )
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     or
-    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+
+    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
+    in ['stable-v3', 'breakglass'])
+
     and
+
     (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     )
+
     )
   blastwall_profile_base: >-
     idm_userclass is defined and
-    (
-    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
-    and
-    (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))" ~ "blastwall:") | list | length) > 0
-    or
+
     (
 
-            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';')))
+    not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
+    true)) in ['stable-v3', 'breakglass'])
+
+    and
+
+    (
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
+    or
+
+    (
+
+            ('rpm=blastwall-selinux-0.5.2-1' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match',
+    '^blastwall:') | list) | join(';')))
             and
-            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match', '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
+            ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | select('match',
+    '^blastwall:.*rpm_sha256=[0-9a-f]{64}.*') | list | length) > 0
             and
-            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'state=active' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'alg=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'bpf=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'self=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'pkt=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'userns=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'iou=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'xfrm=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
             and
-            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:') | list) | join(';'))
+            'rxrpc=deny' in ((([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', '^blastwall:')
+    | list) | join(';'))
           )
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     or
-    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+
+    ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
+    in ['stable-v3', 'breakglass'])
+
     and
+
     (
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
     or
+
     (
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )
+
     )
   blastwall_profile_strange_socket_v1: >-
     idm_userclass is defined and
+
     (
+
     (
-          not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+          not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2',
+    true), true)) in ['stable-v3', 'breakglass'])
           and
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env', 'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=2(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)registry_sha256=" ~ (BLASTWALL_PROFILE_REGISTRY_SHA256 | default(lookup('env',
+    'BLASTWALL_PROFILE_REGISTRY_SHA256') | default("c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486", true),
+    true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)policy_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange-socket-v1(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)scopes=(?=(?:alg_socket|[^;]*,alg_socket)(?:,|(?=;|$)))(?=(?:bpf|[^;]*,bpf)(?:,|(?=;|$)))(?=(?:capability2_bpf|[^;]*,capability2_bpf)(?:,|(?=;|$)))(?=(?:packet_socket|[^;]*,packet_socket)(?:,|(?=;|$)))(?=(?:userns|[^;]*,userns)(?:,|(?=;|$)))(?=(?:io_uring|[^;]*,io_uring)(?:,|(?=;|$)))(?=(?:xfrm|[^;]*,xfrm)(?:,|(?=;|$)))(?=(?:rxrpc|[^;]*,rxrpc)(?:,|(?=;|$)))(?=(?:selfprotect|[^;]*,selfprotect)(?:,|(?=;|$)))(?=(?:bluetooth_socket|[^;]*,bluetooth_socket)(?:,|(?=;|$)))(?=(?:can_socket|[^;]*,can_socket)(?:,|(?=;|$)))(?=(?:kcm_socket|[^;]*,kcm_socket)(?:,|(?=;|$)))(?=(?:nfc_socket|[^;]*,nfc_socket)(?:,|(?=;|$)))(?=(?:rds_socket|[^;]*,rds_socket)(?:,|(?=;|$)))(?=(?:tipc_socket|[^;]*,tipc_socket)(?:,|(?=;|$)))(?=(?:xdp_socket|[^;]*,xdp_socket)(?:,|(?=;|$)))(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket)(?:,(?:alg_socket|bpf|capability2_bpf|packet_socket|userns|io_uring|xfrm|rxrpc|selfprotect|bluetooth_socket|can_socket|kcm_socket|nfc_socket|rds_socket|tipc_socket|xdp_socket))*(?=;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     or
+
     (
-          ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) in ['stable-v3', 'breakglass'])
+          ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
+    true)) in ['stable-v3', 'breakglass'])
           and
-          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false', true), true) | bool)
+          (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
+    true), true) | bool)
           and
-          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)" ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)" ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)" ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)" ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)" ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~ "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))" ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) | regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))" ~ "blastwall:") | list | length) > 0
+          (([idm_userclass] if idm_userclass is string else idm_userclass) | select('match', "^" ~ "(?!.*(?:^blastwall:|;)attest_ref=[^;]*(?:;[^;]*)*;attest_ref=)"
+    ~ "(?!.*(?:^blastwall:|;)attest_sha256=[^;]*(?:;[^;]*)*;attest_sha256=)" ~ "(?!.*(?:^blastwall:|;)exp=[^;]*(?:;[^;]*)*;exp=)"
+    ~ "(?!.*(?:^blastwall:|;)generation=[^;]*(?:;[^;]*)*;generation=)" ~ "(?!.*(?:^blastwall:|;)policy_sha256=[^;]*(?:;[^;]*)*;policy_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)profiles=[^;]*(?:;[^;]*)*;profiles=)" ~ "(?!.*(?:^blastwall:|;)registry_sha256=[^;]*(?:;[^;]*)*;registry_sha256=)"
+    ~ "(?!.*(?:^blastwall:|;)rpm=[^;]*(?:;[^;]*)*;rpm=)" ~ "(?!.*(?:^blastwall:|;)scopes=[^;]*(?:;[^;]*)*;scopes=)" ~ "(?!.*(?:^blastwall:|;)signer_kid=[^;]*(?:;[^;]*)*;signer_kid=)"
+    ~ "(?!.*(?:^blastwall:|;)state=[^;]*(?:;[^;]*)*;state=)" ~ "(?!.*(?:^blastwall:|;)target=[^;]*(?:;[^;]*)*;target=)" ~
+    "(?!.*(?:^blastwall:|;)v=[^;]*(?:;[^;]*)*;v=)" ~ "(?=.*(?:^blastwall:|;)v=3(?:;|$))" ~ "(?=.*(?:^blastwall:|;)state=lab\\-active(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)target=rhel\\-login(?:;|$))" ~ "(?=.*(?:^blastwall:|;)rpm=" ~ (BLASTWALL_REQUIRED_POLICY_MARKER
+    | default(lookup('env', 'BLASTWALL_REQUIRED_POLICY_MARKER') | default("blastwall-selinux-0.6.1-0.rc1", true), true) |
+    regex_escape) ~ "(?:;|$))" ~ "(?=.*(?:^blastwall:|;)profiles=base,strange\\-socket\\-v1(?:;|$))" ~ "(?=.*(?:^blastwall:|;)attest_ref=(?:service|shared)/[A-Za-z0-9._@+=:-]+(?:/[A-Za-z0-9._@+=:-]+)+\\.json(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)attest_sha256=[0-9a-f]{64}(?:;|$))" ~ "(?=.*(?:^blastwall:|;)signer_kid=[0-9a-f]{40}(?:;|$))"
+    ~ "(?=.*(?:^blastwall:|;)exp=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?:;|$))" ~ "(?=.*(?:^blastwall:|;)generation=[0-9]+(?:;|$))"
+    ~ "blastwall:") | list | length) > 0
         )
     )

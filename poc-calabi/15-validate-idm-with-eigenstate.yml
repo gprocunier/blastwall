@@ -129,6 +129,44 @@
         fail_msg: >-
           automation endpoint was not present in eigenstate.ipa inventory.
 
+    - name: Parse eigenstate.ipa inventory candidate view
+      ansible.builtin.set_fact:
+        blastwall_eigen_inventory_data: "{{ blastwall_eigen_inventory.stdout | from_json }}"
+
+    - name: Capture automation endpoint normalized hostvars
+      ansible.builtin.set_fact:
+        blastwall_eigen_target_hostvars: >-
+          {{
+            blastwall_eigen_inventory_data.get('_meta', {}).get('hostvars', {}).get(
+              blastwall_endpoint_host,
+              {}
+            )
+          }}
+
+    - name: Assert eigenstate.ipa normalized hostvars are present
+      ansible.builtin.assert:
+        that:
+          - blastwall_eigen_target_hostvars | length > 0
+          - "'idm_userclass' in blastwall_eigen_target_hostvars"
+          - "'idm_userclass_type' in blastwall_eigen_target_hostvars"
+          - "'idm_schema_warnings' in blastwall_eigen_target_hostvars"
+          - blastwall_eigen_target_hostvars.idm_userclass_type in ['list', 'missing']
+          - >-
+            (
+              blastwall_eigen_target_hostvars.idm_userclass is not string
+              and
+              (
+                blastwall_eigen_target_hostvars.idm_userclass | default([])
+                | select('string')
+                | select('match', '^blastwall:')
+                | list
+                | length
+              ) == 0
+            )
+            or
+            (blastwall_eigen_target_hostvars.idm_schema_warnings | list | length) == 0
+        fail_msg: "{{ blastwall_eigen_target_hostvars | to_nice_json }}"
+
     - name: Report eigenstate.ipa validation summary
       ansible.builtin.debug:
         msg:
@@ -136,3 +174,5 @@
           hbac_rule: "{{ blastwall_hbac_rule }}"
           sudo_rule: "{{ blastwall_sudo_rule }}"
           target: "{{ blastwall_endpoint_host }}"
+          idm_userclass_type: "{{ blastwall_eigen_target_hostvars.idm_userclass_type }}"
+          idm_schema_warnings: "{{ blastwall_eigen_target_hostvars.idm_schema_warnings }}"

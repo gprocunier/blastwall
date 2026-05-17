@@ -639,7 +639,17 @@ Transition mode may warn instead of fail when the index is absent, but stable-v3
 
 IdM vaults provide artifact custody and delivery. The signature provides cryptographic proof. Do not treat “stored in vault” as equivalent to “authentic.”
 
-`eigenstate.ipa.vault` retrieves IdM vault payloads and can return broker-friendly record shapes with metadata. `eigenstate.ipa.vault_write` manages vault lifecycle, including create, archive, modify, and delete operations. The design uses those capabilities to store and retrieve signed attestation envelopes and generation indexes.
+Blastwall v3 requires `eigenstate.ipa >= 1.18.1` for the generic IdM/KRA
+primitives in this path. `eigenstate.ipa.vault_health` checks the selected
+KRA-capable IdM server before stable-v3 artifact retrieval, and
+`eigenstate.ipa.vault_artifact` archives, reads back, digests, and retrieves
+signed attestation envelopes and latest-generation indexes. Blastwall still
+owns the attestation schema, marker grammar, signature verification, index
+replay interpretation, and fail-closed launch decision.
+
+Older helper code remains as a compatibility shim for tests, audit helpers, and
+recovery paths, but stable-v3 signing and preflight do not use the raw
+`ipa vault-*` transport as the default custody path.
 
 ### 10.2 KRA topology requirement
 

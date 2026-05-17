@@ -245,11 +245,33 @@ class BlastwallInventoryAuditTests(unittest.TestCase):
                     "dict.example.com": {"idm_userclass": {"bad": "shape"}},
                     "none.example.com": {"idm_userclass": None},
                     "mixed.example.com": {"idm_userclass": [self.base_marker, 7]},
+                    "warning.example.com": {
+                        "idm_userclass": [self.base_marker],
+                        "idm_userclass_type": "list",
+                        "idm_schema_warnings": ["normalized suspicious userClass source"],
+                    },
+                    "typed-dict.example.com": {
+                        "idm_userclass": [self.base_marker],
+                        "idm_userclass_type": "dict",
+                    },
                 }
             }
         }
         report = self.audit(inventory)
-        self.assertEqual(set(report["schema_errors"]), {"dict.example.com", "none.example.com", "mixed.example.com"})
+        self.assertEqual(
+            set(report["schema_errors"]),
+            {
+                "dict.example.com",
+                "none.example.com",
+                "mixed.example.com",
+                "warning.example.com",
+                "typed-dict.example.com",
+            },
+        )
+        self.assertEqual(
+            report["schema_warnings"]["warning.example.com"],
+            ["normalized suspicious userClass source"],
+        )
 
     def test_marker_parse_errors_are_reported(self) -> None:
         inventory = {

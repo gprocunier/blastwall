@@ -16,11 +16,35 @@ PLAYBOOKS = ROOT / "playbooks"
 PROFILE_REGISTRY_SHA256 = hashlib.sha256((ROOT / "policy" / "profiles.yml").read_bytes()).hexdigest()
 RENDER_INVENTORY_GROUPS = ROOT / "tools" / "render_inventory_profile_groups.py"
 DEPLOY_POLICY_PLAYBOOK = PLAYBOOKS / "deploy-policy.yml"
+EIGENSTATE_IPA_MINIMUM = (1, 18, 1)
 
 
 def fail(message: str) -> None:
     print(f"FAIL: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def parse_version_tuple(version: str) -> tuple[int, ...]:
+    version = str(version).strip().strip("\"'")
+    match = re.match(r"^(?:>=|==|=|~>)?\s*([0-9]+(?:\.[0-9]+)*)", version)
+    if not match:
+        fail(f"unsupported collection version constraint: {version}")
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+def assert_eigenstate_ipa_minimum(requirements_path: Path, minimum: tuple[int, ...]) -> None:
+    data = yaml.safe_load(requirements_path.read_text(encoding="utf-8")) or {}
+    collections = data.get("collections", [])
+    for collection in collections:
+        if collection.get("name") != "eigenstate.ipa":
+            continue
+        version = collection.get("version")
+        if version is None:
+            fail(f"{requirements_path} must pin eigenstate.ipa >= 1.18.1")
+        if parse_version_tuple(str(version)) < minimum:
+            fail(f"{requirements_path} pins eigenstate.ipa below 1.18.1: {version}")
+        return
+    fail(f"{requirements_path} does not declare eigenstate.ipa")
 
 
 def jinja_bool_filter(value) -> bool:
@@ -79,6 +103,14 @@ def walk_playbook_tasks(tasks, inside_rescue: bool = False):
                     nested_tasks,
                     inside_rescue or key == "rescue",
                 )
+
+
+for requirements_file in [
+    ROOT / "requirements.yml",
+    ROOT / "execution-environment" / "requirements.yml",
+    ROOT / "poc-calabi" / "requirements.yml",
+]:
+    assert_eigenstate_ipa_minimum(requirements_file, EIGENSTATE_IPA_MINIMUM)
 
 
 makefile = (POLICY / "Makefile").read_text(encoding="utf-8")
@@ -391,13 +423,13 @@ if not project_url_env_pattern.search(calabi_config):
     )
 project_branch_env_pattern = re.compile(
     r"BLASTWALL_PROJECT_BRANCH:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_PROJECT_BRANCH['\"]\s*\)\s*\|\s*default\("
-    r"\s*['\"]blastwall-v2-phase-08-rc1k['\"]\s*,\s*true\s*\)\s*\}\}",
+    r"\s*['\"]blastwall-v3-signed-attestation['\"]\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not project_branch_env_pattern.search(calabi_config):
     fail(
         "Calabi AAP configuration does not default BLASTWALL_PROJECT_BRANCH to "
-        "blastwall-v2-phase-08-rc1k via env override"
+        "blastwall-v3-signed-attestation via env override"
     )
 candidate_group_pattern = re.compile(
     r"BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP['\"]\s*\)\s*"
@@ -921,9 +953,40 @@ for required_v3_doc in [
     "revocation-and-breakglass.md",
     "stable-v3-readiness-checklist.md",
     "external-review-packet.md",
+    "shell-and-collection-exceptions.md",
 ]:
     if not (ROOT / "docs" / "blastwall-v3" / required_v3_doc).exists():
         fail(f"missing v3 documentation file: docs/blastwall-v3/{required_v3_doc}")
+for inventory_path in [
+    ROOT / "inventory" / "blastwall-idm.yml",
+    ROOT / "poc-calabi" / "inventory-eigenstate.yml",
+    ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml",
+]:
+    inventory_doc = yaml.safe_load(inventory_path.read_text(encoding="utf-8")) or {}
+    hostvars_include = set(inventory_doc.get("hostvars_include", []))
+    if "idm_userclass" not in hostvars_include:
+        fail(f"{inventory_path} must request eigenstate.ipa normalized idm_userclass hostvars")
+    for companion_hostvar in [
+        "idm_userclass_raw",
+        "idm_userclass_type",
+        "idm_schema_warnings",
+    ]:
+        if companion_hostvar in hostvars_include:
+            fail(
+                f"{inventory_path} must not put eigenstate.ipa companion hostvar "
+                f"{companion_hostvar} in hostvars_include; request idm_userclass and let "
+                "the 1.18.1 inventory plugin emit companions"
+            )
+    inventory_text = inventory_path.read_text(encoding="utf-8")
+    if inventory_path.name != "inventory-eigenstate.yml":
+        for expected_signal in ["idm_userclass_type", "idm_schema_warnings"]:
+            if expected_signal not in inventory_text:
+                fail(f"{inventory_path} must consume eigenstate.ipa companion hostvar {expected_signal}")
+
+poc_calabi_validation = (ROOT / "poc-calabi" / "15-validate-idm-with-eigenstate.yml").read_text(encoding="utf-8")
+for expected_signal in ["idm_userclass_type", "idm_schema_warnings"]:
+    if expected_signal not in poc_calabi_validation:
+        fail(f"poc-calabi/15-validate-idm-with-eigenstate.yml must consume eigenstate.ipa companion hostvar {expected_signal}")
 for required_signer_signal in [
     "Blastwall sign attestation",
     "blastwall_aap_attestation_idm_credential",
@@ -944,15 +1007,24 @@ if "blastwall_aap_attestation_idm_credential" not in stable_v3_preflight_block:
     fail("AAP stable-v3 preflight must authenticate with the attestation custody IdM credential for KRA reads")
 if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
-if "Build, store, read back, and verify signed attestation" not in v3_sign:
-    fail("sign-attestation.yml does not enforce write/readback/verify before marker publication")
-sign_task = v3_sign.partition("Build, store, read back, and verify signed attestation")[2]
-if "KRB5CCNAME" not in sign_task or "krb5_ccache" not in sign_task:
-    fail("sign-attestation.yml does not pass the authenticated Kerberos cache to the signer helper")
+for required_sign_custody_signal in [
+    "Build signed attestation envelope and latest index",
+    "eigenstate.ipa.vault_artifact",
+    "Archive attestation envelope with eigenstate vault artifact custody",
+    "Archive latest index with eigenstate vault artifact custody",
+    "Assert attestation vault read-back verified",
+    "Verify stored signed attestation before marker publication",
+    "build-artifacts",
+    "verify-existing",
+]:
+    if required_sign_custody_signal not in v3_sign:
+        fail(f"sign-attestation.yml does not enforce collection-backed custody signal: {required_sign_custody_signal}")
+if "sign-store-readback" in v3_sign:
+    fail("sign-attestation.yml must not use the raw-vault sign-store-readback default path")
 if "Write FreeIPA client config for attestation vault writes" not in v3_sign:
-    fail("sign-attestation.yml must configure the FreeIPA client before using ipa vault CLI")
+    fail("sign-attestation.yml must configure the FreeIPA client before vault collection operations")
 if "Install injected FreeIPA CA for attestation vault writes" not in v3_sign:
-    fail("sign-attestation.yml must install the injected FreeIPA CA before using ipa vault CLI")
+    fail("sign-attestation.yml must install the injected FreeIPA CA before vault collection operations")
 if "blastwall_v3_attestation_marker_by_host" not in v3_sign:
     fail("sign-attestation.yml must propagate signed locator markers to downstream workflow jobs")
 if "Use signed stable-v3 locator marker from pipeline signing evidence" not in v3_promote:
@@ -966,18 +1038,33 @@ if "map('regex_replace', '^', '--profile=')" not in v3_promote:
 if "Verify stable-v3 attestation before marker publication" not in v3_promote:
     fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
 for required_live_preflight_signal in [
-    "Read live stable-v3 host marker hints from FreeIPA",
-    "Retrieve stable-v3 signed attestation artifacts before launch",
-    "retrieve-existing",
+    "FreeIPA CLI fallback read live stable-v3 host marker hints from FreeIPA",
+    "BLASTWALL_ALLOW_IPA_CLI_FALLBACK",
+    "BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON",
+    "Check stable-v3 KRA vault health",
+    "eigenstate.ipa.vault_health",
+    "eigenstate.ipa.access_path",
+    "Run collection-backed HBAC access test for group-scoped readiness",
+    "eigenstate.ipa.sudo_risk",
+    "Resolve stable-v3 signed attestation artifact locations",
+    "Read stable-v3 attestation envelopes with eigenstate vault artifact custody",
+    "Read stable-v3 latest indexes with eigenstate vault artifact custody",
+    "resolve-existing",
+    "eigenstate.ipa.vault_artifact",
     "blastwall_attestation_vault_servers",
     "blastwall_live_userclass_by_host",
-    "KRB5CCNAME",
 ]:
     if required_live_preflight_signal not in v3_preflight:
         fail(
             "stable-v3 preflight must fall back to live FreeIPA marker hints "
             f"when controller inventory propagation lags: {required_live_preflight_signal}"
         )
+if "lookup('eigenstate.ipa.selinuxmap'" in v3_preflight:
+    fail("stable-v3 preflight must use eigenstate.ipa.access_path instead of lookup('eigenstate.ipa.selinuxmap'")
+if "lookup('eigenstate.ipa.hbacrule'" in v3_preflight and "operation='test'" not in v3_preflight:
+    fail("stable-v3 preflight may use hbacrule only for collection-backed operation=test group-scope proof")
+if "retrieve-existing" in v3_preflight:
+    fail("stable-v3 preflight must use vault_artifact retrieval, not raw-vault retrieve-existing")
 if "^blastwall:.*(?:^blastwall:|;)v=3" in v3_preflight:
     fail("stable-v3 preflight marker selector does not match blastwall:v=3 prefix markers")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:

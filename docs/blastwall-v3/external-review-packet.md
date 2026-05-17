@@ -14,6 +14,8 @@ v3 changes host trust from marker-claimed state to verified signed evidence.
 - Signature is the trust proof.
 - Preflight verifies marker binding, signer trust, index freshness, and live host state in stable-v3.
 - KRA-backed IdM vault paths are treated as part of the trust dependency graph.
+- This branch requires `eigenstate.ipa >= 1.18.1` for normalized inventory,
+  `access_path`, `sudo_risk`, `vault_health`, and `vault_artifact`.
 
 ## Quick reviewer checklist
 
@@ -46,7 +48,9 @@ Reference documents:
 
 ## Calabi evidence
 
-Live healthy-path gate completed on 2026-05-17 UTC.
+Live healthy-path gate completed on 2026-05-17 UTC before the
+`eigenstate.ipa` 1.18.1 refactor. Re-run `calabi/CALABI_V3_EIGENSTATE_1181_GATE.md`
+after this branch revision to refresh the external-review evidence packet.
 
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).

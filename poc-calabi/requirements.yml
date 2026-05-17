@@ -2,4 +2,4 @@
 collections:
   - name: freeipa.ansible_freeipa
   - name: eigenstate.ipa
-    version: "1.17.0"
+    version: "1.18.1"

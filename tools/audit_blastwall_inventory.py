@@ -27,6 +27,8 @@ BLASTWALL_GROUPS = [
     "blastwall_inventory_marker_parse_error",
 ]
 
+SUPPORTED_USERCLASS_TYPES = {"list", "missing"}
+
 
 ArtifactReadResult = Callable[[str, blastwall_attestation_vault.VaultConfig, str], blastwall_attestation_vault.VaultReadResult]
 VerifyAttestationResult = Callable[..., blastwall_attestation_verify.VerificationReport]
@@ -329,6 +331,31 @@ def _marker_values(value: Any) -> tuple[list[str], str | None]:
     return [], f"idm_userclass has unsupported type {type(value).__name__}"
 
 
+def _schema_warnings(values: dict[str, Any]) -> list[str]:
+    warnings = values.get("idm_schema_warnings", [])
+    if warnings is None:
+        return []
+    if isinstance(warnings, str):
+        return [warnings]
+    if isinstance(warnings, list):
+        return [item for item in warnings if isinstance(item, str)]
+    return [f"idm_schema_warnings has unsupported type {type(warnings).__name__}"]
+
+
+def _normalized_userclass_schema_error(values: dict[str, Any], markers: list[str]) -> str | None:
+    userclass_type = values.get("idm_userclass_type")
+    warnings = _schema_warnings(values)
+    if warnings and markers:
+        return "idm_schema_warnings present on marker-bearing host: " + "; ".join(warnings)
+    if userclass_type is None:
+        return None
+    if not isinstance(userclass_type, str):
+        return f"idm_userclass_type has unsupported type {type(userclass_type).__name__}"
+    if userclass_type not in SUPPORTED_USERCLASS_TYPES and markers:
+        return f"idm_userclass_type={userclass_type} is not supported for marker-bearing hosts"
+    return None
+
+
 def audit_inventory(
     inventory: dict[str, Any],
     *,
@@ -354,6 +381,7 @@ def audit_inventory(
     hostvars = _hostvars(inventory)
     host_groups = _host_groups(inventory)
     schema_errors: dict[str, str] = {}
+    schema_warnings: dict[str, list[str]] = {}
     marker_parse_errors: dict[str, list[str]] = {}
     legacy_v1_hosts: list[str] = []
     dry_run_marker_hosts: list[str] = []
@@ -361,6 +389,12 @@ def audit_inventory(
 
     for host, values in hostvars.items():
         markers, schema_error = _marker_values(values.get("idm_userclass"))
+        warnings = _schema_warnings(values)
+        if warnings:
+            schema_warnings[host] = warnings
+        normalized_schema_error = _normalized_userclass_schema_error(values, markers)
+        if normalized_schema_error is not None:
+            schema_error = normalized_schema_error
         if schema_error is not None:
             schema_errors[host] = schema_error
         for marker_text in markers:
@@ -462,6 +496,7 @@ def audit_inventory(
         "changed_hosts": changed_hosts,
         "current_to_stale": sorted(current_to_stale),
         "schema_errors": schema_errors,
+        "schema_warnings": schema_warnings,
         "marker_parse_errors": marker_parse_errors,
         "current_marker_parse_error_hosts": current_marker_parse_error_hosts,
         "legacy_v1_marker_hosts": sorted(set(legacy_v1_hosts)),

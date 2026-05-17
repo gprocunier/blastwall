@@ -184,6 +184,16 @@
         BLASTWALL_ATTESTATION_VAULT_OWNER |
         default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true), true)
       }}
+    blastwall_attestation_health_canary: >-
+      {{
+        BLASTWALL_ATTESTATION_HEALTH_CANARY |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_HEALTH_CANARY') | default('', true), true)
+      }}
+    blastwall_attestation_canary_max_age_seconds: >-
+      {{
+        BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS') | default('', true), true)
+      }}
     blastwall_attestation_envelope_dir: >-
       {{
         BLASTWALL_ATTESTATION_ENVELOPE_DIR |
@@ -220,6 +230,28 @@
       {{ groups['blastwall_policy_stale'] | default([]) }}
     blastwall_candidate_hosts: >-
       {{ (blastwall_target_hosts + blastwall_stale_hosts) | unique | list }}
+    blastwall_danger_accept_sudo_risk: >-
+      {{
+        BLASTWALL_DANGER_ACCEPT_SUDO_RISK |
+        default(lookup('env', 'BLASTWALL_DANGER_ACCEPT_SUDO_RISK') | default('false', true), true) |
+        bool
+      }}
+    blastwall_danger_accept_sudo_risk_reason: >-
+      {{
+        BLASTWALL_DANGER_ACCEPT_SUDO_RISK_REASON |
+        default(lookup('env', 'BLASTWALL_DANGER_ACCEPT_SUDO_RISK_REASON') | default('', true), true)
+      }}
+    blastwall_allow_ipa_cli_fallback: >-
+      {{
+        BLASTWALL_ALLOW_IPA_CLI_FALLBACK |
+        default(lookup('env', 'BLASTWALL_ALLOW_IPA_CLI_FALLBACK') | default('false', true), true) |
+        bool
+      }}
+    blastwall_allow_ipa_cli_fallback_reason: >-
+      {{
+        BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON |
+        default(lookup('env', 'BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON') | default('', true), true)
+      }}
   tasks:
     - name: Require preflight inputs
       ansible.builtin.assert:
@@ -289,6 +321,38 @@
           and live current policy hash. A v3 marker alone is not evidence.
       when: blastwall_attestation_signed_mode
 
+    - name: Check stable-v3 KRA vault health
+      eigenstate.ipa.vault_health:
+        server: "{{ blastwall_attestation_vault_primary }}"
+        ipaadmin_principal: "{{ ipa_login_principal }}"
+        ipaadmin_password: "{{ ipa_password }}"
+        kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
+        verify: "{{ ipa_ca }}"
+        require_direct_kra: true
+        canary_vault: "{{ blastwall_attestation_health_canary if blastwall_attestation_health_canary | length > 0 else omit }}"
+        canary_max_age_seconds: >-
+          {{ blastwall_attestation_canary_max_age_seconds
+             if blastwall_attestation_canary_max_age_seconds | string | length > 0 else omit }}
+        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
+        username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
+      register: blastwall_vault_health
+      no_log: "{{ ipa_password | length > 0 }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Assert stable-v3 KRA vault health passed
+      ansible.builtin.assert:
+        that:
+          - blastwall_vault_health.idm_reachable | bool
+          - blastwall_vault_health.vault_reachable | bool
+          - blastwall_vault_health.kra_available is sameas true
+          - blastwall_vault_health.failure_class == 'none'
+          - blastwall_vault_health.canary_stale is not sameas true
+        fail_msg: >-
+          FAIL_INFRA_VAULT_KRA: stable-v3 KRA vault health failed:
+          {{ blastwall_vault_health | to_json }}.
+      when: blastwall_attestation_signed_mode
+
     - name: Assert breakglass metadata is complete when breakglass is active
       ansible.builtin.assert:
         that:
@@ -316,6 +380,15 @@
         - not blastwall_validate_selected_markers | bool
         - blastwall_danger_skip_marker_validation | bool
 
+    - name: Assert raw IPA CLI fallback is explicitly approved
+      ansible.builtin.assert:
+        that:
+          - not blastwall_allow_ipa_cli_fallback | bool or blastwall_allow_ipa_cli_fallback_reason | length > 0
+        fail_msg: >-
+          Raw IPA CLI fallback is disabled by default for stable-v3. Set
+          BLASTWALL_ALLOW_IPA_CLI_FALLBACK=true and
+          BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON=<ticket/reason> to use it.
+
     - name: Write FreeIPA client config for controller-side lookups
       ansible.builtin.copy:
         dest: /etc/ipa/default.conf
@@ -338,80 +411,6 @@
         - ipa_ca | length > 0
         - ipa_ca != "/etc/ipa/ca.crt"
 
-    - name: Read Blastwall SELinux user map
-      ansible.builtin.set_fact:
-        blastwall_selinux_map: >-
-          {{ lookup('eigenstate.ipa.selinuxmap',
-                    '%s' | format(blastwall_selinux_map_name),
-                    server=ipa_server,
-                    ipaadmin_principal=ipa_principal,
-                    ipaadmin_password=ipa_password,
-                    kerberos_keytab=ipa_keytab,
-                    verify=ipa_ca) }}
-
-    - name: Assert SELinux map is active and correct
-      ansible.builtin.assert:
-        that:
-          - blastwall_selinux_map.exists
-          - blastwall_selinux_map.enabled
-          - blastwall_selinux_map.selinuxuser == blastwall_expected_selinux_user
-          - blastwall_selinux_map.hbacrule == blastwall_hbac_rule_name
-        fail_msg: >-
-          Blastwall SELinux map is not suitable:
-          exists={{ blastwall_selinux_map.exists }},
-          enabled={{ blastwall_selinux_map.enabled }},
-          selinuxuser={{ blastwall_selinux_map.selinuxuser | default('null') }},
-          hbacrule={{ blastwall_selinux_map.hbacrule | default('null') }}.
-
-    - name: Read linked HBAC rule
-      ansible.builtin.set_fact:
-        blastwall_hbac_rule: >-
-          {{ lookup('eigenstate.ipa.hbacrule',
-                    '%s' | format(blastwall_hbac_rule_name),
-                    server=ipa_server,
-                    ipaadmin_principal=ipa_principal,
-                    ipaadmin_password=ipa_password,
-                    kerberos_keytab=ipa_keytab,
-                    verify=ipa_ca) }}
-
-    - name: Assert HBAC rule is active and includes SSH
-      ansible.builtin.assert:
-        that:
-          - blastwall_hbac_rule.exists
-          - blastwall_hbac_rule.enabled
-          - >-
-            blastwall_hbac_rule.servicecategory == 'all' or
-            'sshd' in blastwall_hbac_rule.services
-        fail_msg: >-
-          Linked HBAC rule is missing, disabled, or does not permit sshd.
-
-    - name: Read sudo policy
-      ansible.builtin.set_fact:
-        blastwall_sudo_rule: >-
-          {{ lookup('eigenstate.ipa.sudo',
-                    '%s' | format(blastwall_sudo_rule_name),
-                    sudo_object='rule',
-                    server=ipa_server,
-                    ipaadmin_principal=ipa_principal,
-                    ipaadmin_password=ipa_password,
-                    kerberos_keytab=ipa_keytab,
-                    verify=ipa_ca) }}
-
-    - name: Assert sudo policy preserves SELinux confinement
-      ansible.builtin.assert:
-        that:
-          - blastwall_sudo_rule.exists
-          - blastwall_sudo_rule.enabled
-          - "'role=unconfined_r' not in blastwall_sudo_rule.sudooptions"
-          - "'type=unconfined_t' not in blastwall_sudo_rule.sudooptions"
-          - >-
-            blastwall_sudo_rule.runasusercategory == 'all' or
-            'root' in blastwall_sudo_rule.runasusers or
-            'root' in blastwall_sudo_rule.external_runasusers
-        fail_msg: >-
-          Blastwall sudo rule is missing, disabled, unconfined, or cannot run
-          as root.
-
     - name: Fail closed when no eligible Blastwall hosts exist
       ansible.builtin.assert:
         that:
@@ -421,6 +420,135 @@
           Current hosts: {{ blastwall_target_hosts | join(', ') }}.
           Stale hosts: {{ blastwall_stale_hosts | join(', ') }}.
       when: blastwall_fail_on_no_eligible_hosts | bool
+
+    - name: Read Blastwall IdM access path
+      eigenstate.ipa.access_path:
+        server: "{{ ipa_server }}"
+        ipaadmin_principal: "{{ ipa_login_principal }}"
+        ipaadmin_password: "{{ ipa_password }}"
+        kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
+        verify: "{{ ipa_ca }}"
+        principal: "{{ blastwall_identity }}"
+        host: "{{ item }}"
+        hbac_service: sshd
+        hbac_rule: "{{ blastwall_hbac_rule_name }}"
+        sudo_rule: "{{ blastwall_sudo_rule_name }}"
+        selinux_map: "{{ blastwall_selinux_map_name }}"
+        expected_selinux_user: "{{ blastwall_expected_selinux_user }}"
+      register: blastwall_access_path_results
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Assert Blastwall IdM access path components are ready
+      ansible.builtin.assert:
+        that:
+          - item.principal.exists | bool
+          - item.principal.enabled | bool
+          - item.hbac.enabled | bool
+          - item.hbac.permits_service | bool
+          - item.sudo.enabled | bool
+          - item.selinux_map.enabled | bool
+          - item.selinux_map.selinuxuser == blastwall_expected_selinux_user
+          - >-
+            (
+              item.errors | default([]) |
+              difference([
+                'HBAC rule does not include requested principal',
+                'HBAC rule does not include requested host'
+              ])
+            ) | length == 0
+        fail_msg: >-
+          Blastwall IdM access path is not ready for {{ item.item }}:
+          errors={{ item.errors | default([]) | to_json }},
+          warnings={{ item.warnings | default([]) | to_json }}.
+      loop: "{{ blastwall_access_path_results.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item | default('unknown') }}"
+
+    - name: Run collection-backed HBAC access test for group-scoped readiness
+      ansible.builtin.set_fact:
+        blastwall_hbac_access_tests: >-
+          {{
+            (blastwall_hbac_access_tests | default({})) |
+            combine({
+              item: lookup('eigenstate.ipa.hbacrule',
+                           '%s' | format(blastwall_identity),
+                           operation='test',
+                           targethost=item,
+                           service='sshd',
+                           server=ipa_server,
+                           ipaadmin_principal=ipa_login_principal,
+                           ipaadmin_password=ipa_password,
+                           kerberos_keytab=ipa_keytab,
+                           verify=ipa_ca)
+            })
+          }}
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Assert collection-backed HBAC access test allows selected hosts
+      ansible.builtin.assert:
+        that:
+          - not (blastwall_hbac_access_tests[item].denied | bool)
+        fail_msg: >-
+          Blastwall HBAC access test denied {{ blastwall_identity }} on {{ item }}:
+          {{ blastwall_hbac_access_tests[item] | to_json }}.
+      loop: "{{ blastwall_target_hosts }}"
+
+    - name: Read supplemental sudo policy for risk classification
+      ansible.builtin.set_fact:
+        blastwall_sudo_rule: >-
+          {{ lookup('eigenstate.ipa.sudo',
+                    '%s' | format(blastwall_sudo_rule_name),
+                    sudo_object='rule',
+                    server=ipa_server,
+                    ipaadmin_principal=ipa_login_principal,
+                    ipaadmin_password=ipa_password,
+                    kerberos_keytab=ipa_keytab,
+                    verify=ipa_ca) }}
+
+    - name: Classify Blastwall sudo risk
+      ansible.builtin.set_fact:
+        blastwall_sudo_risk: >-
+          {{ blastwall_sudo_rule |
+             eigenstate.ipa.sudo_risk(
+               risk_categories=[
+                 'shell_escape',
+                 'package_manager',
+                 'policy_management',
+                 'idm_management',
+                 'broad_file_write',
+                 'custom'
+               ]) }}
+
+    - name: Assert stable-v3 sudo risk is accepted explicitly
+      ansible.builtin.assert:
+        that:
+          - >-
+            blastwall_sudo_risk.risk_level not in ['high', 'unknown'] or
+            (
+              blastwall_danger_accept_sudo_risk | bool and
+              blastwall_danger_accept_sudo_risk_reason | length > 0
+            )
+          - "'role=unconfined_r' not in blastwall_sudo_rule.sudooptions"
+          - "'type=unconfined_t' not in blastwall_sudo_rule.sudooptions"
+        fail_msg: >-
+          stable-v3 sudo risk is not acceptable:
+          risk={{ blastwall_sudo_risk | to_json }}.
+          To proceed with a documented exception, set
+          BLASTWALL_DANGER_ACCEPT_SUDO_RISK=true and
+          BLASTWALL_DANGER_ACCEPT_SUDO_RISK_REASON.
+      when: blastwall_attestation_mode == 'stable-v3'
+
+    - name: Report transition-v3 sudo risk
+      ansible.builtin.debug:
+        msg:
+          sudo_risk: "{{ blastwall_sudo_risk }}"
+          accepted_by_override: "{{ blastwall_danger_accept_sudo_risk | bool }}"
+          override_reason: "{{ blastwall_danger_accept_sudo_risk_reason }}"
+      when:
+        - blastwall_attestation_mode == 'transition-v3'
+        - blastwall_sudo_risk.risk_level in ['medium', 'high', 'unknown']
 
     - name: Authenticate FreeIPA client for live stable-v3 marker lookups
       ansible.builtin.shell: |
@@ -443,8 +571,9 @@
       when:
         - blastwall_attestation_signed_mode
         - blastwall_validate_selected_markers | bool
+        - blastwall_allow_ipa_cli_fallback | bool
 
-    - name: Read live stable-v3 host marker hints from FreeIPA
+    - name: FreeIPA CLI fallback read live stable-v3 host marker hints from FreeIPA
       ansible.builtin.shell: |
         set -euo pipefail
         ipa -e "server=${IPA_SERVER}" -f -n host-show "${BLASTWALL_HOST}" --all --raw |
@@ -463,6 +592,7 @@
       when:
         - blastwall_attestation_signed_mode
         - blastwall_validate_selected_markers | bool
+        - blastwall_allow_ipa_cli_fallback | bool
 
     - name: Store live stable-v3 host marker hints
       ansible.builtin.set_fact:
@@ -551,15 +681,22 @@
       loop: "{{ blastwall_target_hosts }}"
       when: blastwall_attestation_signed_mode
 
-    - name: Retrieve stable-v3 signed attestation artifacts before launch
+    - name: Ensure stable-v3 attestation materialization directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop:
+        - "{{ blastwall_attestation_envelope_dir }}"
+        - "{{ blastwall_attestation_index_dir }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Resolve stable-v3 signed attestation artifact locations
       ansible.builtin.command:
-        argv: "{{ blastwall_attestation_retrieve_argv }}"
-      environment:
-        KRB5_CONFIG: "{{ krb5_config }}"
-        KRB5CCNAME: "{{ krb5_ccache }}"
-      register: blastwall_attestation_retrieve
+        argv: "{{ blastwall_attestation_resolve_argv }}"
+      register: blastwall_attestation_resolve
       changed_when: false
-      failed_when: blastwall_attestation_retrieve.rc != 0
+      failed_when: blastwall_attestation_resolve.rc != 0
       vars:
         raw_inventory_userclass_values: "{{ hostvars[item].idm_userclass | default([]) }}"
         inventory_userclass_values: >-
@@ -583,12 +720,12 @@
               first
             ) | default('', true)
           }}
-        blastwall_attestation_retrieve_argv: >-
+        blastwall_attestation_resolve_argv: >-
           {{
             [
               ansible_playbook_python | default('/usr/bin/python3'),
               playbook_dir ~ '/../tools/blastwall_attestation_sign.py',
-              'retrieve-existing',
+              'resolve-existing',
               '--registry', blastwall_profile_registry_path,
               '--marker', host_v3_marker,
               '--subject-host', item,
@@ -614,6 +751,100 @@
             )
           }}
       loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Read stable-v3 attestation envelopes with eigenstate vault artifact custody
+      eigenstate.ipa.vault_artifact:
+        name: "{{ (item.stdout | from_json).vault_artifacts.envelope.name }}"
+        state: read
+        server: "{{ blastwall_attestation_vault_primary }}"
+        ipaadmin_principal: "{{ ipa_login_principal }}"
+        ipaadmin_password: "{{ ipa_password }}"
+        kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
+        verify: "{{ ipa_ca }}"
+        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
+        username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
+        expected_sha256: "{{ (item.stdout | from_json).attestation_sha256 }}"
+        include_payload: true
+        payload_encoding: utf-8
+      register: blastwall_attestation_envelope_reads
+      failed_when: false
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_attestation_resolve.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item | default('unknown') }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Assert stable-v3 attestation envelope is visible
+      ansible.builtin.assert:
+        that:
+          - not (item.failed | default(false))
+          - item.read_back_verified | bool
+        fail_msg: >-
+          FAIL_ATTESTATION_NOT_VISIBLE: stable-v3 attestation envelope is not
+          readable or does not match the marker digest for {{ item.item.item }}:
+          failure_class={{ item.failure_class | default('unknown') }},
+          message={{ item.msg | default('') }}.
+      loop: "{{ blastwall_attestation_envelope_reads.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.item | default('unknown') }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Materialize stable-v3 attestation envelopes
+      ansible.builtin.copy:
+        dest: "{{ (item.item.stdout | from_json).envelope_file }}"
+        content: "{{ item.artifact_payload }}"
+        mode: "0600"
+      loop: "{{ blastwall_attestation_envelope_reads.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.item | default('unknown') }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Read stable-v3 latest indexes with eigenstate vault artifact custody
+      eigenstate.ipa.vault_artifact:
+        name: "{{ (item.stdout | from_json).vault_artifacts.index.name }}"
+        state: read
+        server: "{{ blastwall_attestation_vault_primary }}"
+        ipaadmin_principal: "{{ ipa_login_principal }}"
+        ipaadmin_password: "{{ ipa_password }}"
+        kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
+        verify: "{{ ipa_ca }}"
+        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
+        username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
+        include_payload: true
+        payload_encoding: utf-8
+      register: blastwall_attestation_index_reads
+      failed_when: false
+      no_log: "{{ ipa_password | length > 0 }}"
+      loop: "{{ blastwall_attestation_resolve.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item | default('unknown') }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Assert stable-v3 latest index is visible
+      ansible.builtin.assert:
+        that:
+          - not (item.failed | default(false))
+          - item.read_back_verified | bool
+        fail_msg: >-
+          FAIL_INDEX_NOT_VISIBLE: stable-v3 latest index is not readable for
+          {{ item.item.item }}: failure_class={{ item.failure_class | default('unknown') }},
+          message={{ item.msg | default('') }}.
+      loop: "{{ blastwall_attestation_index_reads.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.item | default('unknown') }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Materialize stable-v3 latest indexes
+      ansible.builtin.copy:
+        dest: "{{ (item.item.stdout | from_json).index_file }}"
+        content: "{{ item.artifact_payload }}"
+        mode: "0600"
+      loop: "{{ blastwall_attestation_index_reads.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.item | default('unknown') }}"
       when: blastwall_attestation_signed_mode
 
     - name: Verify stable-v3 signed attestation before launch
