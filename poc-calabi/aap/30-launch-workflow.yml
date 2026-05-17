@@ -2,6 +2,7 @@
 - name: Launch the Blastwall AAP workflow
   hosts: localhost
   connection: local
+  become: false
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
