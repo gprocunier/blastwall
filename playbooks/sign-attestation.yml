@@ -72,7 +72,8 @@
         BLASTWALL_SOURCE_REVISION |
         default(lookup('env', 'AWX_PROJECT_REVISION') |
         default(lookup('env', 'BLASTWALL_SOURCE_REVISION') |
-        default(lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD'), true), true), true)
+        default(lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD 2>/dev/null || true') |
+        default('unknown', true), true), true), true)
       }}
     blastwall_attestation_workflow_job_id: >-
       {{

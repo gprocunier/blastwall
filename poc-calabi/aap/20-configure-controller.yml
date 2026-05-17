@@ -117,6 +117,8 @@
           default('/tmp/blastwall-attestations/indexes', true) }}
         BLASTWALL_ATTESTATION_IDM_CREDENTIAL: >-
           {{ lookup('env', 'BLASTWALL_ATTESTATION_IDM_CREDENTIAL') | default('', true) }}
+        BLASTWALL_SOURCE_REVISION: >-
+          {{ lookup('env', 'BLASTWALL_SOURCE_REVISION') | default('', true) }}
         BLASTWALL_CURRENT_POLICY_SHA256: >-
           {{ lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
           default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true) }}
