@@ -39,6 +39,10 @@
     - name: Apply Blastwall Controller configuration
       ansible.builtin.command:
         argv:
+          - /usr/bin/env
+          - "HOME={{ ansible_env.HOME }}"
+          - "PATH={{ ansible_env.PATH | default('/usr/local/bin:/usr/bin:/bin') }}"
+          - "ANSIBLE_COLLECTIONS_PATH={{ calabi_ansible_collections_path }}"
           - "{{ calabi_ansible_playbook_bin }}"
           - aap/configure-controller.yml
       args:
