@@ -305,6 +305,8 @@ if 'chdir: "{{ playbook_dir }}"' not in calabi_idm_validate:
     fail("poc-calabi/15-validate-idm-with-eigenstate.yml must render inventory relative to playbook_dir")
 inventory_render_task = calabi_idm_validate.split("name: Render eigenstate.ipa IdM inventory candidate view", 1)[1]
 inventory_render_task = inventory_render_task.split("name: Assert automation endpoint is visible", 1)[0]
+if "ANSIBLE_COLLECTIONS_PATH" not in inventory_render_task:
+    fail("poc-calabi/15-validate-idm-with-eigenstate.yml must set collection path for nested ansible-inventory")
 if "no_log: true" in inventory_render_task:
     fail("poc-calabi/15-validate-idm-with-eigenstate.yml must not sanitize registered inventory stdout")
 generic_inventory = (ROOT / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")

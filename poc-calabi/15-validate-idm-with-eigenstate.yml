@@ -117,6 +117,11 @@
         chdir: "{{ playbook_dir }}"
       environment:
         IPA_ADMIN_PRINCIPAL: "{{ blastwall_ipaadmin_principal }}"
+        ANSIBLE_COLLECTIONS_PATH: >-
+          {{
+            lookup('env', 'ANSIBLE_COLLECTIONS_PATH') |
+            default(playbook_dir + '/collections:' + lookup('env', 'HOME') + '/.ansible/collections:/usr/share/ansible/collections', true)
+          }}
       register: blastwall_eigen_inventory
       changed_when: false
 
