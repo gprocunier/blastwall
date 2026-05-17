@@ -176,6 +176,9 @@
         - name: Build, store, read back, and verify signed attestation
           ansible.builtin.command:
             argv: "{{ blastwall_attestation_sign_argv }}"
+          environment:
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
           register: blastwall_signed_attestation
           changed_when: false
           failed_when: blastwall_signed_attestation.rc != 0

@@ -941,6 +941,9 @@ if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
 if "Build, store, read back, and verify signed attestation" not in v3_sign:
     fail("sign-attestation.yml does not enforce write/readback/verify before marker publication")
+sign_task = v3_sign.partition("Build, store, read back, and verify signed attestation")[2]
+if "KRB5CCNAME" not in sign_task or "krb5_ccache" not in sign_task:
+    fail("sign-attestation.yml does not pass the authenticated Kerberos cache to the signer helper")
 if "Verify stable-v3 attestation before marker publication" not in v3_promote:
     fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
