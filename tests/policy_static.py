@@ -1146,8 +1146,8 @@ if "blastwall_target_identity" not in v3_preflight:
     fail("stable-v3 preflight must separate target identity from the IdM credential auth principal")
 if 'principal: "{{ blastwall_target_identity }}"' not in v3_preflight:
     fail("stable-v3 preflight access-path proof must validate the runtime target identity")
-if "'%s' | format(blastwall_target_identity)" not in v3_hbac_access:
-    fail("stable-v3 preflight HBAC proof must validate the runtime target identity")
+if "blastwall_target_identity | string" not in v3_hbac_access:
+    fail("stable-v3 isolated HBAC proof must pass target identity as a string to eigenstate.ipa.hbacrule")
 if "targethost=blastwall_target_host | string" not in v3_hbac_access:
     fail("stable-v3 isolated HBAC proof must pass targethost as a string to eigenstate.ipa.hbacrule")
 if "Write FreeIPA client config for isolated HBAC lookup" not in v3_hbac_access:

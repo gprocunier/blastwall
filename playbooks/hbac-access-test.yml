@@ -67,7 +67,7 @@
       ansible.builtin.set_fact:
         blastwall_hbac_access_test: >-
           {{ lookup('eigenstate.ipa.hbacrule',
-                    '%s' | format(blastwall_target_identity),
+                    blastwall_target_identity | string,
                     operation='test',
                     targethost=blastwall_target_host | string,
                     service='sshd',
