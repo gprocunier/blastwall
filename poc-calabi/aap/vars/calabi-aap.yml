@@ -16,6 +16,9 @@ calabi_kubeconfig: >-
   {{ lookup('env', 'KUBECONFIG') | default(calabi_operator_home + '/etc/kubeconfig.local', true) }}
 calabi_ansible_playbook_bin: >-
   {{ lookup('env', 'ANSIBLE_PLAYBOOK') | default('/usr/bin/ansible-playbook', true) }}
+calabi_ansible_builder_bin: >-
+  {{ lookup('env', 'ANSIBLE_BUILDER') |
+  default(calabi_operator_home + '/.local/bin/ansible-builder', true) }}
 calabi_ansible_collections_path: >-
   {{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') |
   default(calabi_operator_home + '/.ansible/collections:/usr/share/ansible/collections', true) }}

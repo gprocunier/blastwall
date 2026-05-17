@@ -10,7 +10,7 @@
     - name: Require ansible-builder
       ansible.builtin.command:
         argv:
-          - ansible-builder
+          - "{{ calabi_ansible_builder_bin }}"
           - --version
       changed_when: false
 
@@ -39,7 +39,7 @@
     - name: Build Blastwall execution environment image
       ansible.builtin.command:
         argv:
-          - ansible-builder
+          - "{{ calabi_ansible_builder_bin }}"
           - build
           - -f
           - "{{ calabi_blastwall_root }}/execution-environment/execution-environment.yml"
