@@ -533,6 +533,14 @@ if "sudo sh -c" in verify_policy:
 for allowed_sudo_probe in ["sudo /usr/bin/id -u", "sudo /usr/bin/id -Z"]:
     if allowed_sudo_probe not in verify_policy:
         fail(f"playbooks/verify-managed-host.yml must use allowed sudo probe: {allowed_sudo_probe}")
+if "blastwall_sudo_id" in verify_policy:
+    fail("playbooks/verify-managed-host.yml must not reference stale combined sudo probe output")
+for sudo_report_field in [
+    'sudo_uid: "{{ blastwall_sudo_uid.stdout }}"',
+    'sudo_context: "{{ blastwall_sudo_context.stdout }}"',
+]:
+    if sudo_report_field not in verify_policy:
+        fail(f"playbooks/verify-managed-host.yml report must include {sudo_report_field}")
 if (
     "blastwall_required_profiles_env" not in verify_policy
     or "else ['base']" not in verify_policy
