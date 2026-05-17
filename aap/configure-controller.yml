@@ -969,7 +969,10 @@
             {{
               blastwall_aap_profile_extra_vars |
               combine(blastwall_aap_attestation_extra_vars if blastwall_aap_attestation_enabled | bool else {}) |
-              combine({'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group})
+              combine({
+                'BLASTWALL_TARGET_IDENTITY': blastwall_aap_identity,
+                'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group
+              })
             }}
       when: item.identifier != 'sign_attestation' or blastwall_aap_attestation_enabled | bool
 

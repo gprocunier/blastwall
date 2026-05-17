@@ -82,7 +82,11 @@
           default('blastwall_policy_candidate', true) }}
         BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP: >-
           {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP') |
-          default('', true) }}
+          default(
+            lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
+            default('blastwall_policy_candidate', true),
+            true
+          ) }}
         BLASTWALL_REQUIRED_POLICY_PROFILES: >-
           {{ lookup('env', 'BLASTWALL_REQUIRED_POLICY_PROFILES') | default('', true) }}
         BLASTWALL_ALLOW_DRY_RUN_PROFILES: >-

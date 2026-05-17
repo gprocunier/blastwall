@@ -466,13 +466,14 @@ if not candidate_group_pattern.search(calabi_config):
     )
 post_promotion_group_pattern = re.compile(
     r"BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
-    r"\|\s*default\(\s*['\"]['\"]\s*,\s*true\s*\)\s*\}\}",
+    r"\|\s*default\(\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP['\"]\s*\)\s*"
+    r"\|\s*default\(\s*['\"]blastwall_policy_candidate['\"]\s*,\s*true\s*\)\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not post_promotion_group_pattern.search(calabi_config):
     fail(
         "Calabi AAP configuration must default BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP "
-        "to the profile-derived group"
+        "to the policy candidate group"
     )
 
 stale_host_match = re.search(
@@ -728,6 +729,12 @@ if "blastwall_validate_selected_markers | bool" not in marker_check_block:
     fail("preflight marker validation is not gated by the explicit validation control")
 if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group" not in aap_config:
     fail("AAP policy pipeline post-promotion preflight cannot override the target group")
+policy_pipeline_preflight_block = aap_config.partition("identifier: post_promotion_preflight")[2].partition("when: item.identifier")[0]
+if (
+    "'BLASTWALL_TARGET_IDENTITY': blastwall_aap_identity" not in policy_pipeline_preflight_block
+    or "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group" not in policy_pipeline_preflight_block
+):
+    fail("AAP policy pipeline post-promotion preflight must validate the runtime identity on the promoted candidate group")
 
 print("PASS: AAP policy pipeline targets configured candidates before promotion")
 
