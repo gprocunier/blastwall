@@ -128,9 +128,17 @@ def _vault_config(args: argparse.Namespace) -> blastwall_attestation_vault.Vault
             "blastwall_attestation_vault_servers": args.vault_servers_csv,
             "blastwall_attestation_vault_scope": args.vault_scope,
             "blastwall_attestation_vault_owner": args.vault_owner,
-            "blastwall_attestation_vault_retry_not_found": args.vault_retry_not_found,
-            "blastwall_attestation_vault_retry_attempts": args.vault_retry_attempts,
-            "blastwall_attestation_vault_retry_delay_seconds": args.vault_retry_delay_seconds,
+            "blastwall_attestation_vault_retry_not_found": getattr(args, "vault_retry_not_found", False),
+            "blastwall_attestation_vault_retry_attempts": getattr(
+                args,
+                "vault_retry_attempts",
+                blastwall_attestation_vault.DEFAULT_RETRY_ATTEMPTS,
+            ),
+            "blastwall_attestation_vault_retry_delay_seconds": getattr(
+                args,
+                "vault_retry_delay_seconds",
+                blastwall_attestation_vault.DEFAULT_RETRY_DELAY_SECONDS,
+            ),
         }
     )
 

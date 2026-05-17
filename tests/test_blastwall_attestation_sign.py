@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import datetime
 import json
 import sys
@@ -307,6 +308,19 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["vault_error"]["vault_error_type"], "auth_failure")
         self.assertEqual(report["vault_error"]["stderr"], "ipa: ERROR: Insufficient access")
+
+    def test_vault_config_defaults_retry_fields_for_build_artifacts_cli(self) -> None:
+        config = signer._vault_config(
+            argparse.Namespace(
+                vault_primary="idm-01.workshop.lan",
+                vault_servers_csv="idm-01.workshop.lan",
+                vault_scope="shared",
+                vault_owner="blastwall-attestation",
+            )
+        )
+        self.assertFalse(config.retry_not_found)
+        self.assertEqual(config.retry_attempts, vault.DEFAULT_RETRY_ATTEMPTS)
+        self.assertEqual(config.retry_delay_seconds, vault.DEFAULT_RETRY_DELAY_SECONDS)
 
 
 if __name__ == "__main__":
