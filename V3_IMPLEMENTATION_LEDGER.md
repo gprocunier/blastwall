@@ -3,7 +3,8 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: HEAD (`feat(v3-attestation): wire signer audit recovery and review docs`)
+- current commit: HEAD (`docs(v3): record live Calabi gate evidence`)
+- implementation gate commit: `02c4d7490bfa7671802a71d3079846c27bd92b11`
 
 ## Phase Status
 | Phase | State | Owner | Commit(s) | Tests | Notes |
@@ -16,12 +17,12 @@
 | 05 | complete | vault/KRA + schema | `04b8972` | index pytest, full pytest | Added signed latest-generation index schema, signature verification, digest binding, and replay/revocation checks. |
 | 06 | complete | marker agent | `a5dbeb0` | marker unittest, full pytest | Added v3 locator marker parser/emitter; valid v3 markers produce hints but never marker-only suitability. |
 | 07 | complete | preflight agent | `1fb1a69` | verifier pytest, preflight syntax, full pytest | Added stable-v3 verifier command and preflight wiring requiring marker, envelope, index, signer trust, binding, and current policy hash. |
-| 08 | complete | AAP agent | HEAD | sign pytest, syntax, static, full test | Added signer workflow, write/readback verification, separate signer/verifier credentials, and stable-v3 promotion verification. |
+| 08 | complete | AAP agent | `02c4d74` | sign pytest, syntax, static, full test, Calabi AAP gate | Added signer workflow, write/readback verification, separate signer/verifier credentials, stable-v3 promotion verification, and KRA custody credential use for preflight reads. |
 | 09 | complete | inventory agent | HEAD | audit pytest, syntax, full test | Inventory remains selector-only while audit can verify attestations and report KRA/visibility failure states. |
 | 10 | complete | rollback agent | HEAD | verifier/revocation pytest, syntax, full test | Added revocation helper/playbook and infrastructure-only breakglass for artifact/index visibility failures. |
 | 11 | complete | SPO agent | HEAD | attestation/sign/verifier pytest, full test | OCP SPO targets require signed `spo_evidence` without changing workload posture or derived SCC type behavior. |
 | 12 | complete | test agent + architecture lead | HEAD | negative matrix pytest, static, full test | Added embedded-artifact marker rejection, expired attestation, wrong index signer, missing index, and v3 static workflow checks. |
-| 13 | blocked by lab state | PM + architecture lead + Calabi agent | pending | local validation complete; connectivity check attempted | `virt-01` is reachable, but bastion/IdM/mirror/OpenShift guests are currently shut off. |
+| 13 | complete | PM + architecture lead + Calabi agent | `02c4d74` | bastion `make test-fast`; Calabi AAP policy pipeline `2177`; Calabi AAP runtime verification `2227` | Live healthy-path KRA/AAP gate passed with signed stable-v3 marker publication, KRA readback, post-promotion preflight, runtime preflight, SPO validation, and managed-host probes. |
 | 14 | complete | docs agent + PM | HEAD | docs render, syntax, full test | Added operator, KRA topology, revocation/breakglass, readiness, and external-review docs. |
 
 ## Security Invariants
@@ -36,19 +37,82 @@
 - breakglass cannot bypass failed host verification
 
 ## Open Blockers
-- Phase 13 live Calabi gate is not complete in this local source pass.
-- Calabi `virt-01` is reachable, but `bastion-01.workshop.lan`, IdM, mirror registry, and OpenShift VMs are currently shut off.
-- The v3 branch is local-only; `origin/blastwall-v3-signed-attestation` does not exist yet, so AAP project sync/source-revision Gate 0 cannot pass until the commit is published or otherwise staged.
-- KRA-enabled Calabi vault configuration, signer material, AAP branch sync, and AAP source revision must be confirmed before live gate execution.
+- No Phase 13 blocker remains for the healthy Calabi/AAP/KRA gate.
+- Standalone stable-v3 runtime verification requires an explicit
+  `BLASTWALL_CURRENT_POLICY_SHA256`. The policy pipeline supplies this from
+  install artifacts; manually launched runtime gates must pass the same value.
+- Destructive live negative cases for missing artifacts, missing indexes,
+  revocation, and breakglass were not re-run against the live Calabi marker in
+  this pass. The branch regression matrix covers those failure classes; run a
+  live negative packet before claiming final production stable-v3 if external
+  reviewers require destructive lab evidence.
 
 ## Calabi Evidence
-- Not completed for v3. `virt-01.workshop.lan` was reachable, but the required lab guests were shut off during the Phase 13 attempt.
-- Use the v3 KRA gate runbook after the lab is powered on and this source commit is available to the Calabi/AAP path.
+- Date: 2026-05-17 UTC.
+- Lab path: workstation to `virt-01` (`172.18.0.224`) to Calabi bastion
+  (`172.16.0.30`); bastion checkout
+  `/opt/openshift/aws-metal-openshift-demo/blastwall`.
+- OpenShift access: `oc whoami` returned `system:admin`; cluster reported 6 nodes.
+- AAP project branch: `blastwall-v3-signed-attestation`.
+- Implementation gate source revision:
+  `02c4d7490bfa7671802a71d3079846c27bd92b11`.
+- Signer certificate: subject `O=WORKSHOP.LAN, CN=idm-01.workshop.lan`;
+  signer SKI `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`;
+  valid `2026-05-17T00:58:03Z` through `2028-05-17T00:58:03Z`.
+- KRA vault configuration: primary `idm-01.workshop.lan`; server list
+  `idm-01.workshop.lan`; scope `shared`; owner `blastwall-attestation`.
+- Policy pipeline workflow `2177` completed successfully at
+  `2026-05-17T05:07:22Z`.
+  - `policy_project_sync` job `2178`: successful.
+  - `policy_inventory_sync` job `2179`: successful.
+  - `build_policy_rpm` job `2182`: successful.
+  - `render_spo_policy_crs` job `2186`: successful.
+  - `install_candidate_policy_rpm` job `2187`: successful.
+  - `apply_validate_spo_policy_crs` job `2191`: successful.
+  - `verify_candidate_host` job `2195`: successful.
+  - `sign_attestation` job `2199`: successful.
+  - `promote_policy_marker` job `2203`: successful.
+  - `post_promotion_inventory_sync` job `2207`: successful.
+  - `post_promotion_preflight` job `2210`: successful.
+- Policy artifacts from job `2187`:
+  - NEVRA: `blastwall-selinux-0.6.1-0.rc1`.
+  - policy hash:
+    `4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2`.
+  - RPM hash:
+    `4af7a532c90629a78f0491589eacf1d0e2a440a547ab82d83b6a7c0072fbd098`.
+- Signed attestation artifacts from job `2199`:
+  - generation `1778994368`.
+  - attestation ref:
+    `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json`.
+  - attestation hash:
+    `c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190`.
+  - marker:
+    `blastwall:v=3;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;profiles=base;attest_ref=shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json;attest_sha256=c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190;signer_kid=8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6;exp=2026-05-17T06:06:09Z;generation=1778994368`.
+- Runtime verification workflow `2227` completed successfully at
+  `2026-05-17T05:12:19Z`.
+  - `project_sync` job `2228`: successful.
+  - `credential_smoke` job `2229`: successful.
+  - `inventory_sync` job `2233`: successful.
+  - `preflight` job `2236`: successful.
+  - `verify_managed_host` job `2240`: successful.
+- Runtime preflight job `2236` retrieved the marker-referenced attestation and
+  latest index from KRA, materialized local envelope/index files, and verified:
+  `status=PASS`, `failure_state=null`, `attestation_generation=1778994368`,
+  `index_generation=1778994368`, `signer_kid=8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
+- Managed-host verification job `2240` ran as
+  `blastwall_u:blastwall_r:blastwall_t:s0` on `mirror-registry.workshop.lan`.
+  Evidence digest:
+  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
+  Probes blocked AF_ALG, BPF map/prog load, AF_PACKET, user namespace,
+  `io_uring_setup`, Dirty Frag `NETLINK_XFRM`, Dirty Frag `AF_RXRPC`, and
+  Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES` evidence.
 
 ## Final Decision
-- Local source GO for Phase 13 gate.
-- Live gate HOLD due current lab power state and unpublished v3 branch.
-- Release GO/HOLD remains pending live Calabi KRA evidence.
+- Phase 13 healthy Calabi KRA/AAP gate: GO.
+- Release review package: GO for healthy-path evidence.
+- Final production stable-v3 claim remains conditional on external reviewer
+  acceptance of local negative coverage or a follow-up destructive live negative
+  evidence run.
 
 ## Phase Handoffs
 
@@ -160,9 +224,9 @@
 - phase: 13
 - files changed: `V3_IMPLEMENTATION_LEDGER.md`
 - tests added: none
-- tests run: local prerequisites only: `make test`; Ansible syntax checks; docs placeholder-term scan; Calabi connectivity/power-state check
-- open issues: live Calabi KRA/AAP gate is blocked because lab guests are shut off and the v3 branch is not published to `origin`; AAP project branch and source revision must match the committed v3 branch before execution
-- security invariants checked: local gate prerequisites are green; no live evidence bundle exists yet; release GO remains unavailable without KRA/AAP evidence
+- tests run: local prerequisites: `make test`; Ansible syntax checks; docs placeholder-term scan; bastion `make test-fast`; Calabi AAP policy pipeline `2177`; Calabi AAP runtime verification `2227`
+- open issues: standalone runtime launches must provide `BLASTWALL_CURRENT_POLICY_SHA256`; destructive live negative evidence remains optional pending external reviewer request
+- security invariants checked: signed marker publication requires signer write/readback; preflight retrieves marker-referenced envelope/index from configured KRA primary; verifier enforces signer allowlist, latest index, marker binding, registry hash, policy hash, and host/profile binding; managed-host probes confirm the intended RHEL policy denies remain active
 
 ### Phase 14
 - phase: 14

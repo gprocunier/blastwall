@@ -70,6 +70,18 @@ Minimum evidence package for sign-off:
 - A revocation example and re-attestation recovery example.
 - Calabi v3 KRA gate evidence bundle, including AAP job IDs and artifact references.
 
+Current Calabi RC evidence:
+
+- Healthy-path Calabi v3 KRA/AAP gate completed on 2026-05-17 UTC.
+- Policy pipeline workflow `2177` passed.
+- Runtime verification workflow `2227` passed.
+- Runtime preflight job `2236` retrieved marker-referenced KRA artifacts and
+  verified the signed envelope plus latest index.
+- Managed-host verification job `2240` passed with evidence digest
+  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
+- Destructive live negative cases are not yet part of the Calabi RC evidence
+  packet; local regression tests cover those failure classes.
+
 ## Go/No-Go
 
 - GO only if all checklist items above are complete and evidence artifacts are attached.

@@ -44,20 +44,50 @@ Reference documents:
 - `tools/blastwall_attestation_sign.py`
 - `tools/audit_blastwall_inventory.py`
 
-## Calabi evidence placeholders
+## Calabi evidence
 
-Populate this section during live gate execution:
+Live healthy-path gate completed on 2026-05-17 UTC.
 
-- `Calabi host`: `<pending>`
-- `KRA primary`: `<pending>`
-- `KRA server list`: `<pending>`
-- `signer host/job`: `<pending>`
-- `AAP workflow run(s)`: `<pending>`
-- `valid base host preflight`: `<pending>`
-- `missing artifact negative case`: `<pending>`
-- `missing index negative case`: `<pending>`
-- `revocation negative case`: `<pending>`
-- `breakglass infrastructure case`: `<pending>`
+- `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
+  (`172.16.0.30`).
+- `AAP project branch`: `blastwall-v3-signed-attestation`.
+- `Implementation gate commit`:
+  `02c4d7490bfa7671802a71d3079846c27bd92b11`.
+- `KRA primary`: `idm-01.workshop.lan`.
+- `KRA server list`: `idm-01.workshop.lan`.
+- `KRA scope/owner`: `shared` / `blastwall-attestation`.
+- `Signer`: AAP sign job `2199`, signer SKI
+  `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
+- `Policy pipeline`: AAP workflow `2177`, successful.
+- `Runtime verification`: AAP workflow `2227`, successful.
+- `Valid base host preflight`: AAP job `2236`, successful. It retrieved the
+  signed envelope and latest index from KRA and returned `status=PASS`,
+  `failure_state=null`.
+- `Managed-host verification`: AAP job `2240`, successful. Evidence digest
+  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
+- `Policy NEVRA`: `blastwall-selinux-0.6.1-0.rc1`.
+- `Policy hash`:
+  `4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2`.
+- `RPM hash`:
+  `4af7a532c90629a78f0491589eacf1d0e2a440a547ab82d83b6a7c0072fbd098`.
+- `Attestation ref`:
+  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json`.
+- `Attestation hash`:
+  `c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190`.
+- `Index generation`: `1778994368`.
+- `Marker`:
+  `blastwall:v=3;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;profiles=base;attest_ref=shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json;attest_sha256=c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190;signer_kid=8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6;exp=2026-05-17T06:06:09Z;generation=1778994368`.
+
+The live gate also confirmed the managed-host policy still blocks the current
+probe set, including AF_ALG, BPF map/prog load, AF_PACKET, user namespace,
+`io_uring_setup`, Dirty Frag `NETLINK_XFRM`, Dirty Frag `AF_RXRPC`, and
+Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES` evidence.
+
+Destructive live negative cases for missing artifact, missing index, revocation,
+and breakglass were not re-run against the live Calabi marker in this packet.
+Those failure classes are covered by the local regression matrix. Run a
+destructive live negative packet before final production stable-v3 sign-off if
+reviewers require live failure evidence rather than local proof.
 
 ## Failure-state map
 
