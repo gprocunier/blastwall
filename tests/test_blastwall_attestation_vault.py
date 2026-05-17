@@ -202,7 +202,7 @@ class BlastwallVaultTests(unittest.TestCase):
         self.assertEqual(error_type, vault.VaultErrorType.CONNECTION_REFUSED)
 
     def test_classify_timeout_by_exception(self) -> None:
-        error_type = vault.classify_vault_error(error=subprocess.TimeoutExpired(cmd=["eigenstate-ipa"], timeout=5))
+        error_type = vault.classify_vault_error(error=subprocess.TimeoutExpired(cmd=["blastwall-ipa-vault"], timeout=5))
         self.assertEqual(error_type, vault.VaultErrorType.TIMEOUT)
 
 

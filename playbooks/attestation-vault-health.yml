@@ -76,7 +76,7 @@
         msg:
           phase: "attestation-vault-health"
           status: "skeleton"
-          command_model: "eigenstate-ipa vault <read|write>"
+          command_model: "FreeIPA vault CLI through tools/blastwall_attestation_vault.py"
           vault_context: "{{ blastwall_attestation_vault_health_context }}"
           artifact_refs: "{{ blastwall_attestation_vault_health_artifacts }}"
 
@@ -87,4 +87,3 @@
           note: "Implement read/write checks using explicit helper command functions in tools/blastwall_attestation_vault.py"
           server: "{{ blastwall_attestation_vault_primary }}"
           artifacts: "{{ blastwall_attestation_vault_health_artifacts }}"
-

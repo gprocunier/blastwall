@@ -10,7 +10,9 @@ from __future__ import annotations
 import errno
 import hashlib
 import json
+import os
 import subprocess
+import tempfile
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -250,6 +252,9 @@ def _run_command(
     input_data: bytes | None = None,
     timeout: int | None = None,
 ) -> VaultCommandResult:
+    if command and command[0] == "blastwall-ipa-vault":
+        return _run_ipa_vault_command(command, input_data=input_data, timeout=timeout)
+
     completed = subprocess.run(
         command,
         input=input_data,
@@ -265,14 +270,162 @@ def _run_command(
     )
 
 
+def _run_ipa_vault_command(
+    command: list[str],
+    *,
+    input_data: bytes | None,
+    timeout: int | None,
+) -> VaultCommandResult:
+    operation, server, scope, owner, vault_ref = _parse_logical_vault_command(command)
+    if operation == "write":
+        if input_data is None:
+            input_data = b""
+        return _ipa_vault_write(
+            server=server,
+            scope=scope,
+            owner=owner,
+            vault_ref=vault_ref,
+            payload=input_data,
+            timeout=timeout,
+        )
+    if operation == "read":
+        return _ipa_vault_read(
+            server=server,
+            scope=scope,
+            owner=owner,
+            vault_ref=vault_ref,
+            timeout=timeout,
+        )
+    raise ValueError(f"unsupported logical vault operation: {operation}")
+
+
+def _parse_logical_vault_command(command: list[str]) -> tuple[str, str, str, str, str]:
+    if len(command) < 3:
+        raise ValueError("invalid blastwall vault command")
+    operation = command[1]
+    try:
+        server = command[command.index("--server") + 1]
+        scope = command[command.index("--scope") + 1]
+        owner = command[command.index("--owner") + 1]
+        vault_ref = command[command.index("--vault-ref") + 1]
+    except (ValueError, IndexError) as exc:
+        raise ValueError("blastwall vault command missing required argument") from exc
+    return operation, server, scope, owner, vault_ref
+
+
+def _ipa_base_command(server: str) -> list[str]:
+    return ["ipa", "-e", f"server={server}", "-f", "-n"]
+
+
+def _ipa_scope_args(scope: str, owner: str) -> list[str]:
+    normalized = scope.strip().lower()
+    if normalized == "shared":
+        return ["--shared"]
+    if normalized == "user":
+        return ["--user", owner]
+    if normalized == "service":
+        return ["--service", owner]
+    raise ValueError("vault scope must be one of shared, user, or service")
+
+
+def _vault_name_from_ref(vault_ref: str) -> str:
+    digest = hashlib.sha256(vault_ref.encode("utf-8")).hexdigest()[:48]
+    return f"blastwall-{digest}"
+
+
+def _run_ipa(command: list[str], *, timeout: int | None = None) -> VaultCommandResult:
+    completed = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout,
+        check=False,
+    )
+    return VaultCommandResult(
+        stdout=completed.stdout,
+        stderr=completed.stderr,
+        returncode=completed.returncode,
+    )
+
+
+def _ipa_vault_write(
+    *,
+    server: str,
+    scope: str,
+    owner: str,
+    vault_ref: str,
+    payload: bytes,
+    timeout: int | None,
+) -> VaultCommandResult:
+    vault_name = _vault_name_from_ref(vault_ref)
+    scope_args = _ipa_scope_args(scope, owner)
+    add_command = _ipa_base_command(server) + ["vault-add", vault_name, "--type=standard"] + scope_args
+    add_result = _run_ipa(add_command, timeout=timeout)
+    add_details = (_decode_text(add_result.stdout) + " " + _decode_text(add_result.stderr)).lower()
+    if add_result.returncode != 0 and "already exists" not in add_details:
+        return add_result
+
+    payload_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(prefix="blastwall-vault-payload-", delete=False) as payload_file:
+            payload_file.write(payload)
+            payload_path = payload_file.name
+        archive_command = _ipa_base_command(server) + [
+            "vault-archive",
+            vault_name,
+            "--in",
+            payload_path,
+        ] + scope_args
+        return _run_ipa(archive_command, timeout=timeout)
+    finally:
+        if payload_path:
+            try:
+                os.unlink(payload_path)
+            except FileNotFoundError:
+                pass
+
+
+def _ipa_vault_read(
+    *,
+    server: str,
+    scope: str,
+    owner: str,
+    vault_ref: str,
+    timeout: int | None,
+) -> VaultCommandResult:
+    vault_name = _vault_name_from_ref(vault_ref)
+    scope_args = _ipa_scope_args(scope, owner)
+    output_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(prefix="blastwall-vault-read-", delete=False) as output_file:
+            output_path = output_file.name
+        retrieve_command = _ipa_base_command(server) + [
+            "vault-retrieve",
+            vault_name,
+            "--out",
+            output_path,
+        ] + scope_args
+        result = _run_ipa(retrieve_command, timeout=timeout)
+        if result.returncode != 0:
+            return result
+        with open(output_path, "rb") as payload_file:
+            payload = payload_file.read()
+        return VaultCommandResult(stdout=payload, stderr=result.stderr, returncode=0)
+    finally:
+        if output_path:
+            try:
+                os.unlink(output_path)
+            except FileNotFoundError:
+                pass
+
+
 def vault_write_command(
     *, server: str, scope: str, owner: str, vault_ref: str
 ) -> list[str]:
     """Build an explicit-vault-write command."""
 
     return [
-        "eigenstate-ipa",
-        "vault",
+        "blastwall-ipa-vault",
         "write",
         "--server",
         server,
@@ -291,8 +444,7 @@ def vault_read_command(
     """Build an explicit-vault-read command."""
 
     return [
-        "eigenstate-ipa",
-        "vault",
+        "blastwall-ipa-vault",
         "read",
         "--server",
         server,

@@ -230,7 +230,7 @@ class BlastwallInventoryAuditTests(unittest.TestCase):
                 vault_ref=vault_ref,
                 vault_error_type=audit.blastwall_attestation_vault.VaultErrorType.NOT_FOUND,
                 message="artifact not found",
-                command=["eigenstate-ipa", "vault", "read"],
+                command=["blastwall-ipa-vault", "read"],
                 attempts=1,
                 retry_attempted=False,
             )
