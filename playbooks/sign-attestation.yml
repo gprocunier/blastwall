@@ -106,6 +106,16 @@
     blastwall_attestation_index_dir: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_INDEX_DIR') |
       default('/tmp/blastwall-attestations/indexes', true) }}
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') | default('', true) }}"
+    ipa_realm: "{{ lookup('env', 'IPA_REALM') | default('', true) }}"
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
+    krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
+    krb5_ccache: FILE:/tmp/blastwall_krb5cc
   tasks:
     - name: Skip v3 signing outside transition-v3 or stable-v3 mode
       ansible.builtin.debug:
@@ -130,10 +140,35 @@
               - blastwall_attestation_signer_allowlist | length > 0
               - blastwall_attestation_vault_primary | length > 0
               - blastwall_attestation_vault_servers | length > 0
+              - ipa_principal | length > 0
+              - ipa_realm | length > 0 or '@' in ipa_principal
+              - ipa_keytab | length > 0 or ipa_password | length > 0
             fail_msg: >-
               transition-v3/stable-v3 signing requires current policy hash,
               probe report hash, signer key/certificate/CA/allowlist, explicit
-              KRA vault primary, and explicit KRA vault server list.
+              KRA vault primary, explicit KRA vault server list, and Kerberos
+              credentials for the vault client.
+          run_once: true
+          delegate_to: localhost
+
+        - name: Authenticate vault client identity for attestation custody
+          ansible.builtin.shell: |
+            set -euo pipefail
+            if [ -n "${IPA_KEYTAB}" ]; then
+              kinit -k -t "${IPA_KEYTAB}" "${IPA_LOGIN_PRINCIPAL}"
+            else
+              printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+            fi
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+            IPA_PASSWORD: "{{ ipa_password }}"
+            IPA_KEYTAB: "{{ ipa_keytab }}"
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+          changed_when: false
+          no_log: true
           run_once: true
           delegate_to: localhost
 
