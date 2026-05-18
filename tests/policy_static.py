@@ -1136,6 +1136,16 @@ if "Install injected FreeIPA CA for attestation vault writes" not in v3_sign:
     fail("sign-attestation.yml must install the injected FreeIPA CA before vault collection operations")
 if "blastwall_v3_attestation_marker_by_host" not in v3_sign:
     fail("sign-attestation.yml must propagate signed locator markers to downstream workflow jobs")
+source_revision_block = v3_sign.partition("blastwall_attestation_source_revision:")[2].partition(
+    "blastwall_attestation_workflow_job_id:"
+)[0]
+if source_revision_block.find("lookup('pipe', 'git -C ") == -1:
+    fail("sign-attestation.yml must derive source_revision from the Controller project checkout")
+if source_revision_block.find("lookup('env', 'AWX_PROJECT_REVISION')") != -1 and (
+    source_revision_block.find("lookup('pipe', 'git -C ")
+    > source_revision_block.find("lookup('env', 'AWX_PROJECT_REVISION')")
+):
+    fail("sign-attestation.yml must prefer the live project checkout over stale AWX_PROJECT_REVISION env")
 if "Use signed stable-v3 locator marker from pipeline signing evidence" not in v3_promote:
     fail("promote-policy-rpm.yml must consume signer-provided markers across AAP job boundaries")
 if "--profile=\\\\1" in v3_sign or "--profile=\\\\1" in v3_promote:
@@ -1160,6 +1170,10 @@ for required_stable_v3_marker_gate in [
     "--marker', blastwall_policy_marker.stdout",
     "KRB5CCNAME",
     "blastwall_stable_v3_promotion | bool",
+    "blastwall_attestation_vault_primary",
+    "blastwall_attestation_vault_servers",
+    "blastwall_attestation_vault_scope",
+    "blastwall_attestation_vault_owner",
 ]:
     if required_stable_v3_marker_gate not in stable_v3_retrieve_block:
         fail(f"stable-v3 marker pre-publication verification is missing {required_stable_v3_marker_gate}")

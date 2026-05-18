@@ -75,6 +75,14 @@
       {{ lookup('env', 'BLASTWALL_ATTESTATION_CA_BUNDLE') | default('', true) }}
     blastwall_attestation_signer_allowlist: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_SIGNER_ALLOWLIST') | default('', true) }}
+    blastwall_attestation_vault_primary: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+    blastwall_attestation_vault_servers: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true) }}
+    blastwall_attestation_vault_scope: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+    blastwall_attestation_vault_owner: >-
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true) }}
     blastwall_attestation_envelope_dir: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') |
       default('/tmp/blastwall-attestations/envelopes', true) }}
@@ -165,6 +173,8 @@
           - not blastwall_stable_v3_promotion | bool or blastwall_attestation_signer_certificate | length > 0
           - not blastwall_stable_v3_promotion | bool or blastwall_attestation_ca_bundle | length > 0
           - not blastwall_stable_v3_promotion | bool or blastwall_attestation_signer_allowlist | length > 0
+          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_primary | length > 0
+          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_servers | length > 0
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_PRINCIPAL, IPA_PASSWORD,
           64-character BLASTWALL_POLICY_RPM_SHA256, and 64-character
