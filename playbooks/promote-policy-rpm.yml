@@ -224,6 +224,22 @@
       run_once: true
       delegate_to: localhost
 
+    - name: Authenticate IdM principal for FreeIPA collection marker update
+      ansible.builtin.shell: |
+        set -euo pipefail
+        /usr/bin/printf "%s\n" "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}"
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      changed_when: false
+      no_log: true
+      run_once: true
+      delegate_to: localhost
+
     - name: Render active Blastwall marker for collection writes
       ansible.builtin.command:
         argv: "{{ blastwall_marker_emit_argv_base + ['--state=active'] }}"

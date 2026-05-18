@@ -758,6 +758,10 @@ for marker_write_text, path_name in [
         fail(f"{path_name} must not call FreeIPA marker writes with an unqualified Kerberos principal")
     if 'ipaadmin_principal: "{{ ipa_login_principal }}"' not in marker_write_text:
         fail(f"{path_name} must use the realm-qualified FreeIPA marker write principal")
+if "Authenticate IdM principal for FreeIPA collection marker update" not in promotion:
+    fail("playbooks/promote-policy-rpm.yml must create the AAP credential cache before FreeIPA marker writes")
+if 'kinit "${IPA_LOGIN_PRINCIPAL}"' not in promotion or "/usr/bin/printf" not in promotion or "KRB5CCNAME" not in promotion:
+    fail("playbooks/promote-policy-rpm.yml must authenticate into the injected Kerberos cache for collection writes")
 if "lookup('file', blastwall_profile_registry_path, rstrip=False)" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not hash raw registry file bytes")
 if "--desc" in promotion:
