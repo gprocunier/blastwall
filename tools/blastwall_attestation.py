@@ -556,6 +556,19 @@ def _marker_value(marker: Mapping[str, Any] | Any, field: str) -> Any:
     return getattr(marker, field, None)
 
 
+def _marker_generation(marker: Mapping[str, Any] | Any) -> int:
+    raw_generation = _marker_value(marker, "generation")
+    if raw_generation is None:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "marker generation is missing")
+    try:
+        generation = int(raw_generation)
+    except (TypeError, ValueError) as exc:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "marker generation is not an integer") from exc
+    if generation < 0:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "marker generation must be non-negative")
+    return generation
+
+
 def verify_latest_index(
     envelope: Mapping[str, Any] | str,
     index: Mapping[str, Any] | str,
@@ -599,6 +612,8 @@ def verify_latest_index(
         raise AttestationVerificationError("FAIL_REPLAYED_ATTESTATION", "attestation generation is older than latest index")
     if index_obj["latest_generation"] != payload["generation"]:
         raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "index latest_generation does not match payload generation")
+    if _marker_generation(marker) != index_obj["latest_generation"]:
+        raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "marker generation does not match latest index")
     if index_obj["latest_attest_ref"] != _marker_value(marker, "attest_ref"):
         raise AttestationVerificationError("FAIL_BINDING_MISMATCH", "index latest_attest_ref does not match marker")
 

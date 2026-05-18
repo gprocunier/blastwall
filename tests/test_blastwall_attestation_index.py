@@ -139,6 +139,7 @@ class BlastwallAttestationIndexTests(unittest.TestCase):
         self.marker = {
             "attest_ref": self.attest_ref,
             "attest_sha256": self.envelope_sha,
+            "generation": self.payload["generation"],
         }
 
     def build_index(self, **overrides: Any) -> dict[str, Any]:
@@ -185,10 +186,32 @@ class BlastwallAttestationIndexTests(unittest.TestCase):
         self.assertEqual(exc.exception.failure_state, "FAIL_ATTESTATION_DIGEST")
 
     def test_marker_digest_mismatch_fails(self) -> None:
-        marker = {"attest_ref": self.attest_ref, "attest_sha256": "e" * 64}
+        marker = {
+            "attest_ref": self.attest_ref,
+            "attest_sha256": "e" * 64,
+            "generation": self.payload["generation"],
+        }
         with self.assertRaises(attestation.AttestationVerificationError) as exc:
             self.verify(marker=marker)
         self.assertEqual(exc.exception.failure_state, "FAIL_ATTESTATION_DIGEST")
+
+    def test_marker_generation_mismatch_fails_binding(self) -> None:
+        marker = {
+            "attest_ref": self.attest_ref,
+            "attest_sha256": self.envelope_sha,
+            "generation": 1,
+        }
+        with self.assertRaises(attestation.AttestationVerificationError) as exc:
+            self.verify(marker=marker)
+        self.assertEqual(exc.exception.failure_state, "FAIL_BINDING_MISMATCH")
+        self.assertIn("marker generation", str(exc.exception))
+
+    def test_missing_marker_generation_fails_binding(self) -> None:
+        marker = {"attest_ref": self.attest_ref, "attest_sha256": self.envelope_sha}
+        with self.assertRaises(attestation.AttestationVerificationError) as exc:
+            self.verify(marker=marker)
+        self.assertEqual(exc.exception.failure_state, "FAIL_BINDING_MISMATCH")
+        self.assertIn("marker generation is missing", str(exc.exception))
 
     def test_wrong_host_fails_binding(self) -> None:
         index = self.build_index(subject_host="other.example.com")

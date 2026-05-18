@@ -69,18 +69,31 @@
       default(lookup('env', 'BLASTWALL_ATTESTATION_VALID_FOR_SECONDS') | default('3600', true), true) }}
     blastwall_attestation_source_revision: >-
       {{
-        BLASTWALL_SOURCE_REVISION |
+        AWX_PROJECT_REVISION |
         default(lookup('env', 'AWX_PROJECT_REVISION') |
-        default(lookup('env', 'BLASTWALL_SOURCE_REVISION') |
         default(lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD 2>/dev/null || true') |
-        default('unknown', true), true), true), true)
+        default(BLASTWALL_SOURCE_REVISION |
+        default(lookup('env', 'BLASTWALL_SOURCE_REVISION') |
+        default('unknown', true), true), true), true), true)
       }}
     blastwall_attestation_workflow_job_id: >-
       {{
-        BLASTWALL_AAP_WORKFLOW_JOB_ID |
+        awx_workflow_job_id |
+        default(tower_workflow_job_id |
+        default(AWX_WORKFLOW_JOB_ID |
+        default(TOWER_WORKFLOW_JOB_ID |
         default(lookup('env', 'AWX_WORKFLOW_JOB_ID') |
+        default(lookup('env', 'TOWER_WORKFLOW_JOB_ID') |
         default(lookup('env', 'WORKFLOW_JOB_ID') |
-        default(lookup('env', 'AWX_JOB_ID') | default('0', true), true), true), true)
+        default(BLASTWALL_AAP_WORKFLOW_JOB_ID |
+        default(lookup('env', 'BLASTWALL_AAP_WORKFLOW_JOB_ID') |
+        default(awx_job_id |
+        default(tower_job_id |
+        default(AWX_JOB_ID |
+        default(TOWER_JOB_ID |
+        default(lookup('env', 'AWX_JOB_ID') |
+        default(lookup('env', 'TOWER_JOB_ID') |
+        default(lookup('env', 'JOB_ID') | default('0', true), true), true), true), true), true), true), true), true), true), true), true), true)
       }}
     blastwall_spo_evidence_json: >-
       {{ BLASTWALL_SPO_EVIDENCE_JSON |

@@ -1146,6 +1146,23 @@ if "map('regex_replace', '^', '--profile=')" not in v3_promote:
     fail("promote-policy-rpm.yml must prefix required profiles without regex backrefs")
 if "Verify stable-v3 attestation before marker publication" not in v3_promote:
     fail("promote-policy-rpm.yml does not verify stable-v3 artifacts before marker publication")
+stable_v3_retrieve_index = v3_promote.find("Retrieve and verify supplied stable-v3 marker before IdM publication")
+stable_v3_publish_index = v3_promote.find("Publish verified Blastwall host marker to IdM")
+if stable_v3_retrieve_index == -1:
+    fail("promote-policy-rpm.yml must verify supplied stable-v3 markers before IdM publication")
+if stable_v3_publish_index != -1 and stable_v3_retrieve_index > stable_v3_publish_index:
+    fail("promote-policy-rpm.yml verifies supplied stable-v3 markers after IdM publication")
+stable_v3_retrieve_block = v3_promote[
+    stable_v3_retrieve_index:stable_v3_publish_index if stable_v3_publish_index != -1 else len(v3_promote)
+]
+for required_stable_v3_marker_gate in [
+    "retrieve-existing",
+    "--marker', blastwall_policy_marker.stdout",
+    "KRB5CCNAME",
+    "blastwall_stable_v3_promotion | bool",
+]:
+    if required_stable_v3_marker_gate not in stable_v3_retrieve_block:
+        fail(f"stable-v3 marker pre-publication verification is missing {required_stable_v3_marker_gate}")
 for required_live_preflight_signal in [
     "FreeIPA CLI fallback read live stable-v3 host marker hints from FreeIPA",
     "BLASTWALL_ALLOW_IPA_CLI_FALLBACK",
@@ -1223,6 +1240,12 @@ if not (preflight_envelope_read_index < preflight_index_read_index < preflight_v
     fail("stable-v3 preflight must read KRA artifacts before signature verification")
 if "expected_sha256" not in preflight_envelope_read_block or "attestation_sha256" not in preflight_envelope_read_block:
     fail("stable-v3 preflight envelope read must verify marker digest before signature verification")
+if "Remove stale stable-v3 materialized attestation envelopes" not in v3_preflight:
+    fail("stable-v3 preflight must clear stale materialized envelopes before KRA reads")
+if "item.read_back_verified | default(false) | bool" not in v3_preflight:
+    fail("stable-v3 preflight must not throw raw Ansible missing-attribute errors for absent KRA artifacts")
+if "not blastwall_breakglass | bool" not in v3_preflight:
+    fail("stable-v3 preflight must let verifier-owned breakglass handling evaluate missing KRA artifacts")
 if "skeleton" in v3_health.lower() or "placeholder" in v3_health.lower():
     fail("attestation-vault-health.yml must not contain skeleton or placeholder health logic")
 for explicit_health_input in [

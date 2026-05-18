@@ -363,6 +363,13 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
         report = self.verify(index_text=json.dumps(replay_index))
         self.assertEqual(report.failure_state, "FAIL_REPLAYED_ATTESTATION")
 
+    def test_marker_generation_mismatch_fails(self) -> None:
+        stale_marker = self.marker_text.replace("generation=7", "generation=1")
+        report = self.verify(marker_text=stale_marker)
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.failure_state, "FAIL_BINDING_MISMATCH")
+        self.assertIn("marker generation", report.message)
+
     def test_tombstoned_envelope_fails(self) -> None:
         tombstoned_envelope = revocation.build_tombstone_json(reason="revoked for host compromise")
         report = self.verify(envelope_text=tombstoned_envelope)

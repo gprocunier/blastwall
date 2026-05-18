@@ -765,6 +765,20 @@
         - "{{ blastwall_attestation_index_dir }}"
       when: blastwall_attestation_signed_mode
 
+    - name: Remove stale stable-v3 materialized attestation envelopes
+      ansible.builtin.file:
+        path: "{{ blastwall_attestation_envelope_dir }}/{{ item }}.json"
+        state: absent
+      loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_attestation_signed_mode
+
+    - name: Remove stale stable-v3 materialized latest indexes
+      ansible.builtin.file:
+        path: "{{ blastwall_attestation_index_dir }}/{{ item }}.json"
+        state: absent
+      loop: "{{ blastwall_target_hosts }}"
+      when: blastwall_attestation_signed_mode
+
     - name: Resolve stable-v3 signed attestation artifact locations
       ansible.builtin.command:
         argv: "{{ blastwall_attestation_resolve_argv }}"
@@ -854,7 +868,7 @@
       ansible.builtin.assert:
         that:
           - not (item.failed | default(false))
-          - item.read_back_verified | bool
+          - item.read_back_verified | default(false) | bool
         fail_msg: >-
           FAIL_ATTESTATION_NOT_VISIBLE: stable-v3 attestation envelope is not
           readable or does not match the marker digest for {{ item.item.item }}:
@@ -863,7 +877,9 @@
       loop: "{{ blastwall_attestation_envelope_reads.results | default([]) }}"
       loop_control:
         label: "{{ item.item.item | default('unknown') }}"
-      when: blastwall_attestation_signed_mode
+      when:
+        - blastwall_attestation_signed_mode
+        - not blastwall_breakglass | bool
 
     - name: Materialize stable-v3 attestation envelopes
       ansible.builtin.copy:
@@ -873,7 +889,9 @@
       loop: "{{ blastwall_attestation_envelope_reads.results | default([]) }}"
       loop_control:
         label: "{{ item.item.item | default('unknown') }}"
-      when: blastwall_attestation_signed_mode
+      when:
+        - blastwall_attestation_signed_mode
+        - item.read_back_verified | default(false) | bool
 
     - name: Read stable-v3 latest indexes with eigenstate vault artifact custody
       eigenstate.ipa.vault_artifact:
@@ -901,7 +919,7 @@
       ansible.builtin.assert:
         that:
           - not (item.failed | default(false))
-          - item.read_back_verified | bool
+          - item.read_back_verified | default(false) | bool
         fail_msg: >-
           FAIL_INDEX_NOT_VISIBLE: stable-v3 latest index is not readable for
           {{ item.item.item }}: failure_class={{ item.failure_class | default('unknown') }},
@@ -909,7 +927,9 @@
       loop: "{{ blastwall_attestation_index_reads.results | default([]) }}"
       loop_control:
         label: "{{ item.item.item | default('unknown') }}"
-      when: blastwall_attestation_signed_mode
+      when:
+        - blastwall_attestation_signed_mode
+        - not blastwall_breakglass | bool
 
     - name: Materialize stable-v3 latest indexes
       ansible.builtin.copy:
@@ -919,7 +939,9 @@
       loop: "{{ blastwall_attestation_index_reads.results | default([]) }}"
       loop_control:
         label: "{{ item.item.item | default('unknown') }}"
-      when: blastwall_attestation_signed_mode
+      when:
+        - blastwall_attestation_signed_mode
+        - item.read_back_verified | default(false) | bool
 
     - name: Verify stable-v3 signed attestation before launch
       ansible.builtin.command:
