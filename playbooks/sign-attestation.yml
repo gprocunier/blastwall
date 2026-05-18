@@ -69,31 +69,36 @@
       default(lookup('env', 'BLASTWALL_ATTESTATION_VALID_FOR_SECONDS') | default('3600', true), true) }}
     blastwall_attestation_source_revision: >-
       {{
-        AWX_PROJECT_REVISION |
-        default(lookup('env', 'AWX_PROJECT_REVISION') |
-        default(lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD 2>/dev/null || true') |
-        default(BLASTWALL_SOURCE_REVISION |
-        default(lookup('env', 'BLASTWALL_SOURCE_REVISION') |
-        default('unknown', true), true), true), true), true)
+        [
+          vars.get('AWX_PROJECT_REVISION', ''),
+          lookup('env', 'AWX_PROJECT_REVISION'),
+          lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD 2>/dev/null || true'),
+          vars.get('BLASTWALL_SOURCE_REVISION', ''),
+          lookup('env', 'BLASTWALL_SOURCE_REVISION'),
+          'unknown'
+        ] | map('string') | map('trim') | reject('equalto', '') | first
       }}
     blastwall_attestation_workflow_job_id: >-
       {{
-        awx_workflow_job_id |
-        default(tower_workflow_job_id |
-        default(AWX_WORKFLOW_JOB_ID |
-        default(TOWER_WORKFLOW_JOB_ID |
-        default(lookup('env', 'AWX_WORKFLOW_JOB_ID') |
-        default(lookup('env', 'TOWER_WORKFLOW_JOB_ID') |
-        default(lookup('env', 'WORKFLOW_JOB_ID') |
-        default(BLASTWALL_AAP_WORKFLOW_JOB_ID |
-        default(lookup('env', 'BLASTWALL_AAP_WORKFLOW_JOB_ID') |
-        default(awx_job_id |
-        default(tower_job_id |
-        default(AWX_JOB_ID |
-        default(TOWER_JOB_ID |
-        default(lookup('env', 'AWX_JOB_ID') |
-        default(lookup('env', 'TOWER_JOB_ID') |
-        default(lookup('env', 'JOB_ID') | default('0', true), true), true), true), true), true), true), true), true), true), true), true), true)
+        [
+          vars.get('awx_workflow_job_id', ''),
+          vars.get('tower_workflow_job_id', ''),
+          vars.get('AWX_WORKFLOW_JOB_ID', ''),
+          vars.get('TOWER_WORKFLOW_JOB_ID', ''),
+          lookup('env', 'AWX_WORKFLOW_JOB_ID'),
+          lookup('env', 'TOWER_WORKFLOW_JOB_ID'),
+          lookup('env', 'WORKFLOW_JOB_ID'),
+          vars.get('BLASTWALL_AAP_WORKFLOW_JOB_ID', ''),
+          lookup('env', 'BLASTWALL_AAP_WORKFLOW_JOB_ID'),
+          vars.get('awx_job_id', ''),
+          vars.get('tower_job_id', ''),
+          vars.get('AWX_JOB_ID', ''),
+          vars.get('TOWER_JOB_ID', ''),
+          lookup('env', 'AWX_JOB_ID'),
+          lookup('env', 'TOWER_JOB_ID'),
+          lookup('env', 'JOB_ID'),
+          '0'
+        ] | map('string') | map('trim') | reject('equalto', '') | first
       }}
     blastwall_spo_evidence_json: >-
       {{ BLASTWALL_SPO_EVIDENCE_JSON |
