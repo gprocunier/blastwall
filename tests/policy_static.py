@@ -781,6 +781,26 @@ for fallback_text, path_name in [(promotion, "playbooks/promote-policy-rpm.yml")
         ]:
             if required_fallback_guard not in fallback_text:
                 fail(f"{path_name} raw IPA CLI fallback is missing explicit guard {required_fallback_guard}")
+for required_promotion_readback in [
+    "Read back promoted Blastwall marker after FreeIPA CLI fallback",
+    "Assert promoted Blastwall marker fallback readback matches expected marker",
+    "Read back failed Blastwall marker after FreeIPA CLI fallback",
+    "Assert failed Blastwall marker fallback readback matches expected marker",
+]:
+    if required_promotion_readback not in promotion:
+        fail(f"playbooks/promote-policy-rpm.yml raw IPA CLI fallback lacks readback guard {required_promotion_readback}")
+for required_deploy_readback in [
+    "Read back active Blastwall marker after FreeIPA CLI fallback",
+    "Assert active Blastwall marker fallback readback matches expected marker",
+    "Read back rollback-active Blastwall marker after FreeIPA CLI fallback",
+    "Assert rollback-active Blastwall marker fallback readback matches expected marker",
+    "Read back rollback-failed Blastwall marker after FreeIPA CLI fallback",
+    "Assert rollback-failed Blastwall marker fallback readback matches expected marker",
+    "Read back failed Blastwall marker after FreeIPA CLI fallback",
+    "Assert failed Blastwall marker fallback readback matches expected marker",
+]:
+    if required_deploy_readback not in deploy_policy:
+        fail(f"playbooks/deploy-policy.yml raw IPA CLI fallback lacks readback guard {required_deploy_readback}")
 if "blastwall_marker_emit_argv_base" not in promotion:
     fail("playbooks/promote-policy-rpm.yml should define blastwall_marker_emit_argv_base for command-argv marker generation")
 if (
@@ -1193,8 +1213,24 @@ if "blastwall_selinux_map.selinuxuser" in v3_preflight:
     fail("stable-v3 preflight report must not reference removed selinuxmap lookup state")
 if "retrieve-existing" in v3_preflight:
     fail("stable-v3 preflight must use vault_artifact retrieval, not raw-vault retrieve-existing")
+preflight_envelope_read_index = v3_preflight.find("Read stable-v3 attestation envelopes with eigenstate vault artifact custody")
+preflight_index_read_index = v3_preflight.find("Read stable-v3 latest indexes with eigenstate vault artifact custody")
+preflight_verify_attestation_index = v3_preflight.find("Verify stable-v3 signed attestation before launch")
+preflight_envelope_read_block = v3_preflight[preflight_envelope_read_index:preflight_index_read_index]
+if preflight_envelope_read_index == -1 or preflight_index_read_index == -1 or preflight_verify_attestation_index == -1:
+    fail("stable-v3 preflight is missing ordered vault_artifact read and verifier tasks")
+if not (preflight_envelope_read_index < preflight_index_read_index < preflight_verify_attestation_index):
+    fail("stable-v3 preflight must read KRA artifacts before signature verification")
+if "expected_sha256" not in preflight_envelope_read_block or "attestation_sha256" not in preflight_envelope_read_block:
+    fail("stable-v3 preflight envelope read must verify marker digest before signature verification")
 if "skeleton" in v3_health.lower() or "placeholder" in v3_health.lower():
     fail("attestation-vault-health.yml must not contain skeleton or placeholder health logic")
+for explicit_health_input in [
+    "BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('', true)",
+    "BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true)",
+]:
+    if explicit_health_input not in v3_health:
+        fail(f"attestation-vault-health.yml must require explicit vault health input {explicit_health_input}")
 for required_health_signal in [
     "eigenstate.ipa.vault_health",
     "require_direct_kra: true",

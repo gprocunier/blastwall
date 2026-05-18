@@ -229,6 +229,61 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertTrue(Path(retrieved["index_file"]).exists())
         self.assertTrue(any(command[1] == "read" for command in memory_vault.commands))
 
+    def test_resolve_existing_maps_marker_to_deterministic_vault_artifacts(self) -> None:
+        memory_vault = MemoryVault()
+        signed = signer.sign_store_readback(
+            self.inputs,
+            registry=self.registry,
+            vault_config=self.vault_config,
+            envelope_dir=None,
+            index_dir=None,
+            command_runner=memory_vault,
+        )
+        resolved = signer.resolve_existing_artifacts(
+            self.inputs,
+            registry=self.registry,
+            vault_config=self.vault_config,
+            marker_text=signed["marker"],
+            envelope_dir=self.temp_path / "resolved_envelopes",
+            index_dir=self.temp_path / "resolved_indexes",
+        )
+        self.assertEqual(resolved["status"], "PASS")
+        self.assertEqual(resolved["attestation_ref"], signed["attestation_ref"])
+        self.assertEqual(resolved["attestation_sha256"], signed["attestation_sha256"])
+        self.assertEqual(resolved["index_ref"], signed["index_ref"])
+        self.assertEqual(
+            resolved["vault_artifacts"]["envelope"]["name"],
+            signer._vault_artifact_name(signed["attestation_ref"]),
+        )
+        self.assertEqual(
+            resolved["vault_artifacts"]["index"]["name"],
+            signer._vault_artifact_name(signed["index_ref"]),
+        )
+        self.assertEqual(Path(resolved["envelope_file"]).name, f"{self.inputs.subject_host}.json")
+        self.assertEqual(Path(resolved["index_file"]).name, f"{self.inputs.subject_host}.json")
+
+    def test_retrieve_existing_rejects_digest_mismatch_before_signature_verification(self) -> None:
+        memory_vault = MemoryVault()
+        signed = signer.sign_store_readback(
+            self.inputs,
+            registry=self.registry,
+            vault_config=self.vault_config,
+            envelope_dir=None,
+            index_dir=None,
+            command_runner=memory_vault,
+        )
+        memory_vault.payloads[signed["attestation_ref"]] = b"tampered envelope readback"
+        with self.assertRaises(vault.VaultReadbackDigestMismatch):
+            signer.retrieve_existing_artifacts(
+                self.inputs,
+                registry=self.registry,
+                vault_config=self.vault_config,
+                marker_text=signed["marker"],
+                envelope_dir=self.temp_path / "digest_mismatch_envelopes",
+                index_dir=self.temp_path / "digest_mismatch_indexes",
+                command_runner=memory_vault,
+            )
+
     def test_sign_store_readback_with_ocp_spo_evidence(self) -> None:
         memory_vault = MemoryVault()
         report = signer.sign_store_readback(

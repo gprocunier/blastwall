@@ -420,10 +420,15 @@
               ansible.builtin.shell: |
                 set -euo pipefail
                 printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
-                printf '%s\n' "${BLASTWALL_OLD_MARKERS}" | while IFS= read -r marker; do
+                {
+                  printf '%s\n' "${BLASTWALL_OLD_MARKERS}"
+                  ipa host-show "${BLASTWALL_HOST}" --all --raw |
+                    sed -n 's/^  userclass: \(blastwall:.*\)$/\1/p'
+                } | sort -u | while IFS= read -r marker; do
                   [ -n "${marker}" ] || continue
                   ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
                 done
+                ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${BLASTWALL_MARKER}" >/dev/null || true
                 ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${BLASTWALL_MARKER}" >/dev/null
               args:
                 executable: /bin/bash
@@ -442,6 +447,39 @@
                   }}
               changed_when: true
               no_log: true
+              delegate_to: localhost
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Read back promoted Blastwall marker after FreeIPA CLI fallback
+              ansible.builtin.command:
+                argv:
+                  - ipa
+                  - host-show
+                  - "{{ inventory_hostname }}"
+                  - --all
+                  - --raw
+              environment:
+                KRB5_CONFIG: "{{ krb5_config }}"
+                KRB5CCNAME: "{{ krb5_ccache }}"
+              register: blastwall_policy_marker_cli_readback
+              changed_when: false
+              delegate_to: localhost
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Assert promoted Blastwall marker fallback readback matches expected marker
+              ansible.builtin.assert:
+                that:
+                  - blastwall_policy_marker_cli_readback.rc == 0
+                  - >-
+                    blastwall_policy_marker.stdout in (
+                      blastwall_policy_marker_cli_readback.stdout_lines | default([])
+                      | select('match', '^\\s*userclass: ')
+                      | map('regex_replace', '^\\s*userclass: ', '')
+                      | list
+                    )
+                fail_msg: >-
+                  FreeIPA CLI fallback marker publication did not read back the
+                  promoted Blastwall marker from host userClass.
               delegate_to: localhost
               when: blastwall_allow_ipa_cli_fallback | bool
           when: blastwall_update_idm_marker | bool
@@ -480,10 +518,15 @@
               ansible.builtin.shell: |
                 set -euo pipefail
                 printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
-                printf '%s\n' "${BLASTWALL_OLD_MARKERS}" | while IFS= read -r marker; do
+                {
+                  printf '%s\n' "${BLASTWALL_OLD_MARKERS}"
+                  ipa host-show "${BLASTWALL_HOST}" --all --raw |
+                    sed -n 's/^  userclass: \(blastwall:.*\)$/\1/p'
+                } | sort -u | while IFS= read -r marker; do
                   [ -n "${marker}" ] || continue
                   ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${marker}" >/dev/null || true
                 done
+                ipa host-mod "${BLASTWALL_HOST}" --delattr="userclass=${BLASTWALL_MARKER}" >/dev/null || true
                 ipa host-mod "${BLASTWALL_HOST}" --addattr="userclass=${BLASTWALL_MARKER}" >/dev/null
               args:
                 executable: /bin/bash
@@ -502,6 +545,39 @@
                   }}
               changed_when: false
               no_log: true
+              delegate_to: localhost
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Read back failed Blastwall marker after FreeIPA CLI fallback
+              ansible.builtin.command:
+                argv:
+                  - ipa
+                  - host-show
+                  - "{{ inventory_hostname }}"
+                  - --all
+                  - --raw
+              environment:
+                KRB5_CONFIG: "{{ krb5_config }}"
+                KRB5CCNAME: "{{ krb5_ccache }}"
+              register: blastwall_policy_failed_marker_cli_readback
+              changed_when: false
+              delegate_to: localhost
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Assert failed Blastwall marker fallback readback matches expected marker
+              ansible.builtin.assert:
+                that:
+                  - blastwall_policy_failed_marker_cli_readback.rc == 0
+                  - >-
+                    blastwall_policy_failed_marker.stdout in (
+                      blastwall_policy_failed_marker_cli_readback.stdout_lines | default([])
+                      | select('match', '^\\s*userclass: ')
+                      | map('regex_replace', '^\\s*userclass: ', '')
+                      | list
+                    )
+                fail_msg: >-
+                  FreeIPA CLI fallback marker publication did not read back the
+                  failed Blastwall marker from host userClass.
               delegate_to: localhost
               when: blastwall_allow_ipa_cli_fallback | bool
           ignore_errors: true

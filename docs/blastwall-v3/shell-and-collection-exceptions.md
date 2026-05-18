@@ -35,6 +35,7 @@ exceptions:
     required_controls:
       - named FreeIPA CLI fallback boundary
       - collection-first marker publication path
+      - post-write host userClass readback assertion
 
   - id: BW-SHELL-004
     file: playbooks/promote-policy-rpm.yml
@@ -44,6 +45,7 @@ exceptions:
     required_controls:
       - named FreeIPA CLI fallback boundary
       - collection-first marker publication path
+      - post-write host userClass readback assertion
 
   - id: BW-SHELL-005
     file: playbooks/build-policy-rpm.yml

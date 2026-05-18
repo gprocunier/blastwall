@@ -45,13 +45,13 @@ Gate coverage required:
 ## Evidence required before stable-v3 go decision
 
 - Live positive evidence already on record:
-  - Latest Controller-visible Calabi stable-v3 policy pipeline `2645`
+  - Latest Controller-visible Calabi stable-v3 policy pipeline `2843`
     completed successfully on this branch, including post-promotion preflight
-    job `2678`.
+    job `2876`.
   - Earlier v3 implementation records also include policy pipeline `2177`,
     runtime verification `2227`, and managed-host verification `2240`.
 - Missing evidence to complete:
-  - phase 09 negative destructive matrix
+  - phase 08 negative destructive matrix
   - multi-host candidate gate at 3+ hosts
   - S-range mixed-state gate at 10+ hosts
   - continuous telemetry capture cadence and retention notes

@@ -235,3 +235,11 @@
 - tests run: `npm run test:docs` via `make test`; docs placeholder-term scan
 - open issues: Calabi evidence placeholders remain pending in `docs/blastwall-v3/external-review-packet.md`; service vault owner naming remains environment-specific pending policy finalization
 - security invariants checked: docs describe marker-as-locator behavior, stable-v3 fail-closed outcomes, mode controls, infrastructure-only breakglass, and KRA health assumptions
+
+### Phase 15
+- phase: 15 hardening pack closure
+- files changed: `playbooks/attestation-vault-health.yml`, `playbooks/promote-policy-rpm.yml`, `playbooks/deploy-policy.yml`, `tests/test_blastwall_attestation_sign.py`, `tests/policy_static.py`, `docs/blastwall-v3/calabi-negative-evidence.md`, `docs/blastwall-v3/multi-host-continuous-verification-plan.md`, `docs/blastwall-v3/shell-and-collection-exceptions.md`, `V3_OPTIMIZATION_LEDGER.md`
+- tests added: deterministic `resolve-existing` vault artifact mapping; digest-mismatch rejection before artifact verification; static checks for collection-backed preflight artifact read ordering, explicit KRA health scope/owner inputs, and post-write host userClass readback after raw IPA CLI fallback
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation_sign.py`; `python3 tests/policy_static.py`; `ansible-playbook --syntax-check playbooks/promote-policy-rpm.yml playbooks/deploy-policy.yml playbooks/attestation-vault-health.yml playbooks/preflight.yml`; `make test-fast`; `npm run test:docs`
+- open issues: current hardening patch has not yet replaced the prior Controller-visible live evidence commit; destructive Calabi cases for missing envelope/index, replay, revocation, expiry, KRA canary, vault auth, signature tamper, profile mismatch, and breakglass boundaries remain the production stable-v3 hold
+- security invariants checked: stable-v3 preflight resolves marker locators then reads envelope/index through `eigenstate.ipa.vault_artifact` before verifier execution; KRA health no longer supplies implicit scope/owner defaults; raw `ipa host-mod` fallback remains disabled by default and now requires immediate post-write host marker readback before proceeding

@@ -585,6 +585,41 @@
               become: false
               when: blastwall_allow_ipa_cli_fallback | bool
 
+            - name: Read back active Blastwall marker after FreeIPA CLI fallback
+              ansible.builtin.command:
+                argv:
+                  - ipa
+                  - host-show
+                  - "{{ inventory_hostname }}"
+                  - --all
+                  - --raw
+              environment:
+                KRB5_CONFIG: "{{ krb5_config }}"
+                KRB5CCNAME: "{{ krb5_ccache }}"
+              register: blastwall_policy_marker_cli_readback
+              changed_when: false
+              delegate_to: localhost
+              become: false
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Assert active Blastwall marker fallback readback matches expected marker
+              ansible.builtin.assert:
+                that:
+                  - blastwall_policy_marker_cli_readback.rc == 0
+                  - >-
+                    blastwall_policy_marker.stdout in (
+                      blastwall_policy_marker_cli_readback.stdout_lines | default([])
+                      | select('match', '^\\s*userclass: ')
+                      | map('regex_replace', '^\\s*userclass: ', '')
+                      | list
+                    )
+                fail_msg: >-
+                  FreeIPA CLI fallback marker publication did not read back the
+                  active Blastwall marker from host userClass.
+              delegate_to: localhost
+              become: false
+              when: blastwall_allow_ipa_cli_fallback | bool
+
       rescue:
         - name: Roll back newly staged Blastwall policy modules
           ansible.builtin.command:
@@ -750,6 +785,50 @@
             - blastwall_update_idm_marker | bool
             - blastwall_deploy_rollback_on_failure | bool
             - blastwall_rollback_verification is not failed
+            - blastwall_allow_ipa_cli_fallback | bool
+
+        - name: Read back rollback-active Blastwall marker after FreeIPA CLI fallback
+          ansible.builtin.command:
+            argv:
+              - ipa
+              - host-show
+              - "{{ inventory_hostname }}"
+              - --all
+              - --raw
+          environment:
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+          register: blastwall_policy_rollback_active_marker_cli_readback
+          changed_when: false
+          delegate_to: localhost
+          become: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is not failed
+            - blastwall_allow_ipa_cli_fallback | bool
+
+        - name: Assert rollback-active Blastwall marker fallback readback matches expected marker
+          ansible.builtin.assert:
+            that:
+              - blastwall_policy_rollback_active_marker_cli_readback.rc == 0
+              - >-
+                blastwall_policy_rollback_active_marker.stdout in (
+                  blastwall_policy_rollback_active_marker_cli_readback.stdout_lines | default([])
+                  | select('match', '^\\s*userclass: ')
+                  | map('regex_replace', '^\\s*userclass: ', '')
+                  | list
+                )
+            fail_msg: >-
+              FreeIPA CLI fallback marker publication did not read back the
+              rollback-active Blastwall marker from host userClass.
+          delegate_to: localhost
+          become: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is not failed
+            - blastwall_allow_ipa_cli_fallback | bool
 
         - name: Publish rollback-failed Blastwall host marker to IdM
           freeipa.ansible_freeipa.ipahost:
@@ -807,6 +886,50 @@
             - blastwall_update_idm_marker | bool
             - blastwall_deploy_rollback_on_failure | bool
             - blastwall_rollback_verification is failed
+            - blastwall_allow_ipa_cli_fallback | bool
+
+        - name: Read back rollback-failed Blastwall marker after FreeIPA CLI fallback
+          ansible.builtin.command:
+            argv:
+              - ipa
+              - host-show
+              - "{{ inventory_hostname }}"
+              - --all
+              - --raw
+          environment:
+            KRB5_CONFIG: "{{ krb5_config }}"
+            KRB5CCNAME: "{{ krb5_ccache }}"
+          register: blastwall_policy_rollback_failed_marker_cli_readback
+          changed_when: false
+          delegate_to: localhost
+          become: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is failed
+            - blastwall_allow_ipa_cli_fallback | bool
+
+        - name: Assert rollback-failed Blastwall marker fallback readback matches expected marker
+          ansible.builtin.assert:
+            that:
+              - blastwall_policy_rollback_failed_marker_cli_readback.rc == 0
+              - >-
+                blastwall_policy_rollback_failed_marker.stdout in (
+                  blastwall_policy_rollback_failed_marker_cli_readback.stdout_lines | default([])
+                  | select('match', '^\\s*userclass: ')
+                  | map('regex_replace', '^\\s*userclass: ', '')
+                  | list
+                )
+            fail_msg: >-
+              FreeIPA CLI fallback marker publication did not read back the
+              rollback-failed Blastwall marker from host userClass.
+          delegate_to: localhost
+          become: false
+          when:
+            - blastwall_update_idm_marker | bool
+            - blastwall_deploy_rollback_on_failure | bool
+            - blastwall_rollback_verification is failed
+            - blastwall_allow_ipa_cli_fallback | bool
 
         - name: Publish failed Blastwall host marker to IdM when rollback is disabled
           ignore_errors: true
@@ -866,6 +989,41 @@
                   }}
               changed_when: true
               no_log: true
+              delegate_to: localhost
+              become: false
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Read back failed Blastwall marker after FreeIPA CLI fallback
+              ansible.builtin.command:
+                argv:
+                  - ipa
+                  - host-show
+                  - "{{ inventory_hostname }}"
+                  - --all
+                  - --raw
+              environment:
+                KRB5_CONFIG: "{{ krb5_config }}"
+                KRB5CCNAME: "{{ krb5_ccache }}"
+              register: blastwall_policy_failed_marker_cli_readback
+              changed_when: false
+              delegate_to: localhost
+              become: false
+              when: blastwall_allow_ipa_cli_fallback | bool
+
+            - name: Assert failed Blastwall marker fallback readback matches expected marker
+              ansible.builtin.assert:
+                that:
+                  - blastwall_policy_failed_marker_cli_readback.rc == 0
+                  - >-
+                    blastwall_policy_failed_marker.stdout in (
+                      blastwall_policy_failed_marker_cli_readback.stdout_lines | default([])
+                      | select('match', '^\\s*userclass: ')
+                      | map('regex_replace', '^\\s*userclass: ', '')
+                      | list
+                    )
+                fail_msg: >-
+                  FreeIPA CLI fallback marker publication did not read back the
+                  failed Blastwall marker from host userClass.
               delegate_to: localhost
               become: false
               when: blastwall_allow_ipa_cli_fallback | bool

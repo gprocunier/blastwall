@@ -300,12 +300,12 @@ tests run:
   PASS npm run test:docs
 evidence captured:
   docs now state eigenstate.ipa 1.18.1 dependency, current Controller-visible
-  healthy workflow 2645, and HOLD_LIVE_EVIDENCE for missing destructive
+  healthy workflow 2843, and HOLD_LIVE_EVIDENCE for missing destructive
   negative matrix.
 security invariants checked:
   claim boundary remains stable-candidate, not production-stable fleet proof.
 open issues:
-  final state remains HOLD_LIVE_EVIDENCE until phase 09 destructive live matrix
+  final state remains HOLD_LIVE_EVIDENCE until phase 08 destructive live matrix
   is run and attached.
 next phase handoff:
   Run full validation; if clean, run live Calabi gates or publish the branch as
@@ -354,4 +354,52 @@ open issues:
 next phase handoff:
   Complete the remaining destructive negative matrix or publish this branch as
   a partial-live-evidence stable-v3 candidate for external review.
+```
+
+## Phase 13 - Hardening Pack Closure
+
+```text
+phase: 13 hardening pack closure
+commit: 7e6bf82
+files changed:
+  playbooks/attestation-vault-health.yml
+  playbooks/promote-policy-rpm.yml
+  playbooks/deploy-policy.yml
+  tests/test_blastwall_attestation_sign.py
+  tests/policy_static.py
+  docs/blastwall-v3/calabi-negative-evidence.md
+  docs/blastwall-v3/multi-host-continuous-verification-plan.md
+  docs/blastwall-v3/shell-and-collection-exceptions.md
+  V3_IMPLEMENTATION_LEDGER.md
+  V3_OPTIMIZATION_LEDGER.md
+tests added:
+  deterministic resolve-existing vault artifact mapping
+  digest-mismatch rejection before artifact verification
+  static guards for preflight artifact read ordering and marker fallback readback
+tests run:
+  PASS python3 -m pytest -q tests/test_blastwall_attestation_sign.py
+  PASS python3 tests/policy_static.py
+  PASS ansible-playbook --syntax-check playbooks/promote-policy-rpm.yml playbooks/deploy-policy.yml playbooks/attestation-vault-health.yml playbooks/preflight.yml
+  PASS make test-fast
+  PASS npm run test:docs
+evidence captured:
+  stable-v3 preflight remains collection-backed for KRA reads, with marker
+  digest checked during the envelope vault_artifact read before signature
+  verification.
+  attestation-vault-health.yml now requires explicit vault scope/owner inputs
+  instead of silently using service/blastwall-attestation defaults.
+  raw ipa host-mod fallback writes now perform immediate host userClass readback
+  assertions in promotion and deploy/rollback marker paths.
+security invariants checked:
+  v3 markers remain locators only.
+  KRA custody remains collection-backed on the stable-v3 path.
+  raw IPA fallback remains disabled unless explicitly approved with a reason,
+  and it can no longer proceed without marker readback proof.
+open issues:
+  current hardening code has not yet been replayed through the Controller.
+  destructive live cases remain pending before final production stable-v3.
+next phase handoff:
+  Refresh the AAP Project to this working tree, rerun the healthy policy
+  pipeline, then execute the destructive negative matrix from the Calabi
+  evidence packet.
 ```

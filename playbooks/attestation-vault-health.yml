@@ -31,9 +31,9 @@
         list
       }}
     blastwall_attestation_vault_scope: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('', true) }}
     blastwall_attestation_vault_owner: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true) }}
+      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true) }}
     blastwall_attestation_health_canary: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_HEALTH_CANARY') | default('', true) }}
     blastwall_attestation_canary_max_age_seconds: >-

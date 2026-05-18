@@ -3,7 +3,7 @@
 ## Purpose
 
 Collect negative evidence for Blastwall v3 stable-v3 policy gates on Calabi.
-This is the Phase 09 evidence lane. It now contains partial live Calabi
+This is the Phase 08 evidence lane. It now contains partial live Calabi
 coverage; the full destructive matrix is still incomplete.
 
 ## Scope
@@ -23,6 +23,8 @@ Each case below must be captured against a controlled/disposable Calabi host:
 - Policy hash drift
 - KRA canary stale or missing
 - Vault auth failure
+- Breakglass infra-visibility bypass
+- Breakglass rejection for security failures
 - Signature tamper
 - Profile mismatch
 
@@ -47,6 +49,8 @@ Each case below must be captured against a controlled/disposable Calabi host:
 | Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected |
 | KRA stale/missing canary | infra visibility failure | pending |
 | Vault auth failure | auth/infra failure | pending |
+| Breakglass infra-visibility bypass | scoped breakglass may pass only for artifact/index visibility | pending |
+| Breakglass security failure rejection | breakglass rejected for signature, drift, profile, and revocation failures | pending |
 | Signature tamper | signature failure | pending |
 | Profile mismatch | binding/match failure | pending |
 
@@ -133,4 +137,6 @@ attachments:
 The Calabi live evidence is partial. Current healthy-path, SPO, drift,
 untrusted-signer, and unresolved-configured-KRA cases are captured above. The
 remaining destructive cases in the table still need controlled live execution
-before a final stable-v3 release claim.
+before a final stable-v3 release claim. The current hardening patch adds local
+guards and tests but must be replayed through the Controller before replacing
+the live evidence commit above.
