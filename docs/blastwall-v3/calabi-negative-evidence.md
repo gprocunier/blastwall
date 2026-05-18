@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Collect destructive negative evidence for Blastwall v3 stable-v3 policy gates on Calabi. This is a required Phase 09 evidence lane and is currently incomplete.
+Collect negative evidence for Blastwall v3 stable-v3 policy gates on Calabi.
+This is the Phase 09 evidence lane. It now contains partial live Calabi
+coverage; the full destructive matrix is still incomplete.
 
 ## Scope
 
@@ -42,11 +44,61 @@ Each case below must be captured against a controlled/disposable Calabi host:
 | Wrong generation | replay/binding failure | pending |
 | Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | pending |
 | Expired attestation | expired attestation failure | pending |
-| Policy hash drift | `FAIL_DRIFTED_POLICY` | pending |
+| Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected |
 | KRA stale/missing canary | infra visibility failure | pending |
 | Vault auth failure | auth/infra failure | pending |
 | Signature tamper | signature failure | pending |
 | Profile mismatch | binding/match failure | pending |
+
+## Current live evidence
+
+Positive current-branch gate on 2026-05-18 UTC:
+
+- Branch: `blastwall-v3-signed-attestation`.
+- Commit: `56f7c451a281bda5f5a1dbd1a8fac12d00097410`.
+- Controller project sync: `2834`, successful, project revision
+  `56f7c451a281bda5f5a1dbd1a8fac12d00097410`.
+- Full policy pipeline workflow: `2843`, successful.
+- OpenShift/SPO apply-validation node: job `2857`, successful.
+- Managed-host verification node: job `2861`, successful.
+- Sign-attestation node: job `2865`, successful.
+- Marker-promotion node: job `2869`, successful.
+- Post-promotion preflight node: job `2876`, successful.
+- Standalone positive stable-v3 preflight after the KRA fail-closed fix:
+  job `2839`, successful.
+
+Current artifact bindings:
+
+- Policy NEVRA: `blastwall-selinux-0.6.1-0.rc1`.
+- Policy hash:
+  `4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2`.
+- Registry hash:
+  `c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486`.
+- RPM hash:
+  `0c25e56e120a6e1f38d89300b3598cd4066967ef4136204610134fdd12735f45`.
+- Probe report hash:
+  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
+- Attestation ref:
+  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779093311.json`.
+- Attestation hash:
+  `4d382ebdee93fe0c37f1585711d2216465a09f18c8c359e142b2b2558582840b`.
+- Signer KID:
+  `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
+- Generation: `1779093311`.
+
+Non-mutating negative checks captured on 2026-05-18 UTC:
+
+- Drifted current policy hash: AAP preflight job `2827` failed as expected
+  with `FAIL_DRIFTED_POLICY`.
+- Bad signer allowlist: AAP preflight job `2830` failed as expected with
+  `FAIL_SIGNER_UNTRUSTED`.
+- Bad KRA primary/server before the fix: AAP preflight job `2831` unexpectedly
+  succeeded even with `missing-kra.workshop.lan`; this exposed a fail-open
+  validation gap where the downstream collection could still reach the default
+  IPA path.
+- Bad KRA primary/server after the fix: AAP preflight job `2835` failed as
+  expected at `Resolve configured stable-v3 KRA vault servers` with
+  `getent hosts missing-kra.workshop.lan` returning `rc=2`.
 
 ## Capture template
 
@@ -78,4 +130,7 @@ attachments:
 
 ## Hold note
 
-No live destructive negative matrix results are currently attached in-repo for this phase. Local regression tests continue to cover the same failure classes in the offline test matrix; per execution-pack rules, they are not being treated here as substitute live negative evidence.
+The Calabi live evidence is partial. Current healthy-path, SPO, drift,
+untrusted-signer, and unresolved-configured-KRA cases are captured above. The
+remaining destructive cases in the table still need controlled live execution
+before a final stable-v3 release claim.

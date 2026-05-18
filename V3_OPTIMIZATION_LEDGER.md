@@ -310,4 +310,48 @@ open issues:
 next phase handoff:
   Run full validation; if clean, run live Calabi gates or publish the branch as
   a code-hardening checkpoint with live evidence explicitly pending.
+
+phase: 12 current live Calabi stable-v3 gate
+commit: 56f7c451a281bda5f5a1dbd1a8fac12d00097410
+files changed:
+  playbooks/preflight.yml
+  playbooks/attestation-vault-health.yml
+  playbooks/promote-policy-rpm.yml
+  playbooks/deploy-policy.yml
+  tests/policy_static.py
+  docs/blastwall-v3/calabi-negative-evidence.md
+  docs/blastwall-v3/eigenstate-1.18.1-integration.md
+  docs/blastwall-v3/external-review-packet.md
+  docs/blastwall-v3/shell-and-collection-exceptions.md
+  docs/blastwall-v3/stable-v3-readiness-checklist.md
+tests run:
+  PASS python3 tests/policy_static.py
+  PASS git diff --check
+  PASS npm run test:docs
+  PASS ansible-playbook --syntax-check playbooks/preflight.yml playbooks/attestation-vault-health.yml playbooks/promote-policy-rpm.yml playbooks/deploy-policy.yml
+  PASS Controller project sync 2834 at revision 56f7c451a281bda5f5a1dbd1a8fac12d00097410
+  PASS AAP workflow 2843 full stable-v3 policy pipeline
+  PASS AAP job 2839 standalone stable-v3 preflight
+  PASS AAP job 2835 failed closed for unresolved configured KRA server
+evidence captured:
+  Workflow 2843 passed with build 2848, render SPO 2852, install 2853,
+  apply/validate SPO 2857, verify managed host 2861, sign attestation 2865,
+  promote marker 2869, inventory sync 2873, and post-promotion preflight 2876.
+  The v3 marker published generation 1779093311 with attestation hash
+  4d382ebdee93fe0c37f1585711d2216465a09f18c8c359e142b2b2558582840b.
+  Policy drift and untrusted signer negative jobs 2827 and 2830 failed as
+  expected. Bad KRA job 2831 exposed a gap; after the guard, job 2835 failed at
+  getent resolution for missing-kra.workshop.lan.
+security invariants checked:
+  stable-v3 no longer accepts a configured KRA server list that cannot resolve
+  before vault artifact reads.
+  OpenShift/SPO still admits the derived underscore process types and validates
+  standard/nested probes with Fragnesia coverage.
+open issues:
+  Missing artifact, missing index, wrong generation/replay, revocation, expiry,
+  KRA canary, vault auth, signature tamper, profile mismatch, and breakglass
+  destructive cases still need controlled live execution before final stable-v3.
+next phase handoff:
+  Complete the remaining destructive negative matrix or publish this branch as
+  a partial-live-evidence stable-v3 candidate for external review.
 ```

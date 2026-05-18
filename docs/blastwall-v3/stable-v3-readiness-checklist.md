@@ -84,17 +84,25 @@ Minimum evidence package for sign-off:
 
 Current Calabi RC evidence:
 
-- Healthy-path Calabi v3 KRA/AAP gate completed on 2026-05-17 UTC.
-- Latest Controller-visible stable-v3 policy pipeline workflow `2645` passed,
-  including post-promotion preflight job `2678`.
+- Healthy-path Calabi v3 KRA/AAP/SPO gate completed on 2026-05-18 UTC.
+- Latest Controller-visible stable-v3 policy pipeline workflow `2843` passed,
+  including OpenShift/SPO apply-validation job `2857`, managed-host
+  verification job `2861`, sign-attestation job `2865`, marker-promotion job
+  `2869`, and post-promotion preflight job `2876`.
+- Standalone stable-v3 preflight job `2839` passed after the configured-KRA
+  fail-closed guard was added.
 - Earlier policy pipeline workflow `2177` passed.
 - Earlier runtime verification workflow `2227` passed.
-- Runtime preflight job `2236` retrieved marker-referenced KRA artifacts and
+- Runtime preflight job `2839` retrieved marker-referenced KRA artifacts and
   verified the signed envelope plus latest index.
-- Managed-host verification job `2240` passed with evidence digest
+- Managed-host verification job `2861` passed with evidence digest
   `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
-- Destructive live negative cases are not yet part of the Calabi RC evidence
-  packet; local regression tests cover those failure classes.
+- Live negative preflight jobs captured policy drift (`2827`,
+  `FAIL_DRIFTED_POLICY`), untrusted signer (`2830`, `FAIL_SIGNER_UNTRUSTED`),
+  and unresolved configured KRA server (`2835`, fail-closed DNS resolution).
+- Destructive live negative cases for missing artifact, missing index,
+  revocation, expiry, and breakglass are not yet complete in the Calabi RC
+  evidence packet; local regression tests cover those failure classes.
 
 ## Go/No-Go
 

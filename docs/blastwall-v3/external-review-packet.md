@@ -48,53 +48,67 @@ Reference documents:
 
 ## Calabi evidence
 
-Live healthy-path gate completed on 2026-05-17 UTC on the
+Latest live healthy-path gate completed on 2026-05-18 UTC on the
 `blastwall-v3-signed-attestation` branch with the `eigenstate.ipa` 1.18.1
-surfaces available. The destructive negative matrix remains a separate
-required gate before final stable-v3 release approval.
+surfaces available. Partial live negative evidence is recorded; the remaining
+destructive negative matrix is still a separate required gate before final
+stable-v3 release approval.
 
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).
 - `AAP project branch`: `blastwall-v3-signed-attestation`.
 - `Latest Controller-visible gate commit`:
-  `3a284e181ec8e5d9ebe7152cf104d313e6df0059`.
+  `56f7c451a281bda5f5a1dbd1a8fac12d00097410`.
 - `KRA primary`: `idm-01.workshop.lan`.
 - `KRA server list`: `idm-01.workshop.lan`.
 - `KRA scope/owner`: `shared` / `blastwall-attestation`.
-- `Signer`: AAP sign job `2199`, signer SKI
+- `Signer`: AAP sign job `2865`, signer SKI
   `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
-- `Latest policy pipeline`: AAP workflow `2645`, successful.
-- `Latest post-promotion preflight`: AAP job `2678`, successful.
+- `Latest policy pipeline`: AAP workflow `2843`, successful.
+- `Latest OpenShift/SPO apply-validation`: AAP job `2857`, successful.
+- `Latest post-promotion preflight`: AAP job `2876`, successful.
+- `Standalone valid stable-v3 preflight`: AAP job `2839`, successful.
 - `Earlier policy pipeline`: AAP workflow `2177`, successful.
 - `Earlier runtime verification`: AAP workflow `2227`, successful.
-- `Valid base host preflight`: AAP job `2236`, successful. It retrieved the
+- `Valid base host preflight`: AAP job `2839`, successful. It retrieved the
   signed envelope and latest index from KRA and returned `status=PASS`,
   `failure_state=null`.
-- `Managed-host verification`: AAP job `2240`, successful. Evidence digest
+- `Managed-host verification`: AAP job `2861`, successful. Evidence digest
   `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
 - `Policy NEVRA`: `blastwall-selinux-0.6.1-0.rc1`.
 - `Policy hash`:
   `4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2`.
+- `Registry hash`:
+  `c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486`.
 - `RPM hash`:
-  `4af7a532c90629a78f0491589eacf1d0e2a440a547ab82d83b6a7c0072fbd098`.
+  `0c25e56e120a6e1f38d89300b3598cd4066967ef4136204610134fdd12735f45`.
 - `Attestation ref`:
-  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json`.
+  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779093311.json`.
 - `Attestation hash`:
-  `c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190`.
-- `Index generation`: `1778994368`.
+  `4d382ebdee93fe0c37f1585711d2216465a09f18c8c359e142b2b2558582840b`.
+- `Index generation`: `1779093311`.
 - `Marker`:
-  `blastwall:v=3;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;profiles=base;attest_ref=shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json;attest_sha256=c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190;signer_kid=8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6;exp=2026-05-17T06:06:09Z;generation=1778994368`.
+  `blastwall:v=3;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;profiles=base;attest_ref=shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779093311.json;attest_sha256=4d382ebdee93fe0c37f1585711d2216465a09f18c8c359e142b2b2558582840b;signer_kid=8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6;exp=2026-05-18T09:35:12Z;generation=1779093311`.
 
 The live gate also confirmed the managed-host policy still blocks the current
 probe set, including AF_ALG, BPF map/prog load, AF_PACKET, user namespace,
 `io_uring_setup`, Dirty Frag `NETLINK_XFRM`, Dirty Frag `AF_RXRPC`, and
 Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES` evidence.
 
+Live negative checks currently recorded:
+
+- Drifted current policy hash: AAP preflight job `2827` failed with
+  `FAIL_DRIFTED_POLICY`.
+- Bad signer allowlist: AAP preflight job `2830` failed with
+  `FAIL_SIGNER_UNTRUSTED`.
+- Bad configured KRA primary/server: AAP preflight job `2835` failed closed at
+  `Resolve configured stable-v3 KRA vault servers` for
+  `missing-kra.workshop.lan`.
+
 Destructive live negative cases for missing artifact, missing index, revocation,
-and breakglass are not recorded in this packet.
-Those failure classes are covered by the local regression matrix. Run a
-destructive live negative packet before final production stable-v3 sign-off if
-reviewers require live failure evidence rather than local proof.
+expiry, and breakglass are not fully recorded in this packet. Those failure
+classes remain covered by the local regression matrix and require controlled
+Calabi execution before final production stable-v3 sign-off.
 
 ## Failure-state map
 

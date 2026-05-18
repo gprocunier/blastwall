@@ -89,4 +89,15 @@ exceptions:
     required_controls:
       - operator-directed recovery path
       - stable-v3 preflight remains fail-closed on revoked markers
+
+  - id: BW-SHELL-010
+    file: playbooks/promote-policy-rpm.yml
+    task_name: Authenticate IdM principal for FreeIPA collection marker update
+    classification: approved_exception
+    reason: Kerberos credential-cache bootstrap for FreeIPA collection writes in the Controller EE.
+    required_controls:
+      - collection performs marker publication
+      - no raw IPA marker write in this task
+      - qualified IdM principal
+      - no_log enabled for credential material
 ```

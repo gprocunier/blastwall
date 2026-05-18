@@ -34,7 +34,10 @@ This document records how Blastwall v3 depends on `eigenstate.ipa 1.18.1` and wh
 
 - `tests/policy_static.py` enforces `eigenstate.ipa >= 1.18.1` across all three requirements files listed above.
 - The latest Controller-visible healthy Calabi policy pipeline recorded for this
-  branch is workflow `2645`, successful, with post-promotion preflight job `2678`.
+  branch is workflow `2843`, successful, with OpenShift/SPO apply-validation job
+  `2857` and post-promotion preflight job `2876`.
+- Partial live negative evidence is recorded for drifted policy hash, untrusted
+  signer allowlist, and unresolved configured KRA server.
 - `V3_IMPLEMENTATION_LEDGER.md` records earlier healthy-path evidence and
   remains historical context for the v3 signed-attestation implementation.
 
@@ -45,4 +48,7 @@ This document records how Blastwall v3 depends on `eigenstate.ipa 1.18.1` and wh
 
 ## Release claim boundary
 
-At present, the repo supports a `HOLD_LIVE_EVIDENCE` posture for stable-v3 finalization: dependency alignment and positive execution evidence exist, but the negative live evidence runbook is not yet completed in this package.
+At present, the repo supports a `HOLD_PARTIAL_LIVE_EVIDENCE` posture for
+stable-v3 finalization: dependency alignment, positive execution evidence, SPO
+validation, and selected negative cases exist, but the full destructive live
+negative matrix is not yet completed in this package.
