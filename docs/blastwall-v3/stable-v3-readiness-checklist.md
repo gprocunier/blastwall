@@ -85,8 +85,10 @@ Minimum evidence package for sign-off:
 Current Calabi RC evidence:
 
 - Healthy-path Calabi v3 KRA/AAP gate completed on 2026-05-17 UTC.
-- Policy pipeline workflow `2177` passed.
-- Runtime verification workflow `2227` passed.
+- Latest Controller-visible stable-v3 policy pipeline workflow `2645` passed,
+  including post-promotion preflight job `2678`.
+- Earlier policy pipeline workflow `2177` passed.
+- Earlier runtime verification workflow `2227` passed.
 - Runtime preflight job `2236` retrieved marker-referenced KRA artifacts and
   verified the signed envelope plus latest index.
 - Managed-host verification job `2240` passed with evidence digest

@@ -48,22 +48,25 @@ Reference documents:
 
 ## Calabi evidence
 
-Live healthy-path gate completed on 2026-05-17 UTC before the
-`eigenstate.ipa` 1.18.1 refactor. Re-run `calabi/CALABI_V3_EIGENSTATE_1181_GATE.md`
-after this branch revision to refresh the external-review evidence packet.
+Live healthy-path gate completed on 2026-05-17 UTC on the
+`blastwall-v3-signed-attestation` branch with the `eigenstate.ipa` 1.18.1
+surfaces available. The destructive negative matrix remains a separate
+required gate before final stable-v3 release approval.
 
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).
 - `AAP project branch`: `blastwall-v3-signed-attestation`.
-- `Implementation gate commit`:
-  `02c4d7490bfa7671802a71d3079846c27bd92b11`.
+- `Latest Controller-visible gate commit`:
+  `3a284e181ec8e5d9ebe7152cf104d313e6df0059`.
 - `KRA primary`: `idm-01.workshop.lan`.
 - `KRA server list`: `idm-01.workshop.lan`.
 - `KRA scope/owner`: `shared` / `blastwall-attestation`.
 - `Signer`: AAP sign job `2199`, signer SKI
   `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
-- `Policy pipeline`: AAP workflow `2177`, successful.
-- `Runtime verification`: AAP workflow `2227`, successful.
+- `Latest policy pipeline`: AAP workflow `2645`, successful.
+- `Latest post-promotion preflight`: AAP job `2678`, successful.
+- `Earlier policy pipeline`: AAP workflow `2177`, successful.
+- `Earlier runtime verification`: AAP workflow `2227`, successful.
 - `Valid base host preflight`: AAP job `2236`, successful. It retrieved the
   signed envelope and latest index from KRA and returned `status=PASS`,
   `failure_state=null`.
@@ -88,7 +91,7 @@ probe set, including AF_ALG, BPF map/prog load, AF_PACKET, user namespace,
 Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES` evidence.
 
 Destructive live negative cases for missing artifact, missing index, revocation,
-and breakglass were not re-run against the live Calabi marker in this packet.
+and breakglass are not recorded in this packet.
 Those failure classes are covered by the local regression matrix. Run a
 destructive live negative packet before final production stable-v3 sign-off if
 reviewers require live failure evidence rather than local proof.

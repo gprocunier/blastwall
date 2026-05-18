@@ -103,6 +103,17 @@
     blastwall_strange_socket_v1_legacy_dry_run_set: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | string | length > 0 }}"
     blastwall_strange_socket_v1_legacy_dry_run: "{{ blastwall_strange_socket_v1_legacy_dry_run_raw | bool }}"
     blastwall_enable_strange_socket_v1_dry_run: "{{ blastwall_strange_socket_v1_requested | bool and blastwall_allow_dry_run_profiles | bool }}"
+    blastwall_allow_ipa_cli_fallback: >-
+      {{
+        BLASTWALL_ALLOW_IPA_CLI_FALLBACK |
+        default(lookup('env', 'BLASTWALL_ALLOW_IPA_CLI_FALLBACK') | default('false', true), true) |
+        bool
+      }}
+    blastwall_allow_ipa_cli_fallback_reason: >-
+      {{
+        BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON |
+        default(lookup('env', 'BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON') | default('', true), true)
+      }}
     blastwall_existing_userclass_values: >-
       {{
         idm_userclass
@@ -123,17 +134,19 @@
         | list
       }}
     blastwall_update_idm_marker: true
-    blastwall_marker_emit_command: >-
-      {{ ansible_playbook_python | default('/usr/bin/python3') }}
-      {{ playbook_dir }}/../tools/blastwall_marker.py --emit --target=rhel-login
-      {% if blastwall_allow_dry_run_profiles | bool %}
-      --allow-dry-run-profiles
-      {% endif %}
-      --rpm={{ blastwall_policy_nevra }}
-      --policy-sha256={{ blastwall_marker_policy_sha256 }}
-      {% for profile in required_blastwall_profiles %}
-      --profile={{ profile }}
-      {% endfor %}
+    blastwall_marker_emit_argv_base: >-
+      {{
+        [
+          ansible_playbook_python | default('/usr/bin/python3'),
+          playbook_dir ~ '/../tools/blastwall_marker.py',
+          '--emit',
+          '--target=rhel-login',
+          '--rpm=' ~ blastwall_policy_nevra,
+          '--policy-sha256=' ~ blastwall_marker_policy_sha256
+        ]
+        + (['--allow-dry-run-profiles'] if blastwall_allow_dry_run_profiles | bool else [])
+        + (required_blastwall_profiles | map('regex_replace', '^', '--profile=') | list)
+      }}
   tasks:
     - name: Require IdM marker write inputs
       ansible.builtin.assert:
@@ -174,6 +187,17 @@
       run_once: true
       delegate_to: localhost
 
+    - name: Assert raw IPA CLI fallback is explicitly approved
+      ansible.builtin.assert:
+        that:
+          - not blastwall_allow_ipa_cli_fallback | bool or blastwall_allow_ipa_cli_fallback_reason | length > 0
+        fail_msg: >-
+          Raw IPA CLI fallback is disabled by default for marker publication.
+          Set BLASTWALL_ALLOW_IPA_CLI_FALLBACK=true and
+          BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON=<ticket/reason> to use it.
+      run_once: true
+      delegate_to: localhost
+
     - name: Write FreeIPA client config for marker update
       ansible.builtin.copy:
         dest: /etc/ipa/default.conf
@@ -201,8 +225,8 @@
       delegate_to: localhost
 
     - name: Render active Blastwall marker for collection writes
-      ansible.builtin.shell:
-        cmd: "{{ blastwall_marker_emit_command }} --state=active"
+      ansible.builtin.command:
+        argv: "{{ blastwall_marker_emit_argv_base + ['--state=active'] }}"
       register: blastwall_policy_marker
       changed_when: false
       delegate_to: localhost
@@ -212,8 +236,8 @@
         - not blastwall_stable_v3_promotion | bool
 
     - name: Render failed Blastwall marker for collection fallback
-      ansible.builtin.shell:
-        cmd: "{{ blastwall_marker_emit_command }} --state=failed"
+      ansible.builtin.command:
+        argv: "{{ blastwall_marker_emit_argv_base + ['--state=failed'] }}"
       register: blastwall_policy_failed_marker
       changed_when: false
       delegate_to: localhost
@@ -367,6 +391,15 @@
               no_log: true
               delegate_to: localhost
           rescue:
+            - name: Stop when FreeIPA CLI fallback is not approved
+              ansible.builtin.fail:
+                msg: >-
+                  FreeIPA collection marker publication failed and raw IPA CLI
+                  fallback is not approved. Set
+                  BLASTWALL_ALLOW_IPA_CLI_FALLBACK=true with
+                  BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON to use the fallback.
+              when: not blastwall_allow_ipa_cli_fallback | bool
+
             - name: Publish promoted Blastwall host marker with FreeIPA CLI fallback
               ansible.builtin.shell: |
                 set -euo pipefail
@@ -394,6 +427,7 @@
               changed_when: true
               no_log: true
               delegate_to: localhost
+              when: blastwall_allow_ipa_cli_fallback | bool
           when: blastwall_update_idm_marker | bool
 
         - name: Report policy promotion evidence
@@ -417,6 +451,15 @@
               no_log: true
               delegate_to: localhost
           rescue:
+            - name: Stop when FreeIPA CLI fallback is not approved for failed marker
+              ansible.builtin.fail:
+                msg: >-
+                  FreeIPA collection failed-marker publication failed and raw IPA CLI
+                  fallback is not approved. Set
+                  BLASTWALL_ALLOW_IPA_CLI_FALLBACK=true with
+                  BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON to use the fallback.
+              when: not blastwall_allow_ipa_cli_fallback | bool
+
             - name: Publish failed Blastwall host marker with FreeIPA CLI fallback
               ansible.builtin.shell: |
                 set -euo pipefail
@@ -444,6 +487,7 @@
               changed_when: false
               no_log: true
               delegate_to: localhost
+              when: blastwall_allow_ipa_cli_fallback | bool
           ignore_errors: true
           when:
             - blastwall_update_idm_marker | bool

@@ -235,6 +235,9 @@ blastwall_aap_verify_target_group: >-
 blastwall_aap_policy_pipeline_candidate_group: >-
   {{ lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
   default('blastwall_policy_stale', true) }}
+blastwall_aap_profile_post_promotion_preflight_group: >-
+  {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PROFILE_GROUP') |
+  default('blastwall_profile_base', true) }}
 blastwall_aap_post_promotion_preflight_target_group: >-
   {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP') |
-  default(blastwall_aap_policy_pipeline_candidate_group, true) }}
+  default(blastwall_aap_profile_post_promotion_preflight_group, true) }}

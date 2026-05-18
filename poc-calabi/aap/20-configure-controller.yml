@@ -83,8 +83,8 @@
         BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP: >-
           {{ lookup('env', 'BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP') |
           default(
-            lookup('env', 'BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP') |
-            default('blastwall_policy_candidate', true),
+            lookup('env', 'BLASTWALL_POST_PROMOTION_PROFILE_GROUP') |
+            default('blastwall_profile_base', true),
             true
           ) }}
         BLASTWALL_REQUIRED_POLICY_PROFILES: >-

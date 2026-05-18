@@ -279,11 +279,15 @@ if "default('blastwall_profile_base', true)" not in controller_vars:
     fail("aap/vars/blastwall-controller.yml does not default AAP verify targeting to blastwall_profile_base")
 controller_post_promotion_group_pattern = re.compile(
     r"blastwall_aap_post_promotion_preflight_target_group:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
-    r"\|\s*default\(\s*blastwall_aap_policy_pipeline_candidate_group\s*,\s*true\s*\)\s*\}\}",
+    r"\|\s*default\(\s*blastwall_aap_profile_post_promotion_preflight_group\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not controller_post_promotion_group_pattern.search(controller_vars):
-    fail("aap/vars/blastwall-controller.yml must default post-promotion preflight targeting to the candidate group")
+    fail("aap/vars/blastwall-controller.yml must default post-promotion preflight targeting to a profile-derived group")
+post_promotion_block = controller_vars.partition("blastwall_aap_post_promotion_preflight_target_group:")[2]
+post_promotion_block = post_promotion_block.split("\n\n", 1)[0]
+if "blastwall_aap_policy_pipeline_candidate_group" in post_promotion_block:
+    fail("post-promotion preflight default must not be derived from the stale/candidate group")
 
 calabi_config = (ROOT / "poc-calabi" / "aap" / "20-configure-controller.yml").read_text(encoding="utf-8")
 calabi_inventory = (ROOT / "poc-calabi" / "aap" / "inventory" / "blastwall-idm.yml").read_text(encoding="utf-8")
@@ -466,14 +470,14 @@ if not candidate_group_pattern.search(calabi_config):
     )
 post_promotion_group_pattern = re.compile(
     r"BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP['\"]\s*\)\s*"
-    r"\|\s*default\(\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP['\"]\s*\)\s*"
-    r"\|\s*default\(\s*['\"]blastwall_policy_candidate['\"]\s*,\s*true\s*\)\s*,\s*true\s*\)\s*\}\}",
+    r"\|\s*default\(\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POST_PROMOTION_PROFILE_GROUP['\"]\s*\)\s*"
+    r"\|\s*default\(\s*['\"]blastwall_profile_base['\"]\s*,\s*true\s*\)\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not post_promotion_group_pattern.search(calabi_config):
     fail(
         "Calabi AAP configuration must default BLASTWALL_POST_PROMOTION_PREFLIGHT_TARGET_GROUP "
-        "to the policy candidate group"
+        "to a profile-derived group"
     )
 
 stale_host_match = re.search(
@@ -752,12 +756,21 @@ if "--desc" in promotion:
     fail("playbooks/promote-policy-rpm.yml still writes host description markers")
 if "userclass:" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not write host userClass markers")
-if "ipa host-mod" in promotion and "FreeIPA CLI fallback" not in promotion:
-    fail("playbooks/promote-policy-rpm.yml uses ipa host-mod without a named fallback boundary")
-if "ipa host-mod" in deploy_policy and "FreeIPA CLI fallback" not in deploy_policy:
-    fail("playbooks/deploy-policy.yml uses ipa host-mod without a named fallback boundary")
-if "blastwall_marker_emit_command" not in promotion:
-    fail("playbooks/promote-policy-rpm.yml should define blastwall_marker_emit_command for helper-based marker generation")
+for fallback_text, path_name in [(promotion, "playbooks/promote-policy-rpm.yml"), (deploy_policy, "playbooks/deploy-policy.yml")]:
+    if "ipa host-mod" in fallback_text and "FreeIPA CLI fallback" not in fallback_text:
+        fail(f"{path_name} uses ipa host-mod without a named fallback boundary")
+    if "ipa host-mod" in fallback_text:
+        for required_fallback_guard in [
+            "BLASTWALL_ALLOW_IPA_CLI_FALLBACK",
+            "BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON",
+            "blastwall_allow_ipa_cli_fallback | bool",
+            "blastwall_allow_ipa_cli_fallback_reason | length > 0",
+            "Stop when FreeIPA CLI fallback is not approved",
+        ]:
+            if required_fallback_guard not in fallback_text:
+                fail(f"{path_name} raw IPA CLI fallback is missing explicit guard {required_fallback_guard}")
+if "blastwall_marker_emit_argv_base" not in promotion:
+    fail("playbooks/promote-policy-rpm.yml should define blastwall_marker_emit_argv_base for command-argv marker generation")
 if (
     "--emit" not in promotion
     or "--target=rhel-login" not in promotion
@@ -783,8 +796,8 @@ if "lookup('file', blastwall_profile_registry_path, rstrip=False)" not in deploy
     fail("playbooks/deploy-policy.yml does not hash raw registry file bytes")
 if "userclass:" not in deploy_policy:
     fail("playbooks/deploy-policy.yml does not write host userClass markers")
-if "blastwall_marker_emit_command" not in deploy_policy:
-    fail("playbooks/deploy-policy.yml should define blastwall_marker_emit_command for helper-based marker generation")
+if "blastwall_marker_emit_argv_base" not in deploy_policy:
+    fail("playbooks/deploy-policy.yml should define blastwall_marker_emit_argv_base for command-argv marker generation")
 if "blastwall_clear_legacy_description_marker" not in promotion or "blastwall_clear_legacy_description_marker" not in deploy_policy:
     fail("policy marker playbooks do not clear legacy Blastwall description markers")
 if (
@@ -979,6 +992,7 @@ v3_sign = (ROOT / "playbooks" / "sign-attestation.yml").read_text(encoding="utf-
 v3_promote = (ROOT / "playbooks" / "promote-policy-rpm.yml").read_text(encoding="utf-8")
 v3_preflight = (ROOT / "playbooks" / "preflight.yml").read_text(encoding="utf-8")
 v3_hbac_access = (ROOT / "playbooks" / "hbac-access-test.yml").read_text(encoding="utf-8")
+v3_health = (ROOT / "playbooks" / "attestation-vault-health.yml").read_text(encoding="utf-8")
 aap_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")
 aap_controller = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
 for required_v3_file in [
@@ -1104,6 +1118,7 @@ for required_live_preflight_signal in [
     "FreeIPA CLI fallback read live stable-v3 host marker hints from FreeIPA",
     "BLASTWALL_ALLOW_IPA_CLI_FALLBACK",
     "BLASTWALL_ALLOW_IPA_CLI_FALLBACK_REASON",
+    "BLASTWALL_RUN_HBAC_OPERATION_TEST",
     "Check stable-v3 KRA vault health",
     "eigenstate.ipa.vault_health",
     "eigenstate.ipa.access_path",
@@ -1125,23 +1140,24 @@ for required_live_preflight_signal in [
         )
 preflight_ipa_config_index = v3_preflight.find("Write FreeIPA client config for controller-side lookups")
 preflight_vault_health_index = v3_preflight.find("Check stable-v3 KRA vault health")
+preflight_hbac_diagnostic_index = v3_preflight.find("Run diagnostic collection-backed HBAC operation test")
 preflight_hbac_test_index = v3_preflight.find("Run collection-backed HBAC access test for group-scoped readiness")
 preflight_access_path_index = v3_preflight.find("Read Blastwall IdM access path")
 if (
     preflight_ipa_config_index == -1
     or preflight_vault_health_index == -1
+    or preflight_hbac_diagnostic_index == -1
     or preflight_hbac_test_index == -1
     or preflight_access_path_index == -1
 ):
     fail("stable-v3 preflight is missing FreeIPA client bootstrap, HBAC proof, KRA health, or access-path checks")
-if preflight_ipa_config_index > preflight_vault_health_index:
-    fail("stable-v3 preflight must write FreeIPA client config before KRA vault health")
-if preflight_ipa_config_index > preflight_hbac_test_index:
-    fail("stable-v3 preflight must write FreeIPA client config before collection-backed HBAC proof")
-if preflight_hbac_test_index > preflight_vault_health_index:
-    fail("stable-v3 preflight must prove HBAC before KRA health to avoid shared FreeIPA client-state drift")
-if preflight_hbac_test_index > preflight_access_path_index:
-    fail("stable-v3 preflight must prove group-scoped HBAC before access-path detail reads")
+if preflight_ipa_config_index > preflight_access_path_index:
+    fail("stable-v3 preflight must write FreeIPA client config before access-path checks")
+if preflight_access_path_index > preflight_vault_health_index:
+    fail("stable-v3 preflight must run access-path and sudo guard before KRA vault health")
+hbac_operation_block = v3_preflight[preflight_hbac_diagnostic_index:preflight_access_path_index]
+if "when: blastwall_run_hbac_operation_test | bool" not in hbac_operation_block:
+    fail("stable-v3 isolated HBAC operation test must be diagnostic-only")
 if "blastwall_target_identity" not in v3_preflight:
     fail("stable-v3 preflight must separate target identity from the IdM credential auth principal")
 if 'principal: "{{ blastwall_target_identity }}"' not in v3_preflight:
@@ -1162,6 +1178,20 @@ if "blastwall_selinux_map.selinuxuser" in v3_preflight:
     fail("stable-v3 preflight report must not reference removed selinuxmap lookup state")
 if "retrieve-existing" in v3_preflight:
     fail("stable-v3 preflight must use vault_artifact retrieval, not raw-vault retrieve-existing")
+if "skeleton" in v3_health.lower() or "placeholder" in v3_health.lower():
+    fail("attestation-vault-health.yml must not contain skeleton or placeholder health logic")
+for required_health_signal in [
+    "eigenstate.ipa.vault_health",
+    "require_direct_kra: true",
+    "FAIL_INFRA_VAULT_KRA",
+    "FAIL_INFRA_VAULT_AUTH",
+    "FAIL_INFRA_VAULT_TIMEOUT",
+    "FAIL_CANARY_STALE",
+    "canary_present",
+    "canary_stale",
+]:
+    if required_health_signal not in v3_health:
+        fail(f"attestation-vault-health.yml missing real vault health signal {required_health_signal}")
 if "^blastwall:.*(?:^blastwall:|;)v=3" in v3_preflight:
     fail("stable-v3 preflight marker selector does not match blastwall:v=3 prefix markers")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
