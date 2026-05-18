@@ -750,6 +750,14 @@ if "freeipa.ansible_freeipa.ipahostgroup" not in calabi_seed_fixture:
 
 if "freeipa.ansible_freeipa.ipahost" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not use freeipa.ansible_freeipa.ipahost for marker writes")
+for marker_write_text, path_name in [
+    (promotion, "playbooks/promote-policy-rpm.yml"),
+    (deploy_policy, "playbooks/deploy-policy.yml"),
+]:
+    if 'ipaadmin_principal: "{{ ipa_principal }}"' in marker_write_text:
+        fail(f"{path_name} must not call FreeIPA marker writes with an unqualified Kerberos principal")
+    if 'ipaadmin_principal: "{{ ipa_login_principal }}"' not in marker_write_text:
+        fail(f"{path_name} must use the realm-qualified FreeIPA marker write principal")
 if "lookup('file', blastwall_profile_registry_path, rstrip=False)" not in promotion:
     fail("playbooks/promote-policy-rpm.yml does not hash raw registry file bytes")
 if "--desc" in promotion:

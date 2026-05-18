@@ -531,7 +531,7 @@
           block:
             - name: Publish active Blastwall host marker to IdM with collection
               freeipa.ansible_freeipa.ipahost:
-                ipaadmin_principal: "{{ ipa_principal }}"
+                ipaadmin_principal: "{{ ipa_login_principal }}"
                 ipaadmin_password: "{{ ipa_password }}"
                 name: "{{ inventory_hostname }}"
                 description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
@@ -696,7 +696,7 @@
 
         - name: Publish rollback-active Blastwall host marker to IdM
           freeipa.ansible_freeipa.ipahost:
-            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_principal: "{{ ipa_login_principal }}"
             ipaadmin_password: "{{ ipa_password }}"
             name: "{{ inventory_hostname }}"
             description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
@@ -753,7 +753,7 @@
 
         - name: Publish rollback-failed Blastwall host marker to IdM
           freeipa.ansible_freeipa.ipahost:
-            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_principal: "{{ ipa_login_principal }}"
             ipaadmin_password: "{{ ipa_password }}"
             name: "{{ inventory_hostname }}"
             description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
@@ -816,7 +816,7 @@
           block:
             - name: Publish failed Blastwall host marker with collection
               freeipa.ansible_freeipa.ipahost:
-                ipaadmin_principal: "{{ ipa_principal }}"
+                ipaadmin_principal: "{{ ipa_login_principal }}"
                 ipaadmin_password: "{{ ipa_password }}"
                 name: "{{ inventory_hostname }}"
                 description: "{{ '' if blastwall_clear_description_marker | bool else omit }}"
