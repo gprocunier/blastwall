@@ -70,9 +70,13 @@
     blastwall_attestation_source_revision: >-
       {{
         [
-          lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD 2>/dev/null || true'),
+          vars.get('awx_project_revision', ''),
+          vars.get('tower_project_revision', ''),
           vars.get('AWX_PROJECT_REVISION', ''),
+          vars.get('TOWER_PROJECT_REVISION', ''),
           lookup('env', 'AWX_PROJECT_REVISION'),
+          lookup('env', 'TOWER_PROJECT_REVISION'),
+          lookup('pipe', 'git -C ' ~ playbook_dir ~ '/.. rev-parse HEAD 2>/dev/null || true'),
           vars.get('BLASTWALL_SOURCE_REVISION', ''),
           lookup('env', 'BLASTWALL_SOURCE_REVISION'),
           'unknown'

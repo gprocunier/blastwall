@@ -1139,13 +1139,21 @@ if "blastwall_v3_attestation_marker_by_host" not in v3_sign:
 source_revision_block = v3_sign.partition("blastwall_attestation_source_revision:")[2].partition(
     "blastwall_attestation_workflow_job_id:"
 )[0]
+if "vars.get('awx_project_revision', '')" not in source_revision_block:
+    fail("sign-attestation.yml must prefer live AWX project revision variables for source_revision")
 if source_revision_block.find("lookup('pipe', 'git -C ") == -1:
     fail("sign-attestation.yml must derive source_revision from the Controller project checkout")
-if source_revision_block.find("lookup('env', 'AWX_PROJECT_REVISION')") != -1 and (
-    source_revision_block.find("lookup('pipe', 'git -C ")
-    > source_revision_block.find("lookup('env', 'AWX_PROJECT_REVISION')")
+if source_revision_block.find("vars.get('BLASTWALL_SOURCE_REVISION', '')") < source_revision_block.find(
+    "lookup('pipe', 'git -C "
 ):
-    fail("sign-attestation.yml must prefer the live project checkout over stale AWX_PROJECT_REVISION env")
+    fail("sign-attestation.yml must use explicit BLASTWALL_SOURCE_REVISION only after live project revision checks")
+attestation_extra_vars_block = aap_vars.partition("blastwall_aap_attestation_extra_vars:")[2].partition(
+    "blastwall_aap_spo_render_extra_vars:"
+)[0]
+if "BLASTWALL_SOURCE_REVISION" in attestation_extra_vars_block:
+    fail("AAP attestation job templates must not bake a static BLASTWALL_SOURCE_REVISION")
+if "BLASTWALL_SOURCE_REVISION" in calabi_config:
+    fail("Calabi Controller configuration must not inject a static BLASTWALL_SOURCE_REVISION")
 if "Use signed stable-v3 locator marker from pipeline signing evidence" not in v3_promote:
     fail("promote-policy-rpm.yml must consume signer-provided markers across AAP job boundaries")
 if "--profile=\\\\1" in v3_sign or "--profile=\\\\1" in v3_promote:

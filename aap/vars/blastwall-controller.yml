@@ -112,8 +112,6 @@ blastwall_aap_probe_report_sha256: >-
   {{ lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true) }}
 blastwall_aap_spo_evidence_json: >-
   {{ lookup('env', 'BLASTWALL_SPO_EVIDENCE_JSON') | default('', true) }}
-blastwall_aap_source_revision: >-
-  {{ lookup('env', 'BLASTWALL_SOURCE_REVISION') | default('', true) }}
 
 blastwall_aap_launch_user: >-
   {{ lookup('env', 'BLASTWALL_AAP_LAUNCH_USER') | default('', true) }}
@@ -139,7 +137,6 @@ blastwall_aap_profile_extra_vars:
   BLASTWALL_STRANGE_SOCKET_V1_DRY_RUN: "{{ blastwall_aap_strange_socket_v1_dry_run }}"
 blastwall_aap_attestation_extra_vars:
   BLASTWALL_ATTESTATION_MODE: "{{ blastwall_aap_attestation_mode }}"
-  BLASTWALL_SOURCE_REVISION: "{{ blastwall_aap_source_revision }}"
   BLASTWALL_CURRENT_POLICY_SHA256: "{{ blastwall_aap_current_policy_sha256 }}"
   BLASTWALL_PROBE_REPORT_SHA256: "{{ blastwall_aap_probe_report_sha256 }}"
   BLASTWALL_ATTESTATION_VAULT_PRIMARY: "{{ blastwall_aap_attestation_vault_primary }}"
