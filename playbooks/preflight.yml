@@ -179,6 +179,13 @@
         BLASTWALL_ATTESTATION_VAULT_SERVERS |
         default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true), true)
       }}
+    blastwall_attestation_vault_server_list: >-
+      {{
+        blastwall_attestation_vault_servers.split(',')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
     blastwall_attestation_vault_scope: >-
       {{
         BLASTWALL_ATTESTATION_VAULT_SCOPE |
@@ -321,6 +328,8 @@
         that:
           - blastwall_attestation_vault_primary | length > 0
           - blastwall_attestation_vault_servers | length > 0
+          - blastwall_attestation_vault_server_list | length > 0
+          - blastwall_attestation_vault_primary in blastwall_attestation_vault_server_list
           - blastwall_attestation_vault_scope | length > 0
           - blastwall_attestation_vault_owner | length > 0
           - blastwall_attestation_envelope_dir | length > 0
@@ -333,6 +342,17 @@
           stable-v3 requires explicit KRA vault primary, retrieved envelope/index
           artifact directories, signer certificate, CA bundle, signer allowlist,
           and live current policy hash. A v3 marker alone is not evidence.
+      when: blastwall_attestation_signed_mode
+
+    - name: Resolve configured stable-v3 KRA vault servers
+      ansible.builtin.command:
+        argv:
+          - getent
+          - hosts
+          - "{{ item }}"
+      loop: "{{ blastwall_attestation_vault_server_list }}"
+      register: blastwall_attestation_vault_server_resolution
+      changed_when: false
       when: blastwall_attestation_signed_mode
 
     - name: Write FreeIPA client config for controller-side lookups

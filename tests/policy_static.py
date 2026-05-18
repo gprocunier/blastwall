@@ -1144,6 +1144,9 @@ for required_live_preflight_signal in [
     "eigenstate.ipa.vault_artifact",
     "blastwall_attestation_vault_servers",
     "blastwall_live_userclass_by_host",
+    "blastwall_attestation_vault_server_list",
+    "Resolve configured stable-v3 KRA vault servers",
+    "blastwall_attestation_vault_primary in blastwall_attestation_vault_server_list",
 ]:
     if required_live_preflight_signal not in v3_preflight:
         fail(
@@ -1201,6 +1204,7 @@ for required_health_signal in [
     "FAIL_CANARY_STALE",
     "canary_present",
     "canary_stale",
+    "Resolve configured KRA vault servers",
 ]:
     if required_health_signal not in v3_health:
         fail(f"attestation-vault-health.yml missing real vault health signal {required_health_signal}")

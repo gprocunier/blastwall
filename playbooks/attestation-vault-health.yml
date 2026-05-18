@@ -53,6 +53,16 @@
           Set explicit KRA vault primary/server list/scope and IdM credentials
           before running the Blastwall attestation vault health gate.
 
+    - name: Resolve configured KRA vault servers
+      ansible.builtin.command:
+        argv:
+          - getent
+          - hosts
+          - "{{ item }}"
+      loop: "{{ blastwall_attestation_vault_servers }}"
+      register: blastwall_attestation_vault_server_resolution
+      changed_when: false
+
     - name: Check configured KRA vault health through eigenstate
       eigenstate.ipa.vault_health:
         server: "{{ blastwall_attestation_vault_primary }}"
