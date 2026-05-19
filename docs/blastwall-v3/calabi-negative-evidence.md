@@ -41,8 +41,9 @@ Each case below must be captured against a controlled/disposable Calabi host:
 
 | Case | Expected | Live Calabi capture |
 |---|---|---|
-| Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | pending |
-| Missing index | `FAIL_INDEX_NOT_VISIBLE` | pending |
+| Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | AAP mutation job `3414`; preflight job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3425` |
+| Missing index | `FAIL_INDEX_NOT_VISIBLE` | AAP mutation job `3432`; preflight job `3439` failed as `FAIL_INDEX_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3443` |
+| Digest mismatch | digest/integrity failure | AAP mutation job `3450`; preflight job `3457` failed closed with `failure_class=digest_mismatch`, currently surfaced as `FAIL_ATTESTATION_NOT_VISIBLE`; restore job `3461` |
 | Wrong generation | replay/binding failure | pending |
 | Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | pending |
 | Expired attestation | expired attestation failure | pending |
@@ -104,6 +105,49 @@ Non-mutating negative checks captured on 2026-05-18 UTC:
   expected at `Resolve configured stable-v3 KRA vault servers` with
   `getent hosts missing-kra.workshop.lan` returning `rc=2`.
 
+Controlled destructive checks captured on 2026-05-19 UTC:
+
+- Branch: `blastwall-v3-negative-gate-calabi`.
+- Commit: `06e7831204858495085492d4803c8d929108ef30`.
+- Controller project sync: `3388`, successful.
+- Negative-test host: `stale-blastwall-01.workshop.lan`.
+- Golden host: `mirror-registry.workshop.lan`.
+- Marker harness: AAP job template `30`, not registered as a default
+  production template.
+- Harness restore proof: job `3389`, successful.
+- Post-destructive golden preflight: job `3471`, successful.
+
+Artifact visibility cases:
+
+- Missing envelope: mutation job `3414` added a v3 locator pointing at an
+  absent envelope. Preflight job `3421` failed as
+  `FAIL_ATTESTATION_NOT_VISIBLE` with `failure_class=vault_not_found`.
+  Restore job `3425` returned the stale fixture host to its original marker.
+- Missing latest index: mutation job `3432` used the valid golden envelope but
+  selected the stale host, causing the host-specific latest index to be absent.
+  Preflight job `3439` failed as `FAIL_INDEX_NOT_VISIBLE` with
+  `failure_class=vault_not_found`. Restore job `3443` succeeded.
+- Digest mismatch: mutation job `3450` used the valid golden envelope ref with
+  an intentionally wrong marker digest. Preflight job `3457` failed closed with
+  `failure_class=digest_mismatch`; the current top-level failure state remains
+  `FAIL_ATTESTATION_NOT_VISIBLE`. Restore job `3461` succeeded.
+
+Current negative-gate artifact bindings:
+
+- Policy hash:
+  `4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2`.
+- Registry hash:
+  `c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486`.
+- Probe report hash:
+  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
+- Golden attestation ref:
+  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779161194.json`.
+- Golden attestation hash:
+  `8d7f4a9844d7bceee2e0114ae55f66aa507e541676aad98ad3667c09701c3b11`.
+- Signer KID:
+  `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
+- Generation: `1779161194`.
+
 ## Capture template
 
 ```yaml
@@ -135,8 +179,7 @@ attachments:
 ## Hold note
 
 The Calabi live evidence is partial. Current healthy-path, SPO, drift,
-untrusted-signer, and unresolved-configured-KRA cases are captured above. The
-remaining destructive cases in the table still need controlled live execution
-before a final stable-v3 release claim. The current hardening patch adds local
-guards and tests but must be replayed through the Controller before replacing
-the live evidence commit above.
+untrusted-signer, unresolved-configured-KRA, missing-envelope, missing-index,
+and digest-mismatch cases are captured above. The remaining destructive cases
+in the table still need controlled live execution before a final stable-v3
+release claim.
