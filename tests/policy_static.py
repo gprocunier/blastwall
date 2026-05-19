@@ -1146,7 +1146,10 @@ for required_inventory_env in [
     "BLASTWALL_PROFILE_REGISTRY_SHA256",
     "BLASTWALL_ALLOW_DRY_RUN_PROFILES",
     "KRB5CCNAME",
+    "Write FreeIPA client config for inventory audit",
+    "Install injected FreeIPA CA for inventory audit",
     "Authenticate FreeIPA client for attestation inventory audit",
+    "Assert FreeIPA client credentials are available for inventory audit",
 ]:
     if required_inventory_env not in inventory_audit_playbook:
         fail(f"inventory audit playbook must pass {required_inventory_env} into nested ansible-inventory")

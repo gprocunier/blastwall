@@ -29,6 +29,8 @@
     ipa_realm: >-
       {{ lookup('env', 'IPA_REALM') |
       default((ipa_domain | upper), true) }}
+    ipa_basedn: "dc={{ ipa_domain | replace('.', ',dc=') }}"
+    ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
     ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') | default('admin', true) }}"
     ipa_login_principal: >-
       {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
@@ -157,6 +159,30 @@
         path: "{{ blastwall_inventory_audit_previous }}"
       register: blastwall_inventory_previous_snapshot
 
+    - name: Write FreeIPA client config for inventory audit
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ ipa_server }}
+          domain = {{ ipa_domain }}
+          realm = {{ ipa_realm }}
+          basedn = {{ ipa_basedn }}
+          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
+      when: blastwall_verify_attestations | bool
+
+    - name: Install injected FreeIPA CA for inventory audit
+      ansible.builtin.copy:
+        src: "{{ ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - blastwall_verify_attestations | bool
+        - ipa_ca | length > 0
+        - ipa_ca != "/etc/ipa/ca.crt"
+
     - name: Authenticate FreeIPA client for attestation inventory audit
       ansible.builtin.shell: |
         set -euo pipefail
@@ -175,6 +201,17 @@
         KRB5CCNAME: "{{ krb5_ccache }}"
       changed_when: false
       no_log: true
+      when: blastwall_verify_attestations | bool
+
+    - name: Assert FreeIPA client credentials are available for inventory audit
+      ansible.builtin.command:
+        argv:
+          - klist
+          - -s
+      environment:
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      changed_when: false
       when: blastwall_verify_attestations | bool
 
     - name: Run Blastwall inventory audit
