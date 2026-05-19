@@ -9,6 +9,7 @@ working_branch: blastwall-v3-signed-attestation
 head_start: d5c0877100ec782f866b6806370492e30f78f06d
 head_after_negative_gate_adoption: d6365aa841802ebbdd083852b506bf37c6484c06
 head_after_continuous_loop: 9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b
+head_after_docs_decision: 789e95f82a91a5541e0ef7889dab9fc7595a5454
 date_started_utc: 2026-05-19T15:55:51Z
 date_completed_utc: 2026-05-19T17:10:00Z
 tracked_status_at_start: clean
@@ -53,8 +54,8 @@ core_invariant: "Inventory selects. Markers locate. Vault artifacts carry signed
 | 09 | complete | `0ddfb81` -> `9e9e5e8` | `python3 tests/policy_static.py`; `python3 -m pytest -q tests/test_audit_blastwall_inventory.py`; syntax; `git diff --check` | schedules `6`-`9` installed; KRA health `3731` passed; candidate preflight `3735` passed; runtime workflow `3736` passed; strict inventory audit `3772` failed closed on missing artifact | audit bootstrap fixed and rerun on target branch |
 | 10 | complete | `9e9e5e8` | helper path search; policy static guards | stable-v3 custody path is `eigenstate.ipa.vault_artifact`; Blastwall Python handles artifact construction and verification semantics | raw helper modes are compatibility/test surfaces, not default custody |
 | 11 | complete | `9e9e5e8` | shell search; syntax; docs review | remaining stable-v3 shell use classified, including inventory audit Kerberos bootstrap | no unexplained shell in the critical path |
-| 12 | complete | pending docs commit | docs and ledgers updated | external review packet, readiness checklist, evidence index, runbooks, and decision docs refreshed | claim boundary remains explicit |
-| 13 | complete | pending docs commit | final review | source/evidence gate ready for external review; publication still held on governance owner/sign-off | no no-go condition observed |
+| 12 | complete | `789e95f` | docs and ledgers updated | external review packet, readiness checklist, evidence index, runbooks, and decision docs refreshed | claim boundary remains explicit |
+| 13 | complete | `789e95f` | final review | source/evidence gate ready for external review; publication still held on governance owner/sign-off | no no-go condition observed |
 
 ## Destructive Negative Evidence
 

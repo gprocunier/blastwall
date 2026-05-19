@@ -40,9 +40,11 @@ Completed items since the prior decision:
 ## Evidence Summary
 
 - Current branch: `blastwall-v3-signed-attestation`.
-- Current Controller-visible commit:
+- Current branch head:
+  `789e95f82a91a5541e0ef7889dab9fc7595a5454`.
+- Controller-visible evidence commit:
   `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
-- Project sync to current commit: `3771`.
+- Project sync to evidence commit: `3771`.
 - Post-matrix restore sync from destructive packet: `3690`.
 - Post-matrix golden preflight: `3693`, successful.
 - Three-host inventory sync: `3712`.
@@ -103,7 +105,8 @@ hold_items:
   - revoked marker fails closed at locator resolution rather than the revoked-attestation top-level state
 no_go_items: []
 evidence_summary:
-  - current branch commit: 9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b
+  - current branch head: 789e95f82a91a5541e0ef7889dab9fc7595a5454
+  - controller-visible evidence commit: 9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b
   - strict inventory audit: 3772
   - primary evidence ledger: V3_STABLE_EVIDENCE_GATE_LEDGER.md
 recommended_next_branch_or_release_action:

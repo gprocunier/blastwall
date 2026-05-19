@@ -2,7 +2,7 @@
 
 Date: 2026-05-19
 Branch: `blastwall-v3-signed-attestation`
-Commit: `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`
+Commit: `789e95f82a91a5541e0ef7889dab9fc7595a5454`
 Decision: HOLD
 
 ## Summary
@@ -11,6 +11,10 @@ Blastwall v3 source and Calabi lab evidence are ready for external review. The
 publication decision remains held because governance owners and sign-off are
 not recorded. This is a release-governance hold, not an identified
 marker-only, breakglass, or verifier bypass.
+
+The live Controller-visible evidence commit is
+`9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`; the branch head above adds the
+review ledger and release decision documents.
 
 ## Evidence Accepted
 

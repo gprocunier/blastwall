@@ -3,7 +3,7 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`
+- current commit: `789e95f82a91a5541e0ef7889dab9fc7595a5454`
 - implementation gate commit: `02c4d7490bfa7671802a71d3079846c27bd92b11`
 
 ## Phase Status
