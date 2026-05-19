@@ -47,7 +47,7 @@ Each case below must be captured against a controlled/disposable Calabi host:
 | Wrong generation | replay/binding failure | pending |
 | Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | pending |
 | Expired attestation | expired attestation failure | pending |
-| Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected |
+| Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected; current-branch job `3478` failed as `FAIL_DRIFTED_POLICY` |
 | KRA stale/missing canary | infra visibility failure | pending |
 | Vault auth failure | auth/infra failure | pending |
 | Breakglass infra-visibility bypass | scoped breakglass may pass only for artifact/index visibility | pending |
@@ -104,6 +104,17 @@ Non-mutating negative checks captured on 2026-05-18 UTC:
 - Bad KRA primary/server after the fix: AAP preflight job `2835` failed as
   expected at `Resolve configured stable-v3 KRA vault servers` with
   `getent hosts missing-kra.workshop.lan` returning `rc=2`.
+
+Current-branch non-mutating negative checks captured on 2026-05-19 UTC:
+
+- Branch: `blastwall-v3-negative-gate-calabi`.
+- Commit: `c5241c21293c3fe372d3ab5ba3bb4d1f03192c9c`.
+- Drifted current policy hash: AAP preflight job `3478` failed as expected
+  with `FAIL_DRIFTED_POLICY`; verifier message was
+  `current installed policy hash does not match signed payload`.
+- Bad signer allowlist: AAP preflight job `3485` failed as expected with
+  `FAIL_SIGNER_UNTRUSTED`; verifier message was
+  `signer_kid is not allowlisted`.
 
 Controlled destructive checks captured on 2026-05-19 UTC:
 

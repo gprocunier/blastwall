@@ -51,7 +51,7 @@ scope_freeze:
 | 03 | complete | Architecture | `a801759`, `39e83c2`, `cb59520`, `09e73a6`, `21d637f`, `3cca7ff`, `06e7831` | syntax check; `python3 tests/policy_static.py`; live AAP marker harness jobs | controlled stale-host marker harness created as JT `30`; restore job `3389` passed; IdM Admin credential corrected to real IdM admin secret; golden preflight job `3471` passed after destructive restores | collection `ipahost` still fails on this host and uses documented lab-only CLI fallback |
 | 04 | complete | KRA/Vault | `06e7831` | live AAP preflight against controlled stale host | missing envelope job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE`; missing index job `3439` failed as `FAIL_INDEX_NOT_VISIBLE`; digest mismatch job `3457` failed with `failure_class=digest_mismatch` under `FAIL_ATTESTATION_NOT_VISIBLE`; restore jobs `3425`, `3443`, `3461` completed | digest mismatch is not surfaced as a distinct top-level failure state |
 | 05 | pending | Attestation | | | | pending |
-| 06 | pending | Attestation | | | | pending |
+| 06 | in_progress | Attestation | `c5241c2` | live AAP preflight against golden host with controlled negative inputs | policy drift job `3478` failed as `FAIL_DRIFTED_POLICY`; signer allowlist mismatch job `3485` failed as `FAIL_SIGNER_UNTRUSTED` | signature tamper, profile mismatch, and host binding mismatch still pending |
 | 07 | pending | Preflight | | | | pending |
 | 08 | pending | Inventory | | | | pending |
 | 09 | pending | AAP/Ops | | | | pending |
@@ -66,6 +66,8 @@ scope_freeze:
 - signed envelope required: Phase 01 static/source checks pass
 - latest index required: Phase 01 static/source checks pass
 - live policy hash required: Phase 01 static/source checks pass
+- policy drift failure: live AAP preflight job `3478` failed as `FAIL_DRIFTED_POLICY`
+- signer allowlist failure: live AAP preflight job `3485` failed as `FAIL_SIGNER_UNTRUSTED`
 - KRA infra split: live AAP health job `3292` passed and missing-canary job `3290` failed as `FAIL_CANARY_MISSING` without host-drift ambiguity
 - breakglass boundaries: local/source coverage partial; live negative matrix pending
 - raw CLI fallback: source checks pass for current fallback controls; negative-gate harness fallback is documented as lab-only and is not a default production AAP template
@@ -186,6 +188,33 @@ digest_mismatch:
   note: digest mismatch is fail-closed but currently folded under envelope visibility
 ```
 
+## Phase 06 Crypto and Binding Notes
+
+```yaml
+policy_hash_drift:
+  preflight_job: 3478
+  commit: c5241c21293c3fe372d3ab5ba3bb4d1f03192c9c
+  host: mirror-registry.workshop.lan
+  mutation: none
+  current_policy_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  observed_failure_state: FAIL_DRIFTED_POLICY
+  message: current installed policy hash does not match signed payload
+  breakglass_status: pending explicit rejection proof
+signer_not_allowlisted:
+  preflight_job: 3485
+  commit: c5241c21293c3fe372d3ab5ba3bb4d1f03192c9c
+  host: mirror-registry.workshop.lan
+  mutation: none
+  signer_allowlist: "0000000000000000000000000000000000000000"
+  observed_failure_state: FAIL_SIGNER_UNTRUSTED
+  message: signer_kid is not allowlisted
+  breakglass_status: pending explicit rejection proof
+pending_crypto_binding_cases:
+  - signature tamper
+  - profile mismatch
+  - host binding mismatch
+```
+
 ## Destructive Negative Evidence Summary
 
 | Case | Expected | Observed | AAP job | Result |
@@ -193,6 +222,8 @@ digest_mismatch:
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | `FAIL_ATTESTATION_NOT_VISIBLE`, `failure_class=vault_not_found` | mutation `3414`, preflight `3421`, restore `3425` | PASS_FAIL_CLOSED |
 | Missing index | `FAIL_INDEX_NOT_VISIBLE` | `FAIL_INDEX_NOT_VISIBLE`, `failure_class=vault_not_found` | mutation `3432`, preflight `3439`, restore `3443` | PASS_FAIL_CLOSED |
 | Digest mismatch | digest/integrity failure | `FAIL_ATTESTATION_NOT_VISIBLE`, `failure_class=digest_mismatch` | mutation `3450`, preflight `3457`, restore `3461` | PASS_FAIL_CLOSED_WITH_STATE_GAP |
+| Policy hash drift | `FAIL_DRIFTED_POLICY` | `FAIL_DRIFTED_POLICY`, `current installed policy hash does not match signed payload` | preflight `3478` | PASS_FAIL_CLOSED |
+| Signer not allowlisted | `FAIL_SIGNER_UNTRUSTED` | `FAIL_SIGNER_UNTRUSTED`, `signer_kid is not allowlisted` | preflight `3485` | PASS_FAIL_CLOSED |
 
 ## Mixed-State Evidence Summary
 

@@ -1147,6 +1147,32 @@ for forbidden_negative_marker_signal in [
         fail(f"negative-gate marker harness must stay collection-backed, found {forbidden_negative_marker_signal}")
 if "negative-gate-idm-marker.yml" in aap_vars:
     fail("negative-gate IdM marker harness must not be registered as a default production AAP template")
+v3_negative_artifact_harness = (ROOT / "playbooks" / "negative-gate-attestation-artifacts.yml").read_text(encoding="utf-8")
+if not (ROOT / "tools" / "blastwall_negative_gate_artifacts.py").exists():
+    fail("missing negative-gate attestation artifact builder")
+for required_negative_artifact_signal in [
+    "Build controlled Blastwall negative-gate attestation artifacts",
+    "BLASTWALL_NEGATIVE_GATE_CASE",
+    "signature-tamper",
+    "replayed-generation",
+    "expired",
+    "revoked-index",
+    "profile-mismatch",
+    "host-binding-mismatch",
+    "tools/blastwall_negative_gate_artifacts.py",
+    "eigenstate.ipa.vault_artifact",
+    "Archive controlled negative-gate attestation envelope",
+    "Archive controlled negative-gate latest index",
+    "expected_sha256",
+    "read_back: true",
+    "Assert controlled negative-gate artifact read-back verified",
+]:
+    if required_negative_artifact_signal not in v3_negative_artifact_harness:
+        fail(f"negative-gate artifact harness missing control: {required_negative_artifact_signal}")
+if "ansible.builtin.shell" in v3_negative_artifact_harness:
+    fail("negative-gate artifact harness must not use shell")
+if "negative-gate-attestation-artifacts.yml" in aap_vars:
+    fail("negative-gate artifact harness must not be registered as a default production AAP template")
 for required_sign_custody_signal in [
     "Build signed attestation envelope and latest index",
     "eigenstate.ipa.vault_artifact",
