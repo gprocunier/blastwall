@@ -1125,6 +1125,7 @@ for required_negative_marker_signal in [
     "BLASTWALL_NEGATIVE_GATE_HOST",
     "BLASTWALL_NEGATIVE_GATE_USERCLASS_JSON",
     "BLASTWALL_NEGATIVE_GATE_REASON",
+    "blastwall_negative_gate_userclass_json | from_json",
     "blastwall_negative_gate_userclass is sequence",
     "blastwall_negative_gate_userclass is not string",
     "no_log: true",
