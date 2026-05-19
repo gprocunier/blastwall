@@ -102,4 +102,16 @@ exceptions:
       - no raw IPA marker write in this task
       - qualified IdM principal
       - no_log enabled for credential material
+
+  - id: BW-SHELL-011
+    file: playbooks/negative-gate-idm-marker.yml
+    task_name: Apply controlled Blastwall negative-gate userClass state with FreeIPA CLI fallback
+    classification: lab_only
+    reason: Destructive Calabi gate harness for restoring and mutating a disposable stale host when collection mutation fails.
+    required_controls:
+      - not registered as a default production AAP template
+      - explicit BLASTWALL_NEGATIVE_GATE_REASON
+      - controlled host input
+      - full userClass replacement from JSON input
+      - no_log enabled for credential material
 ```

@@ -85,14 +85,58 @@
         - ipa_ca != "/etc/ipa/ca.crt"
 
     - name: Apply controlled Blastwall negative-gate userClass state
-      freeipa.ansible_freeipa.ipahost:
-        ipaadmin_principal: "{{ ipa_principal }}"
-        ipaadmin_password: "{{ ipa_password }}"
-        name: "{{ blastwall_negative_gate_host }}"
-        userclass: "{{ blastwall_negative_gate_userclass }}"
-        force: true
-        state: present
-      no_log: true
+      block:
+        - name: Apply controlled Blastwall negative-gate userClass state with collection
+          freeipa.ansible_freeipa.ipahost:
+            ipaadmin_principal: "{{ ipa_principal }}"
+            ipaadmin_password: "{{ ipa_password }}"
+            name: "{{ blastwall_negative_gate_host }}"
+            userclass: "{{ blastwall_negative_gate_userclass }}"
+            force: true
+            state: present
+          no_log: true
+      rescue:
+        - name: Apply controlled Blastwall negative-gate userClass state with FreeIPA CLI fallback
+          ansible.builtin.shell: |
+            set -euo pipefail
+            printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+            ipa -e "server=${IPA_SERVER}" -f -n host-show "${BLASTWALL_HOST}" >/dev/null
+
+            attrs_file="$(mktemp)"
+            python3 - <<'PY' > "${attrs_file}"
+            import json
+            import os
+
+            for value in json.loads(os.environ["BLASTWALL_USERCLASS_JSON"]):
+                print(value)
+            PY
+
+            ipa -e "server=${IPA_SERVER}" -f -n host-show "${BLASTWALL_HOST}" --all |
+              sed -n 's/^  userclass: //p' |
+              while IFS= read -r current; do
+                [ -n "${current}" ] || continue
+                ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
+                  --delattr="userclass=${current}" >/dev/null || true
+              done
+
+            while IFS= read -r desired; do
+              [ -n "${desired}" ] || continue
+              ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
+                --addattr="userclass=${desired}" >/dev/null
+            done < "${attrs_file}"
+            rm -f "${attrs_file}"
+          args:
+            executable: /bin/bash
+          environment:
+            IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+            IPA_PASSWORD: "{{ ipa_password }}"
+            IPA_SERVER: "{{ ipa_server }}"
+            KRB5CCNAME: FILE:/tmp/blastwall_negative_gate_krb5cc
+            BLASTWALL_HOST: "{{ blastwall_negative_gate_host }}"
+            BLASTWALL_USERCLASS_JSON: "{{ blastwall_negative_gate_userclass | to_json }}"
+            BLASTWALL_NEGATIVE_GATE_REASON: "{{ blastwall_negative_gate_reason }}"
+          no_log: true
+          changed_when: true
 
     - name: Report controlled negative-gate marker mutation
       ansible.builtin.debug:

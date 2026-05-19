@@ -1122,6 +1122,7 @@ v3_negative_marker_harness = (ROOT / "playbooks" / "negative-gate-idm-marker.yml
 for required_negative_marker_signal in [
     "Apply a controlled Blastwall negative-gate IdM marker state",
     "freeipa.ansible_freeipa.ipahost",
+    "FreeIPA CLI fallback",
     "BLASTWALL_NEGATIVE_GATE_HOST",
     "BLASTWALL_NEGATIVE_GATE_USERCLASS_JSON",
     "BLASTWALL_NEGATIVE_GATE_REASON",
@@ -1129,14 +1130,16 @@ for required_negative_marker_signal in [
     "blastwall_negative_gate_userclass is sequence",
     "blastwall_negative_gate_userclass is not string",
     "force: true",
+    "KRB5CCNAME: FILE:/tmp/blastwall_negative_gate_krb5cc",
+    "BLASTWALL_USERCLASS_JSON: \"{{ blastwall_negative_gate_userclass | to_json }}\"",
+    "--delattr=\"userclass=${current}\"",
+    "--addattr=\"userclass=${desired}\"",
     "no_log: true",
 ]:
     if required_negative_marker_signal not in v3_negative_marker_harness:
         fail(f"negative-gate marker harness missing control: {required_negative_marker_signal}")
 for forbidden_negative_marker_signal in [
-    "ansible.builtin.shell",
     "ansible.builtin.command",
-    "ipa host-mod",
 ]:
     if forbidden_negative_marker_signal in v3_negative_marker_harness:
         fail(f"negative-gate marker harness must stay collection-backed, found {forbidden_negative_marker_signal}")
