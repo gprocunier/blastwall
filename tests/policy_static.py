@@ -1118,6 +1118,28 @@ if (
     fail("AAP attestation workflow extra vars must carry the runtime Blastwall target identity")
 if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
+v3_negative_marker_harness = (ROOT / "playbooks" / "negative-gate-idm-marker.yml").read_text(encoding="utf-8")
+for required_negative_marker_signal in [
+    "Apply a controlled Blastwall negative-gate IdM marker state",
+    "freeipa.ansible_freeipa.ipahost",
+    "BLASTWALL_NEGATIVE_GATE_HOST",
+    "BLASTWALL_NEGATIVE_GATE_USERCLASS_JSON",
+    "BLASTWALL_NEGATIVE_GATE_REASON",
+    "blastwall_negative_gate_userclass is sequence",
+    "blastwall_negative_gate_userclass is not string",
+    "no_log: true",
+]:
+    if required_negative_marker_signal not in v3_negative_marker_harness:
+        fail(f"negative-gate marker harness missing control: {required_negative_marker_signal}")
+for forbidden_negative_marker_signal in [
+    "ansible.builtin.shell",
+    "ansible.builtin.command",
+    "ipa host-mod",
+]:
+    if forbidden_negative_marker_signal in v3_negative_marker_harness:
+        fail(f"negative-gate marker harness must stay collection-backed, found {forbidden_negative_marker_signal}")
+if "negative-gate-idm-marker.yml" in aap_vars:
+    fail("negative-gate IdM marker harness must not be registered as a default production AAP template")
 for required_sign_custody_signal in [
     "Build signed attestation envelope and latest index",
     "eigenstate.ipa.vault_artifact",
