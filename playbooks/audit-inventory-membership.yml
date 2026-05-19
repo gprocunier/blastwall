@@ -24,6 +24,11 @@
       default(lookup('env', 'BLASTWALL_INVENTORY_AUDIT_REPORT') | default('/var/tmp/blastwall-inventory-audit-report.json', true), true) }}
     blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
     blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
+    blastwall_attestation_mode: >-
+      {{
+        BLASTWALL_ATTESTATION_MODE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)
+      }}
     blastwall_allow_dry_run_profiles: >-
       {{
         BLASTWALL_ALLOW_DRY_RUN_PROFILES |
@@ -115,6 +120,11 @@
           - -i
           - "{{ blastwall_inventory_source }}"
           - --list
+      environment:
+        BLASTWALL_ALLOW_DRY_RUN_PROFILES: "{{ blastwall_allow_dry_run_profiles | string | lower }}"
+        BLASTWALL_ATTESTATION_MODE: "{{ blastwall_attestation_mode }}"
+        BLASTWALL_PROFILE_REGISTRY_SHA256: "{{ blastwall_profile_registry_sha256 }}"
+        BLASTWALL_REQUIRED_POLICY_PROFILES: "{{ blastwall_required_profiles_env }}"
       register: blastwall_inventory_runtime
       changed_when: false
       when: blastwall_inventory_json_path | length == 0

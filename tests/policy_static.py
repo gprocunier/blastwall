@@ -1141,6 +1141,13 @@ for required_schedule_signal in [
 inventory_audit_playbook = (ROOT / "playbooks" / "audit-inventory-membership.yml").read_text(encoding="utf-8")
 if "blastwall_inventory_source_raw" not in inventory_audit_playbook or "playbook_dir ~ '/../'" not in inventory_audit_playbook:
     fail("inventory audit playbook must resolve project-relative inventory sources from the playbook directory")
+for required_inventory_env in [
+    "BLASTWALL_ATTESTATION_MODE",
+    "BLASTWALL_PROFILE_REGISTRY_SHA256",
+    "BLASTWALL_ALLOW_DRY_RUN_PROFILES",
+]:
+    if required_inventory_env not in inventory_audit_playbook:
+        fail(f"inventory audit playbook must pass {required_inventory_env} into nested ansible-inventory")
 v3_negative_marker_harness = (ROOT / "playbooks" / "negative-gate-idm-marker.yml").read_text(encoding="utf-8")
 for required_negative_marker_signal in [
     "Apply a controlled Blastwall negative-gate IdM marker state",
