@@ -19,6 +19,8 @@
       default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
     ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
     ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
+    ipa_basedn: >-
+      dc={{ ipa_domain | replace('.', ',dc=') }}
     blastwall_attestation_vault_primary: >-
       {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
     blastwall_attestation_vault_servers: >-
@@ -62,6 +64,28 @@
       loop: "{{ blastwall_attestation_vault_servers }}"
       register: blastwall_attestation_vault_server_resolution
       changed_when: false
+
+    - name: Write FreeIPA client config for KRA health gate
+      ansible.builtin.copy:
+        dest: /etc/ipa/default.conf
+        mode: "0644"
+        content: |
+          [global]
+          server = {{ ipa_server }}
+          domain = {{ ipa_domain }}
+          realm = {{ ipa_realm }}
+          basedn = {{ ipa_basedn }}
+          xmlrpc_uri = https://{{ ipa_server }}/ipa/xml
+
+    - name: Install injected FreeIPA CA for KRA health gate
+      ansible.builtin.copy:
+        src: "{{ ipa_ca }}"
+        dest: /etc/ipa/ca.crt
+        mode: "0644"
+        remote_src: true
+      when:
+        - ipa_ca | length > 0
+        - ipa_ca != "/etc/ipa/ca.crt"
 
     - name: Check configured KRA vault health through eigenstate
       eigenstate.ipa.vault_health:

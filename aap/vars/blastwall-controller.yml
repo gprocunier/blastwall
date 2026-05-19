@@ -216,6 +216,13 @@ blastwall_aap_job_templates:
     extra_vars: "{{ blastwall_aap_profile_extra_vars }}"
 
 blastwall_aap_v3_job_templates:
+  - name: Blastwall attestation vault health
+    playbook: playbooks/attestation-vault-health.yml
+    credentials:
+      - "{{ blastwall_aap_attestation_idm_credential }}"
+      - "{{ blastwall_aap_attestation_verifier_credential }}"
+    limit: ""
+    extra_vars: "{{ blastwall_aap_attestation_extra_vars }}"
   - name: Blastwall sign attestation
     playbook: playbooks/sign-attestation.yml
     credentials:

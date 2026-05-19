@@ -1080,6 +1080,8 @@ for expected_signal in ["idm_userclass_type", "idm_schema_warnings"]:
         fail(f"poc-calabi/15-validate-idm-with-eigenstate.yml must consume eigenstate.ipa companion hostvar {expected_signal}")
 for required_signer_signal in [
     "Blastwall sign attestation",
+    "Blastwall attestation vault health",
+    "playbooks/attestation-vault-health.yml",
     "blastwall_aap_attestation_idm_credential",
     "blastwall_aap_attestation_signer_credential",
     "blastwall_aap_attestation_verifier_credential",
@@ -1289,6 +1291,13 @@ for required_health_signal in [
 ]:
     if required_health_signal not in v3_health:
         fail(f"attestation-vault-health.yml missing real vault health signal {required_health_signal}")
+for required_health_bootstrap in [
+    "Write FreeIPA client config for KRA health gate",
+    "Install injected FreeIPA CA for KRA health gate",
+    "xmlrpc_uri = https://{{ ipa_server }}/ipa/xml",
+]:
+    if required_health_bootstrap not in v3_health:
+        fail(f"attestation-vault-health.yml missing Controller-side FreeIPA bootstrap: {required_health_bootstrap}")
 if "^blastwall:.*(?:^blastwall:|;)v=3" in v3_preflight:
     fail("stable-v3 preflight marker selector does not match blastwall:v=3 prefix markers")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
