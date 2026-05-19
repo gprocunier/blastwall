@@ -47,7 +47,7 @@ scope_freeze:
 |---:|---|---|---|---|---|---|
 | 00 | complete | PM + 5.5 | pending | baseline commands | branch/source/AAP state recorded | AAP project still points at target branch until working branch is pushed and selected |
 | 01 | complete | Test Harness | pending | `make test-fast`; `python3 tests/policy_static.py`; registry validation; drift check; `python3 -m pytest -q tests`; syntax checks for preflight/sign/promote/attestation-vault-health | all passed; `167 passed` in full pytest; static coverage confirmed for collection floor, profile-derived post-promotion preflight, raw IPA fallback approval/readback, explicit KRA inputs, and no marker-only stable-v3 pass | none |
-| 02 | in_progress | KRA/Vault | pending | AAP job `3271` exposed standalone KRA health bootstrap failure; local syntax/static checks pass after patch | job `3271` failed with `ipalib finalize failed: 'Env' object has no attribute 'server'`; classified likely fresh-deploy bug, rerun-likelihood 10% | rerun healthy and controlled canary-missing failure after Controller sync |
+| 02 | complete | KRA/Vault | `78c7c51`, `6d5e65a` | syntax check; `python3 tests/policy_static.py`; AAP project sync to `6d5e65a`; live AAP health jobs `3292` and `3290` | healthy job `3292` passed; missing-canary job `3290` failed as `FAIL_CANARY_MISSING` with IdM, KRA, and vault reachable | canary-positive freshness remains optional unless a real canary vault is configured |
 | 03 | pending | Architecture | | | | pending |
 | 04 | pending | KRA/Vault | | | | pending |
 | 05 | pending | Attestation | | | | pending |
@@ -66,7 +66,7 @@ scope_freeze:
 - signed envelope required: Phase 01 static/source checks pass
 - latest index required: Phase 01 static/source checks pass
 - live policy hash required: Phase 01 static/source checks pass
-- KRA infra split: source checks pass; live health checks pending
+- KRA infra split: live AAP health job `3292` passed and missing-canary job `3290` failed as `FAIL_CANARY_MISSING` without host-drift ambiguity
 - breakglass boundaries: local/source coverage partial; live negative matrix pending
 - raw CLI fallback: source checks pass for current fallback controls; read-only audit found revoke playbook command-shell exception to classify
 ```
@@ -88,6 +88,39 @@ initial_health_job:
     - bootstrap /etc/ipa/default.conf before eigenstate.ipa.vault_health
     - install injected IPA CA when Controller credential provides one
     - register Blastwall attestation vault health as a managed v3 AAP job template
+project_sync:
+  aap_project_id: 8
+  branch: blastwall-v3-negative-gate-calabi
+  scm_revision: 6d5e65a9d3c11569682135be5db41bbddc7872f8
+  project_update_job: 3286
+healthy_health_job:
+  aap_job_id: 3292
+  git_sha: 6d5e65a9d3c11569682135be5db41bbddc7872f8
+  result: PASS
+  status: successful
+  failure_state: none
+  failure_class: none
+  idm_reachable: true
+  vault_reachable: true
+  kra_available: true
+  message: vault health check passed
+controlled_canary_failure:
+  aap_job_id: 3290
+  git_sha: 6d5e65a9d3c11569682135be5db41bbddc7872f8
+  result: FAIL_EXPECTED
+  status: failed
+  injected_canary: blastwall-negative-gate-missing-canary
+  failure_state: FAIL_CANARY_MISSING
+  failure_class: vault_not_found
+  idm_reachable: true
+  vault_reachable: true
+  kra_available: true
+  canary_present: false
+  message: "canary vault 'blastwall-negative-gate-missing-canary' was not found"
+concurrent_job_note:
+  aap_job_id: 3287
+  status: error
+  reason: Controller-side concurrent launch errored during host resolution; rerun job 3292 established healthy baseline on the same commit
 ```
 
 ## Destructive Negative Evidence Summary
