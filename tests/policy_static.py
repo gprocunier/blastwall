@@ -1128,6 +1128,7 @@ for required_negative_marker_signal in [
     "blastwall_negative_gate_userclass_json | from_json",
     "blastwall_negative_gate_userclass is sequence",
     "blastwall_negative_gate_userclass is not string",
+    "force: true",
     "no_log: true",
 ]:
     if required_negative_marker_signal not in v3_negative_marker_harness:

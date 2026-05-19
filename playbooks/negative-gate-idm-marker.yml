@@ -90,6 +90,7 @@
         ipaadmin_password: "{{ ipa_password }}"
         name: "{{ blastwall_negative_gate_host }}"
         userclass: "{{ blastwall_negative_gate_userclass }}"
+        force: true
         state: present
       no_log: true
 
