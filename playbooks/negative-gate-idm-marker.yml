@@ -111,19 +111,17 @@
                 print(value)
             PY
 
-            ipa -e "server=${IPA_SERVER}" -f -n host-show "${BLASTWALL_HOST}" --all |
-              sed -n 's/^  userclass: //p' |
-              while IFS= read -r current; do
-                [ -n "${current}" ] || continue
-                ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
-                  --delattr="userclass=${current}" >/dev/null || true
-              done
+            mapfile -t desired_classes < "${attrs_file}"
+            first_class="${desired_classes[0]:-}"
+            [ -n "${first_class}" ]
+            ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
+              --setattr="userclass=${first_class}" >/dev/null
 
-            while IFS= read -r desired; do
+            for desired in "${desired_classes[@]:1}"; do
               [ -n "${desired}" ] || continue
               ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
                 --addattr="userclass=${desired}" >/dev/null
-            done < "${attrs_file}"
+            done
             rm -f "${attrs_file}"
           args:
             executable: /bin/bash

@@ -1132,7 +1132,8 @@ for required_negative_marker_signal in [
     "force: true",
     "KRB5CCNAME: FILE:/tmp/blastwall_negative_gate_krb5cc",
     "BLASTWALL_USERCLASS_JSON: \"{{ blastwall_negative_gate_userclass | to_json }}\"",
-    "--delattr=\"userclass=${current}\"",
+    "mapfile -t desired_classes",
+    "--setattr=\"userclass=${first_class}\"",
     "--addattr=\"userclass=${desired}\"",
     "no_log: true",
 ]:
