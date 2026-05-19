@@ -1273,11 +1273,19 @@ if "not blastwall_breakglass | bool" not in v3_preflight:
 if "skeleton" in v3_health.lower() or "placeholder" in v3_health.lower():
     fail("attestation-vault-health.yml must not contain skeleton or placeholder health logic")
 for explicit_health_input in [
-    "BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('', true)",
-    "BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true)",
+    "BLASTWALL_ATTESTATION_VAULT_SCOPE |",
+    "BLASTWALL_ATTESTATION_VAULT_OWNER |",
+    "BLASTWALL_ATTESTATION_HEALTH_CANARY |",
+    "BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS |",
 ]:
     if explicit_health_input not in v3_health:
         fail(f"attestation-vault-health.yml must require explicit vault health input {explicit_health_input}")
+for required_aap_attestation_extra_var in [
+    "BLASTWALL_ATTESTATION_HEALTH_CANARY",
+    "BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS",
+]:
+    if required_aap_attestation_extra_var not in aap_vars:
+        fail(f"AAP v3 attestation template must pass {required_aap_attestation_extra_var} to health/preflight jobs")
 for required_health_signal in [
     "eigenstate.ipa.vault_health",
     "require_direct_kra: true",

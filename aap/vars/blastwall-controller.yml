@@ -99,6 +99,10 @@ blastwall_aap_attestation_vault_scope: >-
   {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('service', true) }}
 blastwall_aap_attestation_vault_owner: >-
   {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('blastwall-attestation', true) }}
+blastwall_aap_attestation_health_canary: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_HEALTH_CANARY') | default('', true) }}
+blastwall_aap_attestation_canary_max_age_seconds: >-
+  {{ lookup('env', 'BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS') | default('', true) }}
 blastwall_aap_attestation_envelope_dir: >-
   {{ lookup('env', 'BLASTWALL_ATTESTATION_ENVELOPE_DIR') |
   default('/tmp/blastwall-attestations/envelopes', true) }}
@@ -143,6 +147,8 @@ blastwall_aap_attestation_extra_vars:
   BLASTWALL_ATTESTATION_VAULT_SERVERS: "{{ blastwall_aap_attestation_vault_servers }}"
   BLASTWALL_ATTESTATION_VAULT_SCOPE: "{{ blastwall_aap_attestation_vault_scope }}"
   BLASTWALL_ATTESTATION_VAULT_OWNER: "{{ blastwall_aap_attestation_vault_owner }}"
+  BLASTWALL_ATTESTATION_HEALTH_CANARY: "{{ blastwall_aap_attestation_health_canary }}"
+  BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS: "{{ blastwall_aap_attestation_canary_max_age_seconds }}"
   BLASTWALL_ATTESTATION_ENVELOPE_DIR: "{{ blastwall_aap_attestation_envelope_dir }}"
   BLASTWALL_ATTESTATION_INDEX_DIR: "{{ blastwall_aap_attestation_index_dir }}"
   BLASTWALL_SPO_EVIDENCE_JSON: "{{ blastwall_aap_spo_evidence_json }}"

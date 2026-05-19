@@ -22,10 +22,14 @@
     ipa_basedn: >-
       dc={{ ipa_domain | replace('.', ',dc=') }}
     blastwall_attestation_vault_primary: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true) }}
+      {{
+        BLASTWALL_ATTESTATION_VAULT_PRIMARY |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_PRIMARY') | default('', true), true)
+      }}
     blastwall_attestation_vault_servers: >-
       {{
-        lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') |
+        BLASTWALL_ATTESTATION_VAULT_SERVERS |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SERVERS') | default('', true), true) |
         default('', true) |
         split(',') |
         map('trim') |
@@ -33,13 +37,25 @@
         list
       }}
     blastwall_attestation_vault_scope: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('', true) }}
+      {{
+        BLASTWALL_ATTESTATION_VAULT_SCOPE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_SCOPE') | default('', true), true)
+      }}
     blastwall_attestation_vault_owner: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true) }}
+      {{
+        BLASTWALL_ATTESTATION_VAULT_OWNER |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_VAULT_OWNER') | default('', true), true)
+      }}
     blastwall_attestation_health_canary: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_HEALTH_CANARY') | default('', true) }}
+      {{
+        BLASTWALL_ATTESTATION_HEALTH_CANARY |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_HEALTH_CANARY') | default('', true), true)
+      }}
     blastwall_attestation_canary_max_age_seconds: >-
-      {{ lookup('env', 'BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS') | default('', true) }}
+      {{
+        BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS') | default('', true), true)
+      }}
   tasks:
     - name: Validate explicit vault health inputs
       ansible.builtin.assert:
