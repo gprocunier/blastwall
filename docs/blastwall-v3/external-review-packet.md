@@ -48,62 +48,52 @@ Reference documents:
 
 ## Calabi evidence
 
-Latest live healthy-path gate completed on 2026-05-18 UTC on the
-`blastwall-v3-signed-attestation` branch with the `eigenstate.ipa` 1.18.1
-surfaces available. The destructive negative matrix was then run on
-`blastwall-v3-negative-gate-calabi` through Controller-visible commit
-`3ff61e0a8c98439a3d3c238e687306dd2dfaafee`.
+Latest target-branch evidence was captured on 2026-05-19 UTC on
+`blastwall-v3-signed-attestation`. The AAP project was synced to
+`9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b` by project update `3771`.
 
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).
 - `AAP project branch`: `blastwall-v3-signed-attestation`.
-- `Latest Controller-visible gate commit`:
-  `56f7c451a281bda5f5a1dbd1a8fac12d00097410`.
 - `KRA primary`: `idm-01.workshop.lan`.
 - `KRA server list`: `idm-01.workshop.lan`.
 - `KRA scope/owner`: `shared` / `blastwall-attestation`.
-- `Signer`: AAP sign job `2865`, signer SKI
-  `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
-- `Latest policy pipeline`: AAP workflow `2843`, successful.
-- `Latest OpenShift/SPO apply-validation`: AAP job `2857`, successful.
-- `Latest post-promotion preflight`: AAP job `2876`, successful.
-- `Standalone valid stable-v3 preflight`: AAP job `2839`, successful.
-- `Earlier policy pipeline`: AAP workflow `2177`, successful.
-- `Earlier runtime verification`: AAP workflow `2227`, successful.
-- `Valid base host preflight`: AAP job `2839`, successful. It retrieved the
-  signed envelope and latest index from KRA and returned `status=PASS`,
-  `failure_state=null`.
-- `Managed-host verification`: AAP job `2861`, successful. Evidence digest
-  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
+- `Signer KID`: `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
 - `Policy NEVRA`: `blastwall-selinux-0.6.1-0.rc1`.
 - `Policy hash`:
   `4b3e1d30e364331d408d8531d871ffcce23805a89b4cf44bd2977854be35bfc2`.
 - `Registry hash`:
   `c8a533efc7ce60604d2a770964eea582005dde49ac2b882eea38c9701d612486`.
-- `RPM hash`:
-  `0c25e56e120a6e1f38d89300b3598cd4066967ef4136204610134fdd12735f45`.
-- `Attestation ref`:
-  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779093311.json`.
-- `Attestation hash`:
-  `4d382ebdee93fe0c37f1585711d2216465a09f18c8c359e142b2b2558582840b`.
-- `Index generation`: `1779093311`.
-- `Marker`:
-  `blastwall:v=3;state=active;target=rhel-login;rpm=blastwall-selinux-0.6.1-0.rc1;profiles=base;attest_ref=shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779093311.json;attest_sha256=4d382ebdee93fe0c37f1585711d2216465a09f18c8c359e142b2b2558582840b;signer_kid=8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6;exp=2026-05-18T09:35:12Z;generation=1779093311`.
+- `Current golden attestation ref`:
+  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779161194.json`.
+- `Current golden attestation hash`:
+  `8d7f4a9844d7bceee2e0114ae55f66aa507e541676aad98ad3667c09701c3b11`.
 
-The live gate also confirmed the managed-host policy still blocks the current
-probe set, including AF_ALG, BPF map/prog load, AF_PACKET, user namespace,
-`io_uring_setup`, Dirty Frag `NETLINK_XFRM`, Dirty Frag `AF_RXRPC`, and
-Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES` evidence.
+Healthy-path evidence remains on record:
+
+- Policy pipeline workflow `2843`, OpenShift/SPO apply-validation job `2857`,
+  managed-host verification job `2861`, sign-attestation job `2865`,
+  marker-promotion job `2869`, and post-promotion preflight job `2876`
+  completed successfully on the signed-attestation branch.
+- Earlier policy pipeline workflow `2177` and runtime verification workflow
+  `2227` completed successfully.
+- Managed-host evidence digest
+  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`
+  confirmed the deny probes still block AF_ALG, BPF map/prog load, AF_PACKET,
+  user namespace, `io_uring_setup`, Dirty Frag `NETLINK_XFRM`, Dirty Frag
+  `AF_RXRPC`, and Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES`
+  evidence.
 
 Live negative checks currently recorded:
 
-- Drifted current policy hash: AAP preflight job `2827` failed with
-  `FAIL_DRIFTED_POLICY`.
-- Bad signer allowlist: AAP preflight job `2830` failed with
+- Drifted current policy hash: AAP preflight jobs `2827` and `3478` failed
+  with `FAIL_DRIFTED_POLICY`.
+- Bad signer allowlist: AAP preflight jobs `2830` and `3485` failed with
   `FAIL_SIGNER_UNTRUSTED`.
 - Bad configured KRA primary/server: AAP preflight job `2835` failed closed at
-  `Resolve configured stable-v3 KRA vault servers` for
-  `missing-kra.workshop.lan`.
+  configured KRA resolution for `missing-kra.workshop.lan`.
+- KRA health: job `3698` passed, missing-canary job `3701` failed
+  `FAIL_CANARY_MISSING`, and bad-primary job `3702` failed closed.
 - Destructive artifact visibility: `3421` missing envelope,
   `3439` missing index, and `3457` digest mismatch all failed closed.
 - Destructive security failures: `3505` signature tamper, `3531` replay,
@@ -115,8 +105,28 @@ Live negative checks currently recorded:
 - Restore proof: inventory sync `3690` showed the current mirror marker and
   stale fixture marker restored; golden preflight `3693` passed afterward.
 
-Remaining hold: the three-host mixed-state gate and governance-owned continuous
-verification schedule are not complete.
+Mixed-state and continuous verification evidence are now installed and
+exercised:
+
+- Inventory sync `3712` showed three controlled states: current valid
+  `mirror-registry.workshop.lan`, stale legacy `stale-blastwall-01.workshop.lan`,
+  and current-but-broken `missing-artifact-blastwall-01.workshop.lan`.
+- Candidate preflight job `3725` passed the valid host.
+- Stale preflight job `3728` failed closed on the stale fixture.
+- Profile-base preflight job `3723` failed closed because the broken fixture
+  was intentionally included in that group.
+- AAP schedules `6` through `9` install hourly KRA health, hourly inventory
+  audit, daily candidate preflight, and daily runtime verification.
+- KRA health job `3731` passed with canary present.
+- Candidate preflight job `3735` passed and runtime workflow `3736` passed.
+- Strict inventory audit job `3772` authenticated to FreeIPA, verified the
+  valid mirror host, and failed closed on
+  `missing-artifact-blastwall-01.workshop.lan` with
+  `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.
+
+Remaining hold: source and lab evidence are ready for external review, but
+stable-v3 publication still needs named governance owners and sign-off. The
+S-range claim remains held until broader scale evidence is captured.
 
 ## Failure-state map
 

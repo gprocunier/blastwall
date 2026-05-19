@@ -4,7 +4,8 @@
 
 Collect negative evidence for Blastwall v3 stable-v3 policy gates on Calabi.
 This packet contains the live destructive matrix captured through the
-negative-gate branch and identifies the remaining mixed-state publication hold.
+negative-gate branch plus the later target-branch mixed-state and continuous
+verification evidence.
 
 ## Scope
 
@@ -49,8 +50,8 @@ Each case below must be captured against a controlled/disposable Calabi host:
 | Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | Revoked-index artifact job `3568`; mutation job `3572`; preflight job `3579` failed as `FAIL_REVOKED_ATTESTATION`; restore job `3583`. Revoked-marker job `3601` failed closed earlier as invalid locator `marker is revoked`; restore job `3605` |
 | Expired attestation | expired attestation failure | AAP artifact job `3546`; mutation job `3550`; preflight job `3557` failed as `FAIL_STALE_ATTESTATION`; restore job `3561` |
 | Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected; current-branch job `3478` failed as `FAIL_DRIFTED_POLICY` |
-| KRA stale/missing canary | infra visibility failure | pending |
-| Vault auth failure | auth/infra failure | pending |
+| KRA stale/missing canary | infra visibility failure | positive job `3698`; missing-canary job `3701` failed `FAIL_CANARY_MISSING`; bad-primary job `3702` failed closed; canary schedule job `3731` passed |
+| Vault auth failure | auth/infra failure | no forced bad-credential destructive job in this packet; strict audit job `3772` proves normal Controller authentication and no longer misclassifies missing artifact as auth failure |
 | Breakglass infra-visibility bypass | scoped breakglass may pass only for artifact/index visibility | Missing-envelope mutation job `3660`; breakglass preflight job `3667` passed with `override_failure_state=FAIL_ATTESTATION_NOT_VISIBLE`; restore job `3671` |
 | Breakglass security failure rejection | breakglass rejected for signature, drift, profile, and revocation failures | Signature job `3509`, replay job `3535`, profile job `3627`, policy drift job `3682`, and signer job `3686` all rejected breakglass |
 | Signature tamper | signature failure | AAP artifact job `3494`; mutation job `3498`; preflight job `3505` failed as `FAIL_SIGNATURE_INVALID`; breakglass job `3509` rejected; restore job `3513` |
@@ -217,6 +218,49 @@ Current negative-gate artifact bindings:
   `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
 - Generation: `1779161194`.
 
+## Three-host mixed-state gate
+
+Captured on 2026-05-19 UTC on the target branch
+`blastwall-v3-signed-attestation`.
+
+- Project update `3771` synced the Controller project to
+  `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
+- Fixture host `missing-artifact-blastwall-01.workshop.lan` was seeded as a
+  current v3 `base` marker that points at an absent envelope.
+- Inventory sync `3712` grouped:
+  - `mirror-registry.workshop.lan` in `blastwall_policy_candidate`,
+    `blastwall_policy_current`, and `blastwall_profile_base`;
+  - `missing-artifact-blastwall-01.workshop.lan` in
+    `blastwall_policy_current` and `blastwall_profile_base`;
+  - `stale-blastwall-01.workshop.lan` in `blastwall_policy_stale` and
+    `blastwall_inventory_marker_parse_error`.
+- Profile-base preflight job `3723` failed closed because the broken current
+  marker host was included in that selected group.
+- Candidate-only preflight job `3725` passed for the valid mirror host.
+- Stale-host preflight job `3728` failed closed for the stale fixture.
+- Strict inventory audit job `3772` authenticated to FreeIPA, verified the
+  mirror host, and failed closed on `missing-artifact-blastwall-01.workshop.lan`
+  with `FAIL_ATTESTATION_NOT_VISIBLE`, `vault_error_type=not_found`,
+  `retry_attempted=true`, and `current_marker_kra_unavailable_hosts=[]`.
+
+## Continuous verification loop
+
+The target branch installs AAP schedules for the first stable-v3 operating
+loop:
+
+- Schedule `6`: hourly KRA health.
+- Schedule `7`: hourly inventory audit.
+- Schedule `8`: daily candidate preflight.
+- Schedule `9`: daily runtime verification.
+
+Initial Controller-visible runs:
+
+- KRA health job `3731` passed with the health canary present.
+- Candidate preflight job `3735` passed.
+- Runtime verification workflow `3736` passed.
+- Strict inventory audit job `3772` failed closed on the intentionally broken
+  current marker while passing the valid current host.
+
 ## Capture template
 
 ```yaml
@@ -249,6 +293,8 @@ attachments:
 
 The destructive negative matrix now covers artifact visibility, replay,
 expiry, revoked latest index, signature tamper, signer trust, policy drift,
-profile mismatch, host binding, and breakglass boundaries. Remaining evidence
-for a final stable-v3 release claim is the required three-host mixed-state
-gate, schedule ownership for continuous verification, and governance approval.
+profile mismatch, host binding, and breakglass boundaries. The target branch
+also has three-host mixed-state evidence and an installed continuous
+verification loop. Remaining publication hold is governance approval and named
+owners; the S-range claim remains held until broader scale evidence is
+captured.

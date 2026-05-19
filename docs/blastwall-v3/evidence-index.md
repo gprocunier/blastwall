@@ -2,24 +2,30 @@
 
 ## Primary Artifacts
 
-- `V3_NEGATIVE_GATE_LEDGER.md`: phase-by-phase execution ledger with job IDs,
-  restore proofs, and residual risks.
+- `V3_STABLE_EVIDENCE_GATE_LEDGER.md`: current execution ledger for the
+  stable-evidence gate.
+- `V3_NEGATIVE_GATE_LEDGER.md`: destructive negative gate execution ledger with
+  job IDs, restore proofs, and residual risks.
 - `docs/blastwall-v3/calabi-negative-evidence.md`: reviewer-facing destructive
-  negative evidence packet.
-- `docs/blastwall-v3/multi-host-continuous-verification-plan.md`: remaining
-  mixed-state and continuous verification plan.
+  and mixed-state evidence packet.
+- `docs/blastwall-v3/multi-host-continuous-verification-plan.md`: mixed-state
+  and continuous verification operating plan.
 - `docs/blastwall-v3/stable-v3-release-decision.md`: current release posture.
 
 ## Controller Evidence
 
 - Project: `Blastwall`, ID `8`.
-- Branch: `blastwall-v3-negative-gate-calabi`.
-- Current synced commit: `3ff61e0a8c98439a3d3c238e687306dd2dfaafee`.
-- Project update: `3489`.
+- Branch: `blastwall-v3-signed-attestation`.
+- Current synced commit: `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
+- Project update: `3771`.
+- Inventory source: `9`.
 - Preflight job template: `10`.
+- Runtime verification workflow template: `15`.
+- Policy pipeline workflow template: `19`.
+- Attestation vault health template: `29`.
 - Negative IdM marker harness: `30`, lab-only.
 - Negative attestation artifact harness: `31`, lab-only.
-- Attestation vault health template: `29`.
+- Inventory membership audit template: `32`.
 
 ## Healthy Path
 
@@ -31,6 +37,17 @@
 - Post-Phase-04 golden preflight: `3471`, successful.
 - Post-matrix inventory sync: `3690`, successful.
 - Post-matrix golden preflight: `3693`, successful.
+- Later target-branch KRA health job: `3731`, successful.
+- Later target-branch candidate preflight job: `3735`, successful.
+- Later target-branch runtime workflow: `3736`, successful.
+
+## KRA Health
+
+- Positive health: `3698`, successful.
+- Missing canary: `3701`, failed as `FAIL_CANARY_MISSING`.
+- Bad configured KRA primary/server: `3702`, failed closed on
+  `missing-kra.workshop.lan`.
+- Canary health after schedules: `3731`, successful with canary present.
 
 ## Artifact Visibility
 
@@ -65,6 +82,27 @@
 - Missing-envelope allowed bypass: mutation `3660`, preflight `3667`, restore
   `3671`, restore sync `3675`.
 - Security-failure rejections: `3509`, `3535`, `3627`, `3682`, `3686`.
+
+## Mixed-State Gate
+
+- Inventory sync `3712`: selected current valid, stale legacy, and
+  current-broken-attestation hosts.
+- Profile-base preflight `3723`: failed closed because the broken current
+  marker host was included in the selected group.
+- Candidate preflight `3725`: passed for `mirror-registry.workshop.lan`.
+- Stale-host preflight `3728`: failed closed for
+  `stale-blastwall-01.workshop.lan`.
+- Strict inventory audit `3772`: verified the valid host and failed closed for
+  `missing-artifact-blastwall-01.workshop.lan` with
+  `FAIL_ATTESTATION_NOT_VISIBLE`, `vault_error_type=not_found`.
+
+## Continuous Verification
+
+- Schedule `6`: `Blastwall stable-v3 KRA health hourly`, enabled.
+- Schedule `7`: `Blastwall stable-v3 inventory audit hourly`, enabled.
+- Schedule `8`: `Blastwall stable-v3 candidate preflight daily`, enabled.
+- Schedule `9`: `Blastwall stable-v3 runtime verification daily`, enabled.
+- Exercised checks: `3731`, `3735`, `3736`, `3772`.
 
 ## Current Artifact Bindings
 

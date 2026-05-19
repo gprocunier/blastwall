@@ -85,6 +85,8 @@ Minimum evidence package for sign-off:
 Current Calabi RC evidence:
 
 - Healthy-path Calabi v3 KRA/AAP/SPO gate completed on 2026-05-18 UTC.
+- Latest target-branch continuous-evidence check completed on 2026-05-19 UTC
+  at `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
 - Latest Controller-visible stable-v3 policy pipeline workflow `2843` passed,
   including OpenShift/SPO apply-validation job `2857`, managed-host
   verification job `2861`, sign-attestation job `2865`, marker-promotion job
@@ -111,10 +113,23 @@ Current Calabi RC evidence:
   the active v3 marker and `stale-blastwall-01.workshop.lan` to its original
   stale fixture marker; golden preflight job `3693` passed on the current
   branch commit.
-- Remaining evidence hold: the required three-host mixed-state gate and
-  governance-owned continuous verification schedule are not complete.
+- Three-host mixed-state gate is complete for the candidate scope:
+  inventory sync `3712` selected current valid, stale legacy, and
+  current-broken-attestation hosts; candidate preflight `3725` passed the valid
+  host; stale preflight `3728` failed closed; profile-group preflight `3723`
+  failed closed when the broken fixture was included.
+- Continuous verification schedules are installed in AAP: `6` hourly KRA
+  health, `7` hourly inventory audit, `8` daily candidate preflight, and `9`
+  daily runtime verification. KRA health `3731`, candidate preflight `3735`,
+  and runtime workflow `3736` passed.
+- Strict inventory audit job `3772` authenticated to FreeIPA, verified the
+  valid mirror host, and failed closed on the broken current marker with
+  `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.
+- Remaining publication hold: governance owners and sign-off must be assigned.
+  The S-range claim remains held pending broader scale evidence.
 
 ## Go/No-Go
 
-- GO only if all checklist items above are complete and evidence artifacts are attached.
+- GO only if all checklist items above are complete, evidence artifacts are
+  attached, and governance owners are named.
 - No-Go if any owner is missing, any infra-only exception is undocumented, or any security failure class is bypassed.

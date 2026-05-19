@@ -67,6 +67,10 @@ Run in this order:
 
 Record each check result as pass/fail per run.
 
+In AAP, the stable-v3 evidence loop installs an hourly KRA health schedule
+against the configured primary. The Calabi RC path recorded job `3731` as a
+passing canary check after the schedule was installed.
+
 ## Failure interpretation
 
 - `FAIL_KRA_UNAVAILABLE`: primary KRA unavailable or unhealthy in audit output.

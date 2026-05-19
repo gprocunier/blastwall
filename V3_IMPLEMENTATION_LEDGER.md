@@ -3,7 +3,7 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: HEAD (`docs(v3): record live Calabi gate evidence`)
+- current commit: `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`
 - implementation gate commit: `02c4d7490bfa7671802a71d3079846c27bd92b11`
 
 ## Phase Status
@@ -24,6 +24,8 @@
 | 12 | complete | test agent + architecture lead | HEAD | negative matrix pytest, static, full test | Added embedded-artifact marker rejection, expired attestation, wrong index signer, missing index, and v3 static workflow checks. |
 | 13 | complete | PM + architecture lead + Calabi agent | `02c4d74` | bastion `make test-fast`; Calabi AAP policy pipeline `2177`; Calabi AAP runtime verification `2227` | Live healthy-path KRA/AAP gate passed with signed stable-v3 marker publication, KRA readback, post-promotion preflight, runtime preflight, SPO validation, and managed-host probes. |
 | 14 | complete | docs agent + PM | HEAD | docs render, syntax, full test | Added operator, KRA topology, revocation/breakglass, readiness, and external-review docs. |
+| 15 | complete | hardening gate | HEAD | sign pytest, policy static, syntax, `make test-fast`, docs test | Replaced prior weak KRA/preflight edges, classified shell exceptions, and recorded the destructive negative packet. |
+| 16 | complete | stable-evidence gate | `9e9e5e8` | policy static, audit pytest, syntax, live AAP jobs | Installed continuous schedules, fixed Controller-side inventory audit FreeIPA bootstrap, completed three-host mixed-state evidence, and recorded strict audit fail-closed behavior. |
 
 ## Security Invariants
 - marker is locator only
@@ -37,15 +39,14 @@
 - breakglass cannot bypass failed host verification
 
 ## Open Blockers
-- No Phase 13 blocker remains for the healthy Calabi/AAP/KRA gate.
+- No source or evidence blocker remains for external review of the stable-v3
+  candidate gate.
 - Standalone stable-v3 runtime verification requires an explicit
   `BLASTWALL_CURRENT_POLICY_SHA256`. The policy pipeline supplies this from
   install artifacts; manually launched runtime gates must pass the same value.
-- Destructive live negative cases for missing artifacts, missing indexes,
-  revocation, and breakglass were not re-run against the live Calabi marker in
-  this pass. The branch regression matrix covers those failure classes; run a
-  live negative packet before claiming final production stable-v3 if external
-  reviewers require destructive lab evidence.
+- Final stable-v3 publication still needs named governance owners and sign-off.
+- S-range readiness is not claimed; run the broader mixed-state scale gate
+  before making an S-range claim.
 
 ## Calabi Evidence
 - Date: 2026-05-17 UTC.
@@ -243,3 +244,11 @@
 - tests run: `python3 -m pytest -q tests/test_blastwall_attestation_sign.py`; `python3 tests/policy_static.py`; `ansible-playbook --syntax-check playbooks/promote-policy-rpm.yml playbooks/deploy-policy.yml playbooks/attestation-vault-health.yml playbooks/preflight.yml`; `make test-fast`; `npm run test:docs`
 - open issues: current hardening patch has not yet replaced the prior Controller-visible live evidence commit; destructive Calabi cases for missing envelope/index, replay, revocation, expiry, KRA canary, vault auth, signature tamper, profile mismatch, and breakglass boundaries remain the production stable-v3 hold
 - security invariants checked: stable-v3 preflight resolves marker locators then reads envelope/index through `eigenstate.ipa.vault_artifact` before verifier execution; KRA health no longer supplies implicit scope/owner defaults; raw `ipa host-mod` fallback remains disabled by default and now requires immediate post-write host marker readback before proceeding
+
+### Phase 16
+- phase: 16 stable evidence gate
+- files changed: `aap/vars/blastwall-controller.yml`, `aap/configure-controller.yml`, `poc-calabi/aap/20-configure-controller.yml`, `playbooks/audit-inventory-membership.yml`, `tests/policy_static.py`, `V3_STABLE_EVIDENCE_GATE_LEDGER.md`, `docs/blastwall-v3/*`, `release/STABLE_V3_DECISION.md`
+- tests added: static guards for continuous schedules and inventory audit FreeIPA bootstrap
+- tests run: `python3 tests/policy_static.py`; `python3 -m pytest -q tests/test_audit_blastwall_inventory.py`; `ansible-playbook --syntax-check playbooks/audit-inventory-membership.yml`; `git diff --check`; live AAP project sync `3771`; strict audit job `3772`
+- open issues: stable-v3 publication remains held pending governance owner assignment and sign-off; S-range claim remains held pending broader scale evidence
+- security invariants checked: inventory remains selector-only; strict audit retrieves signed evidence from explicit KRA path before treating a current marker as valid; missing artifact is reported as `FAIL_ATTESTATION_NOT_VISIBLE` instead of marker suitability or generic auth failure

@@ -120,4 +120,16 @@ exceptions:
       - controlled host input
       - full userClass replacement from JSON input
       - no_log enabled for credential material
+
+  - id: BW-SHELL-012
+    file: playbooks/audit-inventory-membership.yml
+    task_name: Authenticate FreeIPA client for attestation inventory audit
+    classification: approved_exception
+    reason: Kerberos credential-cache bootstrap for the Controller-side inventory audit before Blastwall Python reads explicit KRA vault artifacts.
+    required_controls:
+      - Write FreeIPA client config for inventory audit
+      - Install injected FreeIPA CA for inventory audit
+      - Assert FreeIPA client credentials are available for inventory audit
+      - KRB5CCNAME scoped to the audit job
+      - no_log enabled for credential material
 ```

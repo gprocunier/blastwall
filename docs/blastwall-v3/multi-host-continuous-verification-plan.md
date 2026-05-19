@@ -29,11 +29,15 @@ Gate coverage required:
 Current Calabi fixture status:
 
 - Host A: `mirror-registry.workshop.lan`; current signed stable-v3 base marker;
-  post-matrix preflight job `3693` passed after inventory sync `3690`.
+  candidate preflight job `3725` passed and strict inventory audit job `3772`
+  reported no attestation failure for this host.
 - Host B: `stale-blastwall-01.workshop.lan`; original reference marker only
-  after restores; used for destructive mutation and restored after each case.
-- Host C: pending. The current inventory has no third fixture host, so the
-  required three-host mixed-state gate is not complete.
+  after restores; stale-host preflight job `3728` failed closed and inventory
+  audit records parser errors for the legacy marker.
+- Host C: `missing-artifact-blastwall-01.workshop.lan`; current v3 marker
+  points at an absent envelope. Profile-base preflight job `3723` failed
+  closed when this host was included, and strict inventory audit job `3772`
+  reported `FAIL_ATTESTATION_NOT_VISIBLE` with `vault_error_type=not_found`.
 
 ## S-range planning
 
@@ -43,28 +47,43 @@ Current Calabi fixture status:
 - Prove behavior under mixed profile requirements and cross-host drift scenarios.
 - Capture failure-class continuity with explicit host-level evidence per case.
 
-## Continuous verification options to implement
+## Continuous verification schedule
 
-- Schedule `Blastwall attestation vault health` hourly against
-  `idm-01.workshop.lan` with a configured canary when governance assigns an
-  owner.
-- Schedule `Blastwall preflight` daily for `blastwall_profile_base` and alert on
-  any non-`PASS` verifier report.
-- Schedule `Blastwall runtime verification` daily or per-change for managed
-  hosts where probe regeneration is safe.
-- Schedule `audit-inventory-membership.yml` or the Controller inventory source
-  sync plus marker audit daily, retaining group counts and parse warnings.
-- Keep `Blastwall negative gate attestation artifact harness` and
-  `Blastwall negative gate IdM marker harness` unscheduled and lab-only; run
-  them as an explicit destructive rehearsal on fixture hosts before release
-  candidates.
-- Centralize evidence snapshots with:
-  - AAP workflow/job IDs,
-  - `failure_state`,
-  - `vault_error_type`,
-  - `selected_hosts`,
-  - `stale_hosts`,
-  - attestation refs and digests.
+The first stable-v3 operating loop is installed as AAP schedules on the
+`blastwall-v3-signed-attestation` branch:
+
+- Schedule `6`: `Blastwall stable-v3 KRA health hourly`.
+- Schedule `7`: `Blastwall stable-v3 inventory audit hourly`.
+- Schedule `8`: `Blastwall stable-v3 candidate preflight daily`.
+- Schedule `9`: `Blastwall stable-v3 runtime verification daily`.
+
+The schedule payloads retain machine-readable evidence including group counts,
+stale/current membership, KRA health, canary state, attestation visibility,
+current-to-stale movement, and failure state fields.
+
+Initial exercised checks:
+
+- KRA health job `3731` passed with canary present.
+- Candidate preflight job `3735` passed.
+- Runtime verification workflow `3736` passed.
+- Strict inventory audit job `3772` verified the valid host and failed closed
+  on the missing-artifact fixture with `FAIL_ATTESTATION_NOT_VISIBLE`.
+
+The destructive negative harnesses remain unscheduled and lab-only:
+
+- `Blastwall negative gate attestation artifact harness`.
+- `Blastwall negative gate IdM marker harness`.
+
+Run them as explicit destructive rehearsals on fixture hosts before release
+candidates, not as continuous production schedules.
+
+Continue centralizing evidence snapshots with:
+
+- AAP workflow/job IDs,
+- `failure_state`,
+- `vault_error_type`,
+- selected/current/stale hosts,
+- attestation refs and digests.
 
 ## Evidence required before stable-v3 go decision
 
@@ -76,12 +95,18 @@ Current Calabi fixture status:
     completed successfully after destructive restores.
   - Earlier v3 implementation records also include policy pipeline `2177`,
     runtime verification `2227`, and managed-host verification `2240`.
-- Missing evidence to complete:
-  - multi-host candidate gate at 3+ hosts
+- Live candidate evidence now on record:
+  - Three-host inventory sync `3712` selected current valid, stale legacy, and
+    broken-current marker states.
+  - Candidate preflight `3725`, stale preflight `3728`, profile-base preflight
+    `3723`, and strict inventory audit `3772` proved the expected split.
+  - Continuous schedules `6` through `9` are installed and initial runs are
+    recorded.
+- Missing evidence to complete broader claims:
   - S-range mixed-state gate at 10+ hosts
-  - governance-approved continuous telemetry cadence and retention notes
+  - named owners, retention, and escalation paths for the schedule
 
 ## Decision posture
 
 Until those items complete, the documentation-led decision is
-`HOLD for stable-v3 publication pending evidence.`
+`HOLD for stable-v3 publication pending governance owner assignment and sign-off.`

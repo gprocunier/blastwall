@@ -2,46 +2,57 @@
 
 ## Verdict
 
-`HOLD for stable-v3 publication pending evidence.`
+`HOLD for stable-v3 publication pending governance owner assignment and sign-off.`
 
-## Source Readiness
+## Source And Evidence Readiness
 
-`GO for stable-v3 source readiness.`
+`GO for external review of the stable-v3 source and Calabi evidence gate.`
 
 The current branch preserves the marker-as-locator design, signed-envelope
 verification, latest-index replay guard, live policy hash binding, explicit KRA
-topology, and infrastructure-only breakglass boundary. The destructive Calabi
-negative matrix now proves the required security failures fail closed.
+topology, and infrastructure-only breakglass boundary. The live evidence now
+covers healthy execution, destructive fail-closed cases, three-host mixed-state
+selection, and the installed continuous verification loop.
 
 ## Publication Hold
 
-Publication remains held for evidence and governance, not for a known
-security-bypass bug.
+Publication remains held for governance, not for a known security-bypass bug.
 
 Hold items:
 
-- The required three-host mixed-state gate is not complete. Calabi currently
-  has a current stable-v3 host and a stale fixture host; the third revoked or
-  broken fixture host is still pending.
-- Continuous verification is planned but not yet installed as a
-  governance-owned schedule.
-- Governance owners for signer custody, KRA/vault operations, revocation, and
-  breakglass approval still need final assignment before a stable publication
-  claim.
+- Boundary owner, incident response owner, signer owner, KRA/vault owner,
+  revocation authority, and breakglass approval path still need final
+  assignment before a stable publication claim.
+- The S-range claim remains held until a broader mixed-state scale gate is run.
 - Revoked marker evidence fails closed at locator resolution with
   `invalid v3 marker locator: marker is revoked`; revoked latest-index evidence
   provides the top-level `FAIL_REVOKED_ATTESTATION` state.
 
+Completed items since the prior decision:
+
+- Three-host mixed-state gate completed with a current valid host, stale legacy
+  host, and current-but-broken-attestation host.
+- AAP continuous verification schedules were installed and exercised.
+- Strict inventory audit now authenticates to FreeIPA in the Controller EE and
+  reports missing artifacts as `FAIL_ATTESTATION_NOT_VISIBLE` instead of
+  `auth_failure`.
+
 ## Evidence Summary
 
-- Current branch: `blastwall-v3-negative-gate-calabi`.
+- Current branch: `blastwall-v3-signed-attestation`.
 - Current Controller-visible commit:
-  `3ff61e0a8c98439a3d3c238e687306dd2dfaafee`.
-- Project sync to current commit: `3489`.
-- Post-matrix inventory sync: `3690`.
+  `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
+- Project sync to current commit: `3771`.
+- Post-matrix restore sync from destructive packet: `3690`.
 - Post-matrix golden preflight: `3693`, successful.
-- Controlled stale-host restores:
-  `3513`, `3539`, `3561`, `3583`, `3605`, `3631`, `3653`, and `3671`.
+- Three-host inventory sync: `3712`.
+- Candidate-only preflight: `3725`, successful.
+- Stale-host preflight: `3728`, failed closed.
+- Broken-attestation profile preflight: `3723`, failed closed.
+- Continuous schedules: `6` hourly KRA health, `7` hourly inventory audit,
+  `8` daily candidate preflight, `9` daily runtime verification.
+- Continuous loop checks: KRA health `3731`, candidate preflight `3735`,
+  runtime workflow `3736`, strict inventory audit `3772`.
 
 Fail-closed destructive evidence:
 
@@ -66,17 +77,17 @@ Breakglass evidence:
 
 ## Release Action
 
-Continue external review on this branch with the publication decision held.
-The next release-gate branch should add a third fixture host or equivalent
-mixed-state inventory proof, then install or explicitly approve the continuous
-verification schedule.
+Proceed with external review of `blastwall-v3-signed-attestation` and keep the
+stable-v3 publication decision held until named owners and sign-off are in
+place. Do not claim S-range readiness from this evidence packet.
 
 ## Final Architecture Review Memo
 
 ```yaml
 verdict:
-  source_readiness: GO for stable-v3 source readiness.
-  publication: HOLD for stable-v3 publication pending evidence.
+  source_readiness: GO for external review.
+  publication: HOLD pending governance owner assignment and sign-off.
+  s_range_claim: HOLD pending broader scale evidence.
 go_items:
   - marker remains a locator and is not the trust proof
   - preflight verifies signed envelope and latest index
@@ -84,17 +95,19 @@ go_items:
   - KRA visibility failures remain separated from host/security failures
   - breakglass is infrastructure-only
   - destructive negatives for replay, expiry, signature, signer, profile, host binding, policy drift, and revoked latest index are live-proven
+  - three-host mixed-state selection and failure behavior are live-proven
+  - continuous verification schedules are installed and exercised
 hold_items:
-  - three-host mixed-state gate is not live-proven
-  - continuous verification schedule is planned but not governance-owned/installed
+  - named governance owners and sign-off are not recorded
+  - S-range mixed-state scale evidence is not captured
   - revoked marker fails closed at locator resolution rather than the revoked-attestation top-level state
 no_go_items: []
 evidence_summary:
-  - current branch commit: 3ff61e0a8c98439a3d3c238e687306dd2dfaafee
-  - post-matrix golden preflight: 3693
-  - primary evidence index: docs/blastwall-v3/evidence-index.md
+  - current branch commit: 9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b
+  - strict inventory audit: 3772
+  - primary evidence ledger: V3_STABLE_EVIDENCE_GATE_LEDGER.md
 recommended_next_branch_or_release_action:
   - keep publication held
-  - run the three-host mixed-state gate
-  - assign and install the continuous verification schedule
+  - assign owners and sign off the operating model
+  - run the S-range scale gate before making an S-range claim
 ```

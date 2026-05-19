@@ -157,7 +157,38 @@ Start
   - treat as host verification failure,
   - repair host (reinstall/align policy), re-run full attestation path.
 
-## 7) Post-incident evidence requirements
+## 7) Continuous verification loop
+
+The initial stable-v3 operating loop is installed in AAP with four schedules:
+
+- Hourly KRA health checks.
+- Hourly inventory membership audit.
+- Daily candidate preflight.
+- Daily runtime verification for the candidate group.
+
+Operators should review the latest job output for these fields:
+
+- `current_hosts`
+- `stale_hosts`
+- `current_to_stale`
+- `current_marker_attestation_not_visible_hosts`
+- `current_marker_kra_unavailable_hosts`
+- `attestation_expiring_soon`
+- `revoked_hosts`
+- KRA canary status
+
+Expected response:
+
+- KRA health or canary failure: page the KRA/vault owner and pause stable-v3
+  launches that require fresh artifact reads.
+- Current-to-stale movement: treat as a lifecycle transition that needs owner
+  acknowledgement before the host is selected again.
+- Current marker without valid attestation: do not launch the host; rerun
+  signing only after validating the marker and artifact references.
+- Candidate preflight or runtime failure: treat preflight as authoritative and
+  preserve the AAP job ID in the evidence ledger.
+
+## 8) Post-incident evidence requirements
 
 Every major failure must produce:
 
