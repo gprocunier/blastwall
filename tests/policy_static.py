@@ -1134,6 +1134,7 @@ for required_negative_marker_signal in [
     "BLASTWALL_USERCLASS_JSON: \"{{ blastwall_negative_gate_userclass | to_json }}\"",
     "mapfile -t desired_classes",
     "--setattr=\"userclass=${first_class}\"",
+    "no modifications to be performed",
     "--addattr=\"userclass=${desired}\"",
     "no_log: true",
 ]:

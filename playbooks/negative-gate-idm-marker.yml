@@ -114,8 +114,15 @@
             mapfile -t desired_classes < "${attrs_file}"
             first_class="${desired_classes[0]:-}"
             [ -n "${first_class}" ]
-            ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
-              --setattr="userclass=${first_class}" >/dev/null
+            setattr_err="$(mktemp)"
+            if ! ipa -e "server=${IPA_SERVER}" -f -n host-mod "${BLASTWALL_HOST}" \
+              --setattr="userclass=${first_class}" >/dev/null 2>"${setattr_err}"; then
+              if ! grep -q "no modifications to be performed" "${setattr_err}"; then
+                cat "${setattr_err}" >&2
+                exit 1
+              fi
+            fi
+            rm -f "${setattr_err}"
 
             for desired in "${desired_classes[@]:1}"; do
               [ -n "${desired}" ] || continue
