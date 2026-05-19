@@ -1078,15 +1078,9 @@
         organization: "{{ blastwall_aap_organization }}"
         unified_job_template: "{{ item.unified_job_template }}"
         rrule: >-
-          {{
-            query(
-              'awx.awx.schedule_rrule',
-              item.frequency,
-              start_date=blastwall_aap_stable_evidence_schedule_start_date,
-              timezone=blastwall_aap_stable_evidence_schedule_timezone,
-              every=item.every
-            ) | first
-          }}
+          {% set start_digits = blastwall_aap_stable_evidence_schedule_start_date | regex_replace('[^0-9]', '') -%}
+          DTSTART:{{ start_digits[0:8] }}T{{ start_digits[8:14] }}Z
+          RRULE:FREQ={{ 'HOURLY' if item.frequency == 'hour' else 'DAILY' }};INTERVAL={{ item.every }}
         enabled: "{{ blastwall_aap_stable_evidence_schedules_enabled | bool }}"
         limit: "{{ item.limit | default(omit) }}"
         extra_data: "{{ item.extra_data | default(omit) }}"

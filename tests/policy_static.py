@@ -1125,6 +1125,8 @@ if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
 if "awx.awx.schedule" not in aap_controller:
     fail("AAP stable-v3 configuration must manage continuous verification schedules")
+if "schedule_rrule" in aap_controller:
+    fail("AAP stable-v3 schedules must not depend on the optional pytz-backed schedule_rrule lookup")
 for required_schedule_signal in [
     "Blastwall stable-v3 KRA health hourly",
     "Blastwall stable-v3 inventory audit hourly",
