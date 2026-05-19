@@ -162,6 +162,75 @@ blastwall_aap_inventory_source_vars:
   BLASTWALL_ALLOW_DRY_RUN_PROFILES: "{{ blastwall_aap_allow_dry_run_profiles }}"
   BLASTWALL_ATTESTATION_MODE: "{{ blastwall_aap_attestation_mode }}"
 
+blastwall_aap_stable_evidence_schedules_enabled: >-
+  {{ lookup('env', 'BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULES_ENABLED') |
+  default('false', true) | bool }}
+blastwall_aap_stable_evidence_schedule_timezone: >-
+  {{ lookup('env', 'BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULE_TIMEZONE') |
+  default('UTC', true) }}
+blastwall_aap_stable_evidence_schedule_start_date: >-
+  {{ lookup('env', 'BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULE_START_DATE') |
+  default('2026-05-19 17:00:00', true) }}
+blastwall_aap_stable_evidence_schedules:
+  - name: Blastwall stable-v3 KRA health hourly
+    unified_job_template: Blastwall attestation vault health
+    frequency: hour
+    every: 1
+    extra_data: "{{ blastwall_aap_attestation_extra_vars }}"
+  - name: Blastwall stable-v3 inventory audit hourly
+    unified_job_template: Blastwall inventory membership audit
+    frequency: hour
+    every: 1
+    extra_data: >-
+      {{
+        blastwall_aap_profile_extra_vars |
+        combine(blastwall_aap_attestation_extra_vars) |
+        combine({
+          'BLASTWALL_VERIFY_ATTESTATIONS': 'true',
+          'BLASTWALL_FAIL_ON_CURRENT_TO_STALE': 'true',
+          'BLASTWALL_FAIL_ON_CURRENT_MARKER_PARSE_ERROR': 'true',
+          'BLASTWALL_FAIL_ON_KRA_UNAVAILABLE': 'true',
+          'BLASTWALL_FAIL_ON_ATTESTATION_NOT_VISIBLE': 'true',
+          'BLASTWALL_FAIL_ON_CURRENT_MARKER_WITHOUT_VALID_ATTESTATION': 'true'
+        })
+      }}
+  - name: Blastwall stable-v3 candidate preflight daily
+    unified_job_template: Blastwall preflight
+    frequency: day
+    every: 1
+    limit: blastwall_policy_candidate
+    extra_data: >-
+      {{
+        blastwall_aap_profile_extra_vars |
+        combine(blastwall_aap_attestation_extra_vars) |
+        combine({
+          'BLASTWALL_TARGET_IDENTITY': blastwall_aap_identity,
+          'blastwall_target_identity': blastwall_aap_identity,
+          'BLASTWALL_PREFLIGHT_TARGET_GROUP': 'blastwall_policy_candidate',
+          'blastwall_preflight_target_group_override': 'blastwall_policy_candidate',
+          'BLASTWALL_FAIL_ON_NO_ELIGIBLE_HOSTS': 'true',
+          'BLASTWALL_FAIL_ON_STALE_POLICY': 'true'
+        })
+      }}
+  - name: Blastwall stable-v3 runtime verification daily
+    unified_job_template: "{{ blastwall_aap_workflow }}"
+    frequency: day
+    every: 1
+    extra_data: >-
+      {{
+        blastwall_aap_profile_extra_vars |
+        combine(blastwall_aap_attestation_extra_vars) |
+        combine({
+          'BLASTWALL_TARGET_IDENTITY': blastwall_aap_identity,
+          'blastwall_target_identity': blastwall_aap_identity,
+          'BLASTWALL_PREFLIGHT_TARGET_GROUP': 'blastwall_policy_candidate',
+          'blastwall_preflight_target_group_override': 'blastwall_policy_candidate',
+          'BLASTWALL_FAIL_ON_NO_ELIGIBLE_HOSTS': 'true',
+          'BLASTWALL_FAIL_ON_STALE_POLICY': 'true',
+          'blastwall_verify_target_hosts': 'blastwall_policy_candidate'
+        })
+      }}
+
 blastwall_aap_registry_host: >-
   {{ lookup('env', 'BLASTWALL_REGISTRY_HOST') |
   default('registry.example.com', true) }}
@@ -229,6 +298,13 @@ blastwall_aap_v3_job_templates:
       - "{{ blastwall_aap_attestation_verifier_credential }}"
     limit: ""
     extra_vars: "{{ blastwall_aap_attestation_extra_vars }}"
+  - name: Blastwall inventory membership audit
+    playbook: playbooks/audit-inventory-membership.yml
+    credentials:
+      - "{{ blastwall_aap_attestation_idm_credential }}"
+      - "{{ blastwall_aap_attestation_verifier_credential }}"
+    limit: ""
+    extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"
   - name: Blastwall sign attestation
     playbook: playbooks/sign-attestation.yml
     credentials:

@@ -1072,6 +1072,37 @@
         state: present
       when: blastwall_aap_openshift_kubeconfig_content | length == 0
 
+    - name: Ensure stable-v3 continuous verification schedules exist
+      awx.awx.schedule:
+        name: "{{ item.name }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: "{{ item.unified_job_template }}"
+        rrule: >-
+          {{
+            query(
+              'awx.awx.schedule_rrule',
+              item.frequency,
+              start_date=blastwall_aap_stable_evidence_schedule_start_date,
+              timezone=blastwall_aap_stable_evidence_schedule_timezone,
+              every=item.every
+            ) | first
+          }}
+        enabled: "{{ blastwall_aap_stable_evidence_schedules_enabled | bool }}"
+        limit: "{{ item.limit | default(omit) }}"
+        extra_data: "{{ item.extra_data | default(omit) }}"
+        state: present
+      loop: "{{ blastwall_aap_stable_evidence_schedules }}"
+      when: blastwall_aap_attestation_enabled | bool
+
+    - name: Remove stable-v3 continuous verification schedules when attestation is disabled
+      awx.awx.schedule:
+        name: "{{ item.name }}"
+        organization: "{{ blastwall_aap_organization }}"
+        unified_job_template: "{{ item.unified_job_template }}"
+        state: absent
+      loop: "{{ blastwall_aap_stable_evidence_schedules }}"
+      when: not blastwall_aap_attestation_enabled | bool
+
     - name: Grant optional launch user Blastwall organization membership
       awx.awx.role:
         users:

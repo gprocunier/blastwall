@@ -1083,10 +1083,13 @@ for expected_signal in ["idm_userclass_type", "idm_schema_warnings"]:
 for required_signer_signal in [
     "Blastwall sign attestation",
     "Blastwall attestation vault health",
+    "Blastwall inventory membership audit",
     "playbooks/attestation-vault-health.yml",
+    "playbooks/audit-inventory-membership.yml",
     "blastwall_aap_attestation_idm_credential",
     "blastwall_aap_attestation_signer_credential",
     "blastwall_aap_attestation_verifier_credential",
+    "blastwall_aap_stable_evidence_schedules",
     "BLASTWALL_ATTESTATION_SIGNER_KEY",
 ]:
     if required_signer_signal not in aap_vars + aap_controller + v3_sign:
@@ -1120,6 +1123,18 @@ if (
     fail("AAP attestation workflow extra vars must carry the runtime Blastwall target identity")
 if "blastwall_aap_policy_idm_credential" in aap_vars.partition("blastwall_aap_v3_job_templates:")[2]:
     fail("AAP v3 attestation signing must not use the policy maintainer IdM credential for vault custody")
+if "awx.awx.schedule" not in aap_controller:
+    fail("AAP stable-v3 configuration must manage continuous verification schedules")
+for required_schedule_signal in [
+    "Blastwall stable-v3 KRA health hourly",
+    "Blastwall stable-v3 inventory audit hourly",
+    "Blastwall stable-v3 candidate preflight daily",
+    "Blastwall stable-v3 runtime verification daily",
+    "BLASTWALL_FAIL_ON_CURRENT_MARKER_WITHOUT_VALID_ATTESTATION",
+    "BLASTWALL_FAIL_ON_ATTESTATION_NOT_VISIBLE",
+]:
+    if required_schedule_signal not in aap_vars + aap_controller:
+        fail(f"AAP stable-v3 continuous verification missing {required_schedule_signal}")
 v3_negative_marker_harness = (ROOT / "playbooks" / "negative-gate-idm-marker.yml").read_text(encoding="utf-8")
 for required_negative_marker_signal in [
     "Apply a controlled Blastwall negative-gate IdM marker state",

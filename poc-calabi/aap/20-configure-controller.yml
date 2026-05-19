@@ -126,6 +126,15 @@
           default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true) }}
         BLASTWALL_PROBE_REPORT_SHA256: >-
           {{ lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true) }}
+        BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULES_ENABLED: >-
+          {{ lookup('env', 'BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULES_ENABLED') |
+          default('false', true) }}
+        BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULE_TIMEZONE: >-
+          {{ lookup('env', 'BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULE_TIMEZONE') |
+          default('UTC', true) }}
+        BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULE_START_DATE: >-
+          {{ lookup('env', 'BLASTWALL_AAP_STABLE_EVIDENCE_SCHEDULE_START_DATE') |
+          default('2026-05-19 17:00:00', true) }}
         BLASTWALL_SPO_EVIDENCE_JSON: >-
           {{ lookup('env', 'BLASTWALL_SPO_EVIDENCE_JSON') | default('', true) }}
         BLASTWALL_SPO_INCLUDE_STRANGE_SOCKET_V1: >-
