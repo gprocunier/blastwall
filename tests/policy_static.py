@@ -1270,6 +1270,10 @@ if "item.read_back_verified | default(false) | bool" not in v3_preflight:
     fail("stable-v3 preflight must not throw raw Ansible missing-attribute errors for absent KRA artifacts")
 if "not blastwall_breakglass | bool" not in v3_preflight:
     fail("stable-v3 preflight must let verifier-owned breakglass handling evaluate missing KRA artifacts")
+if "default(blastwall_probe_report_sha256 | default" in v3_sign:
+    fail("sign-attestation.yml must not self-reference blastwall_probe_report_sha256 in direct-launch fallbacks")
+if "default(blastwall_policy_sha256 | default" in v3_sign:
+    fail("sign-attestation.yml must not self-reference policy hash variables in direct-launch fallbacks")
 if "skeleton" in v3_health.lower() or "placeholder" in v3_health.lower():
     fail("attestation-vault-health.yml must not contain skeleton or placeholder health logic")
 for explicit_health_input in [

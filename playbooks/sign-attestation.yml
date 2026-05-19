@@ -20,28 +20,29 @@
     blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
     blastwall_policy_module_sha256: >-
       {{
-        BLASTWALL_CURRENT_POLICY_SHA256 |
-        default(
-          BLASTWALL_POLICY_SHA256 |
-          default(
-            (blastwall_policy_sha256_by_host | default({})).get(inventory_hostname, '') |
-            default(blastwall_policy_sha256 | default('', true), true),
-            true
-          ) |
-          default(lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
-          default(lookup('env', 'BLASTWALL_POLICY_SHA256') | default('', true), true), true),
-          true
-        )
+        vars.get('BLASTWALL_CURRENT_POLICY_SHA256', '') |
+        default('', true) or
+        vars.get('BLASTWALL_POLICY_SHA256', '') |
+        default('', true) or
+        (blastwall_policy_sha256_by_host | default({})).get(inventory_hostname, '') |
+        default('', true) or
+        vars.get('blastwall_policy_sha256', '') |
+        default('', true) or
+        lookup('env', 'BLASTWALL_CURRENT_POLICY_SHA256') |
+        default('', true) or
+        lookup('env', 'BLASTWALL_POLICY_SHA256') |
+        default('', true)
       }}
     blastwall_probe_report_sha256: >-
       {{
-        BLASTWALL_PROBE_REPORT_SHA256 |
-        default(
-          (blastwall_probe_report_sha256_by_host | default({})).get(inventory_hostname, '') |
-          default(blastwall_probe_report_sha256 | default('', true), true),
-          true
-        ) |
-        default(lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') | default('', true), true)
+        vars.get('BLASTWALL_PROBE_REPORT_SHA256', '') |
+        default('', true) or
+        (blastwall_probe_report_sha256_by_host | default({})).get(inventory_hostname, '') |
+        default('', true) or
+        vars.get('blastwall_probe_report_sha256', '') |
+        default('', true) or
+        lookup('env', 'BLASTWALL_PROBE_REPORT_SHA256') |
+        default('', true)
       }}
     blastwall_required_profiles_env: >-
       {{ BLASTWALL_REQUIRED_POLICY_PROFILES |
