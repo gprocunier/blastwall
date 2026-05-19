@@ -5,6 +5,12 @@ Blastwall v3 uses `eigenstate.ipa >= 1.18.1`, `freeipa.ansible_freeipa`,
 paths where practical. Remaining shell use is classified here so reviewers can
 distinguish stable-v3 exceptions from reference-v2 and lab paths.
 
+The destructive negative attestation artifact harness
+`playbooks/negative-gate-attestation-artifacts.yml` does not add a shell
+exception. It uses `ansible.builtin.command` with `argv` for artifact
+construction and `eigenstate.ipa.vault_artifact` with read-back digest checks
+for KRA custody.
+
 ```yaml
 exceptions:
   - id: BW-SHELL-001

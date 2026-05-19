@@ -3,12 +3,13 @@
 ## Purpose
 
 Collect negative evidence for Blastwall v3 stable-v3 policy gates on Calabi.
-This is the Phase 08 evidence lane. It now contains partial live Calabi
-coverage; the full destructive matrix is still incomplete.
+This packet contains the live destructive matrix captured through the
+negative-gate branch and identifies the remaining mixed-state publication hold.
 
 ## Scope
 
-- Target branch: `blastwall-v3-signed-attestation`
+- Baseline branch: `blastwall-v3-signed-attestation`
+- Negative-gate branch: `blastwall-v3-negative-gate-calabi`
 - Goal: prove fail-closed behavior and infra-only breakglass constraints under live negative conditions.
 
 ## Required case set
@@ -44,16 +45,17 @@ Each case below must be captured against a controlled/disposable Calabi host:
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | AAP mutation job `3414`; preflight job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3425` |
 | Missing index | `FAIL_INDEX_NOT_VISIBLE` | AAP mutation job `3432`; preflight job `3439` failed as `FAIL_INDEX_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3443` |
 | Digest mismatch | digest/integrity failure | AAP mutation job `3450`; preflight job `3457` failed closed with `failure_class=digest_mismatch`, currently surfaced as `FAIL_ATTESTATION_NOT_VISIBLE`; restore job `3461` |
-| Wrong generation | replay/binding failure | pending |
-| Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | pending |
-| Expired attestation | expired attestation failure | pending |
+| Wrong generation | replay/binding failure | AAP artifact job `3520`; mutation job `3524`; preflight job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; breakglass job `3535` rejected; restore job `3539` |
+| Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | Revoked-index artifact job `3568`; mutation job `3572`; preflight job `3579` failed as `FAIL_REVOKED_ATTESTATION`; restore job `3583`. Revoked-marker job `3601` failed closed earlier as invalid locator `marker is revoked`; restore job `3605` |
+| Expired attestation | expired attestation failure | AAP artifact job `3546`; mutation job `3550`; preflight job `3557` failed as `FAIL_STALE_ATTESTATION`; restore job `3561` |
 | Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected; current-branch job `3478` failed as `FAIL_DRIFTED_POLICY` |
 | KRA stale/missing canary | infra visibility failure | pending |
 | Vault auth failure | auth/infra failure | pending |
-| Breakglass infra-visibility bypass | scoped breakglass may pass only for artifact/index visibility | pending |
-| Breakglass security failure rejection | breakglass rejected for signature, drift, profile, and revocation failures | pending |
-| Signature tamper | signature failure | pending |
-| Profile mismatch | binding/match failure | pending |
+| Breakglass infra-visibility bypass | scoped breakglass may pass only for artifact/index visibility | Missing-envelope mutation job `3660`; breakglass preflight job `3667` passed with `override_failure_state=FAIL_ATTESTATION_NOT_VISIBLE`; restore job `3671` |
+| Breakglass security failure rejection | breakglass rejected for signature, drift, profile, and revocation failures | Signature job `3509`, replay job `3535`, profile job `3627`, policy drift job `3682`, and signer job `3686` all rejected breakglass |
+| Signature tamper | signature failure | AAP artifact job `3494`; mutation job `3498`; preflight job `3505` failed as `FAIL_SIGNATURE_INVALID`; breakglass job `3509` rejected; restore job `3513` |
+| Profile mismatch | binding/match failure | AAP artifact job `3612`; mutation job `3616`; preflight job `3623` failed as `FAIL_PROFILE_MISMATCH`; breakglass job `3627` rejected; restore job `3631` |
+| Host binding mismatch | `FAIL_BINDING_MISMATCH` | AAP artifact job `3638`; mutation job `3642`; preflight job `3649` failed as `FAIL_BINDING_MISMATCH`; restore job `3653` |
 
 ## Current live evidence
 
@@ -143,6 +145,62 @@ Artifact visibility cases:
   `failure_class=digest_mismatch`; the current top-level failure state remains
   `FAIL_ATTESTATION_NOT_VISIBLE`. Restore job `3461` succeeded.
 
+Replay, expiry, revocation, crypto, and binding cases:
+
+- Controlled artifact harness: AAP job template `31`, not registered as a
+  default production template. It uses `ansible.builtin.command` with `argv` to
+  build artifacts and `eigenstate.ipa.vault_artifact` with read-back digest
+  checks to archive them into KRA.
+- Signature tamper: artifact job `3494`, marker mutation job `3498`, and
+  preflight job `3505` failed as `FAIL_SIGNATURE_INVALID` with message
+  `signature verification failed`. Breakglass job `3509` also failed as
+  `FAIL_SIGNATURE_INVALID`. Restore job `3513` and inventory sync `3517`
+  succeeded.
+- Replayed generation: artifact job `3520`, mutation job `3524`, and preflight
+  job `3531` failed as `FAIL_REPLAYED_ATTESTATION`. Breakglass job `3535`
+  also failed as `FAIL_REPLAYED_ATTESTATION`. Restore job `3539` and inventory
+  sync `3543` succeeded.
+- Expired attestation: artifact job `3546`, mutation job `3550`, and preflight
+  job `3557` failed as `FAIL_STALE_ATTESTATION`. Restore job `3561` and
+  inventory sync `3565` succeeded.
+- Revoked latest index: artifact job `3568`, mutation job `3572`, and preflight
+  job `3579` failed as `FAIL_REVOKED_ATTESTATION`. Restore job `3583` and
+  inventory sync `3587` succeeded.
+- Revoked marker: artifact job `3590`, mutation job `3594`, and preflight job
+  `3601` failed closed during locator resolution with
+  `invalid v3 marker locator: marker is revoked`. This is a state-surface gap:
+  the security behavior is fail-closed, but the observed state is not the
+  top-level `FAIL_REVOKED_ATTESTATION` used for revoked latest-index evidence.
+  Restore job `3605` and inventory sync `3609` succeeded.
+- Profile mismatch: artifact job `3612`, mutation job `3616`, and preflight job
+  `3623` failed as `FAIL_PROFILE_MISMATCH`. Breakglass job `3627` also failed
+  as `FAIL_PROFILE_MISMATCH`. Restore job `3631` and inventory sync `3635`
+  succeeded.
+- Host binding mismatch: artifact job `3638`, mutation job `3642`, and
+  preflight job `3649` failed as `FAIL_BINDING_MISMATCH`. Restore job `3653`
+  and inventory sync `3657` succeeded.
+
+Breakglass boundary cases:
+
+- Missing-envelope breakglass: mutation job `3660` installed a locator pointing
+  at an absent envelope. Breakglass preflight job `3667` passed only with
+  scoped metadata and reported
+  `override_failure_state=FAIL_ATTESTATION_NOT_VISIBLE`. Restore job `3671`
+  and inventory sync `3675` succeeded.
+- Policy drift breakglass: job `3682` failed as `FAIL_DRIFTED_POLICY`.
+- Signer-untrusted breakglass: job `3686` failed as `FAIL_SIGNER_UNTRUSTED`.
+- Additional breakglass rejection proof: signature tamper job `3509`, replay
+  job `3535`, and profile mismatch job `3627` all failed with their original
+  security failure states.
+
+Post-matrix restoration:
+
+- Inventory sync `3690` showed `mirror-registry.workshop.lan` with the current
+  active stable-v3 base marker and `stale-blastwall-01.workshop.lan` with only
+  its original reference marker.
+- Golden-host preflight job `3693` passed on commit
+  `3ff61e0a8c98439a3d3c238e687306dd2dfaafee` after destructive restores.
+
 Current negative-gate artifact bindings:
 
 - Policy hash:
@@ -189,8 +247,8 @@ attachments:
 
 ## Hold note
 
-The Calabi live evidence is partial. Current healthy-path, SPO, drift,
-untrusted-signer, unresolved-configured-KRA, missing-envelope, missing-index,
-and digest-mismatch cases are captured above. The remaining destructive cases
-in the table still need controlled live execution before a final stable-v3
-release claim.
+The destructive negative matrix now covers artifact visibility, replay,
+expiry, revoked latest index, signature tamper, signer trust, policy drift,
+profile mismatch, host binding, and breakglass boundaries. Remaining evidence
+for a final stable-v3 release claim is the required three-host mixed-state
+gate, schedule ownership for continuous verification, and governance approval.

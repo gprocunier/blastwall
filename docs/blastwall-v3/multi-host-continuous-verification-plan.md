@@ -2,7 +2,9 @@
 
 ## Goal
 
-Define the next gate after this remediation pass: repeated proof in mixed-host and S-range scenarios without blocking the current stable-v3 candidate hardening work.
+Define the next gate after the destructive negative pass: repeated proof in
+mixed-host and S-range scenarios without overstating the current two-host
+Calabi fixture evidence.
 
 ## Candidate scope vs S-range scope
 
@@ -24,6 +26,15 @@ Gate coverage required:
 - runtime verification and probe parity
 - policy hash and profile transitions
 
+Current Calabi fixture status:
+
+- Host A: `mirror-registry.workshop.lan`; current signed stable-v3 base marker;
+  post-matrix preflight job `3693` passed after inventory sync `3690`.
+- Host B: `stale-blastwall-01.workshop.lan`; original reference marker only
+  after restores; used for destructive mutation and restored after each case.
+- Host C: pending. The current inventory has no third fixture host, so the
+  required three-host mixed-state gate is not complete.
+
 ## S-range planning
 
 - Scale gate to 10+ hosts.
@@ -34,13 +45,26 @@ Gate coverage required:
 
 ## Continuous verification options to implement
 
-- Scheduled AAP runtime verification workflow for managed-host attestation and preflight.
-- Scheduled inventory audit pass with marker-vs-verifier drift checks.
-- Host-local periodic checks where probe evidence can be regenerated safely.
-- Central collection of evidence snapshots and a failure-class rollup view.
-- SIEM export or equivalent telemetry for:
-  - current↔stale transitions
-  - attestation expiry/revocation events
+- Schedule `Blastwall attestation vault health` hourly against
+  `idm-01.workshop.lan` with a configured canary when governance assigns an
+  owner.
+- Schedule `Blastwall preflight` daily for `blastwall_profile_base` and alert on
+  any non-`PASS` verifier report.
+- Schedule `Blastwall runtime verification` daily or per-change for managed
+  hosts where probe regeneration is safe.
+- Schedule `audit-inventory-membership.yml` or the Controller inventory source
+  sync plus marker audit daily, retaining group counts and parse warnings.
+- Keep `Blastwall negative gate attestation artifact harness` and
+  `Blastwall negative gate IdM marker harness` unscheduled and lab-only; run
+  them as an explicit destructive rehearsal on fixture hosts before release
+  candidates.
+- Centralize evidence snapshots with:
+  - AAP workflow/job IDs,
+  - `failure_state`,
+  - `vault_error_type`,
+  - `selected_hosts`,
+  - `stale_hosts`,
+  - attestation refs and digests.
 
 ## Evidence required before stable-v3 go decision
 
@@ -48,14 +72,16 @@ Gate coverage required:
   - Latest Controller-visible Calabi stable-v3 policy pipeline `2843`
     completed successfully on this branch, including post-promotion preflight
     job `2876`.
+  - Current negative-gate branch post-matrix golden preflight `3693`
+    completed successfully after destructive restores.
   - Earlier v3 implementation records also include policy pipeline `2177`,
     runtime verification `2227`, and managed-host verification `2240`.
 - Missing evidence to complete:
-  - phase 08 negative destructive matrix
   - multi-host candidate gate at 3+ hosts
   - S-range mixed-state gate at 10+ hosts
-  - continuous telemetry capture cadence and retention notes
+  - governance-approved continuous telemetry cadence and retention notes
 
 ## Decision posture
 
-Until those items complete, the documentation-led decision is `HOLD_LIVE_EVIDENCE`.
+Until those items complete, the documentation-led decision is
+`HOLD for stable-v3 publication pending evidence.`

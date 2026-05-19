@@ -50,9 +50,9 @@ Reference documents:
 
 Latest live healthy-path gate completed on 2026-05-18 UTC on the
 `blastwall-v3-signed-attestation` branch with the `eigenstate.ipa` 1.18.1
-surfaces available. Partial live negative evidence is recorded; the remaining
-destructive negative matrix is still a separate required gate before final
-stable-v3 release approval.
+surfaces available. The destructive negative matrix was then run on
+`blastwall-v3-negative-gate-calabi` through Controller-visible commit
+`3ff61e0a8c98439a3d3c238e687306dd2dfaafee`.
 
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).
@@ -104,11 +104,19 @@ Live negative checks currently recorded:
 - Bad configured KRA primary/server: AAP preflight job `2835` failed closed at
   `Resolve configured stable-v3 KRA vault servers` for
   `missing-kra.workshop.lan`.
+- Destructive artifact visibility: `3421` missing envelope,
+  `3439` missing index, and `3457` digest mismatch all failed closed.
+- Destructive security failures: `3505` signature tamper, `3531` replay,
+  `3557` expiry, `3579` revoked latest index, `3623` profile mismatch, and
+  `3649` host binding mismatch failed closed.
+- Breakglass: `3667` passed only for scoped missing-envelope infrastructure
+  visibility; `3509`, `3535`, `3627`, `3682`, and `3686` rejected security
+  failures.
+- Restore proof: inventory sync `3690` showed the current mirror marker and
+  stale fixture marker restored; golden preflight `3693` passed afterward.
 
-Destructive live negative cases for missing artifact, missing index, revocation,
-expiry, and breakglass are not fully recorded in this packet. Those failure
-classes remain covered by the local regression matrix and require controlled
-Calabi execution before final production stable-v3 sign-off.
+Remaining hold: the three-host mixed-state gate and governance-owned continuous
+verification schedule are not complete.
 
 ## Failure-state map
 

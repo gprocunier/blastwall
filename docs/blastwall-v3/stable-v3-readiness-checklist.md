@@ -100,9 +100,19 @@ Current Calabi RC evidence:
 - Live negative preflight jobs captured policy drift (`2827`,
   `FAIL_DRIFTED_POLICY`), untrusted signer (`2830`, `FAIL_SIGNER_UNTRUSTED`),
   and unresolved configured KRA server (`2835`, fail-closed DNS resolution).
-- Destructive live negative cases for missing artifact, missing index,
-  revocation, expiry, and breakglass are not yet complete in the Calabi RC
-  evidence packet; local regression tests cover those failure classes.
+- Current negative-gate branch evidence also covers missing envelope (`3421`),
+  missing index (`3439`), digest mismatch (`3457`), signature tamper (`3505`),
+  replay (`3531`), expiry (`3557`), revoked latest index (`3579`), profile
+  mismatch (`3623`), host binding mismatch (`3649`), scoped breakglass
+  allowance (`3667`), and breakglass rejection for policy drift (`3682`),
+  untrusted signer (`3686`), signature tamper (`3509`), replay (`3535`), and
+  profile mismatch (`3627`).
+- Post-matrix inventory sync `3690` restored `mirror-registry.workshop.lan` to
+  the active v3 marker and `stale-blastwall-01.workshop.lan` to its original
+  stale fixture marker; golden preflight job `3693` passed on the current
+  branch commit.
+- Remaining evidence hold: the required three-host mixed-state gate and
+  governance-owned continuous verification schedule are not complete.
 
 ## Go/No-Go
 

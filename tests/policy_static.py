@@ -1045,6 +1045,8 @@ for required_v3_doc in [
     "stable-v3-readiness-checklist.md",
     "external-review-packet.md",
     "shell-and-collection-exceptions.md",
+    "stable-v3-release-decision.md",
+    "evidence-index.md",
 ]:
     if not (ROOT / "docs" / "blastwall-v3" / required_v3_doc).exists():
         fail(f"missing v3 documentation file: docs/blastwall-v3/{required_v3_doc}")
