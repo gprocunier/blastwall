@@ -22,6 +22,22 @@
     blastwall_inventory_audit_report: >-
       {{ BLASTWALL_INVENTORY_AUDIT_REPORT |
       default(lookup('env', 'BLASTWALL_INVENTORY_AUDIT_REPORT') | default('/var/tmp/blastwall-inventory-audit-report.json', true), true) }}
+    ipa_server: "{{ lookup('env', 'IPA_SERVER') | default('', true) }}"
+    ipa_domain: >-
+      {{ lookup('env', 'IPA_DOMAIN') |
+      default((ipa_server.split('.')[1:] | join('.')), true) }}
+    ipa_realm: >-
+      {{ lookup('env', 'IPA_REALM') |
+      default((ipa_domain | upper), true) }}
+    ipa_principal: "{{ lookup('env', 'IPA_PRINCIPAL') | default('admin', true) }}"
+    ipa_login_principal: >-
+      {{ ipa_principal if '@' in ipa_principal else ipa_principal ~ '@' ~ ipa_realm }}
+    ipa_password: >-
+      {{ lookup('env', 'IPA_PASSWORD') |
+      default(lookup('env', 'IPA_ADMIN_PASSWORD'), true) }}
+    ipa_keytab: "{{ lookup('env', 'IPA_KEYTAB') | default('', true) }}"
+    krb5_config: "{{ lookup('env', 'KRB5_CONFIG') | default('', true) }}"
+    krb5_ccache: FILE:/tmp/blastwall_inventory_audit_krb5cc
     blastwall_profile_registry_path: "{{ playbook_dir }}/../policy/profiles.yml"
     blastwall_profile_registry_sha256: "{{ lookup('file', blastwall_profile_registry_path, rstrip=False) | hash('sha256') }}"
     blastwall_attestation_mode: >-
@@ -141,9 +157,32 @@
         path: "{{ blastwall_inventory_audit_previous }}"
       register: blastwall_inventory_previous_snapshot
 
+    - name: Authenticate FreeIPA client for attestation inventory audit
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if [ -n "${IPA_KEYTAB}" ]; then
+          kinit -k -t "${IPA_KEYTAB}" "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+        else
+          printf '%s\n' "${IPA_PASSWORD}" | kinit "${IPA_LOGIN_PRINCIPAL}" >/dev/null
+        fi
+      args:
+        executable: /bin/bash
+      environment:
+        IPA_KEYTAB: "{{ ipa_keytab }}"
+        IPA_LOGIN_PRINCIPAL: "{{ ipa_login_principal }}"
+        IPA_PASSWORD: "{{ ipa_password }}"
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
+      changed_when: false
+      no_log: true
+      when: blastwall_verify_attestations | bool
+
     - name: Run Blastwall inventory audit
       ansible.builtin.command:
         argv: "{{ blastwall_inventory_audit_argv }}"
+      environment:
+        KRB5_CONFIG: "{{ krb5_config }}"
+        KRB5CCNAME: "{{ krb5_ccache }}"
       register: blastwall_inventory_audit
       changed_when: false
       failed_when: blastwall_inventory_audit.rc != 0
