@@ -86,7 +86,7 @@
 
     - name: Apply controlled Blastwall negative-gate userClass state
       freeipa.ansible_freeipa.ipahost:
-        ipaadmin_principal: "{{ ipa_login_principal }}"
+        ipaadmin_principal: "{{ ipa_principal }}"
         ipaadmin_password: "{{ ipa_password }}"
         name: "{{ blastwall_negative_gate_host }}"
         userclass: "{{ blastwall_negative_gate_userclass }}"
