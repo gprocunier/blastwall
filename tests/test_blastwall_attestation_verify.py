@@ -390,7 +390,7 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
         )
         report = self.verify(marker_text=revoked)
         self.assertEqual(report.status, "FAIL")
-        self.assertEqual(report.failure_state, "FAIL_REVOKED_MARKER")
+        self.assertEqual(report.failure_state, "FAIL_REVOKED_ATTESTATION")
 
     def test_revoked_index_fails(self) -> None:
         revoked_index_payload = dict(self.index)
@@ -404,6 +404,12 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
         report = self.verify(index_text=json.dumps(revoked_index))
         self.assertEqual(report.status, "FAIL")
         self.assertEqual(report.failure_state, "FAIL_REVOKED_ATTESTATION")
+
+    def test_marker_digest_mismatch_fails_integrity_state(self) -> None:
+        mismatched_marker = self.marker_text.replace(self.envelope_sha, "e" * 64)
+        report = self.verify(marker_text=mismatched_marker)
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.failure_state, "FAIL_ATTESTATION_INTEGRITY")
 
     def test_breakglass_bypasses_infra_non_visibility(self) -> None:
         report = self.verify(
@@ -430,6 +436,34 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
         )
         self.assertEqual(report.status, "FAIL")
         self.assertEqual(report.failure_state, "FAIL_SIGNATURE_INVALID")
+
+    def test_breakglass_does_not_bypass_digest_mismatch(self) -> None:
+        mismatched_marker = self.marker_text.replace(self.envelope_sha, "e" * 64)
+        report = self.verify(
+            marker_text=mismatched_marker,
+            breakglass=self._build_breakglass_context(),
+        )
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.failure_state, "FAIL_ATTESTATION_INTEGRITY")
+
+    def test_breakglass_does_not_bypass_revoked_marker(self) -> None:
+        revoked = marker.emit_marker_v3(
+            registry=self.registry,
+            rpm=marker.DEFAULT_RPM,
+            profiles=["base"],
+            attest_ref=self.attest_ref,
+            attest_sha256=self.envelope_sha,
+            signer_kid=self.signer_kid,
+            exp=(_now() + datetime.timedelta(minutes=30)).isoformat().replace("+00:00", "Z"),
+            generation=self.payload["generation"],
+            state="revoked",
+        )
+        report = self.verify(
+            marker_text=revoked,
+            breakglass=self._build_breakglass_context(),
+        )
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.failure_state, "FAIL_REVOKED_ATTESTATION")
 
     def test_breakglass_does_not_bypass_marker_profile_mismatch(self) -> None:
         artifacts = self._build_signed_artifacts()

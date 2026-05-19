@@ -2,7 +2,7 @@
 
 Date: 2026-05-19
 Branch: `blastwall-v3-signed-attestation`
-Commit: `789e95f82a91a5541e0ef7889dab9fc7595a5454`
+Commit: see current branch head
 Decision: HOLD
 
 ## Summary
@@ -13,8 +13,9 @@ not recorded. This is a release-governance hold, not an identified
 marker-only, breakglass, or verifier bypass.
 
 The live Controller-visible evidence commit is
-`9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`; the branch head above adds the
-review ledger and release decision documents.
+`14f7f472f70c1eb66f8ece35b194ed4e2da8b137` as observed at
+2026-05-19T19:40Z. The RC evidence source patch adds clearer
+failure-state normalization and review documents on top of that branch state.
 
 ## Evidence Accepted
 
@@ -32,10 +33,18 @@ review ledger and release decision documents.
 - Continuous verification schedules are installed as AAP schedules `6`, `7`,
   `8`, and `9`; initial checks `3731`, `3735`, `3736`, and `3772` are
   recorded.
+- Scheduled checks have fired: KRA health `3776`, `3797`, and `3802` passed;
+  candidate preflight `3780` passed; runtime workflow `3781` passed; inventory
+  audits `3778`, `3799`, and `3804` failed closed on the intentional
+  missing-artifact fixture.
+- Source normalizes digest disagreement to `FAIL_ATTESTATION_INTEGRITY` and
+  revoked marker to `FAIL_REVOKED_ATTESTATION`.
 
 ## Evidence Missing
 
 - Named governance owners and sign-off for stable-v3 operation.
+- Destructive re-capture for digest mismatch and revoked marker after the
+  post-normalization source patch is synced into Controller.
 - S-range scale evidence. The current evidence proves the candidate
   mixed-state gate, not broad S-range readiness.
 
@@ -79,10 +88,9 @@ index verification, live policy hash binding, and AAP-recorded evidence.
 
 - Assign and record stable-v3 governance owners.
 - Confirm retention and escalation for AAP schedules `6` through `9`.
+- Sync the post-normalization commit into Controller and re-capture digest
+  mismatch plus revoked-marker destructive cases.
 - Run the S-range mixed-state scale gate before claiming S-range readiness.
-- Decide whether revoked marker state should be surfaced as the same top-level
-  failure state as revoked latest-index evidence, while preserving current
-  fail-closed behavior.
 
 ## Sign-Off
 

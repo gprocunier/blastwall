@@ -41,6 +41,10 @@ Reference documents:
 - `docs/blastwall-v3/operator-runbook.md`
 - `docs/blastwall-v3/kra-topology-runbook.md`
 - `docs/blastwall-v3/revocation-and-breakglass.md`
+- `docs/blastwall-v3/evidence-consistency-matrix.md`
+- `docs/blastwall-v3/scheduled-loop-soak.md`
+- `docs/blastwall-v3/stable-v3-rc-decision.md`
+- `docs/blastwall-v3/governance-owner-assignment.md`
 - `V3_IMPLEMENTATION_LEDGER.md`
 - `tools/blastwall_attestation_verify.py`
 - `tools/blastwall_attestation_sign.py`
@@ -96,9 +100,15 @@ Live negative checks currently recorded:
   `FAIL_CANARY_MISSING`, and bad-primary job `3702` failed closed.
 - Destructive artifact visibility: `3421` missing envelope,
   `3439` missing index, and `3457` digest mismatch all failed closed.
+  The RC evidence source patch maps digest disagreement to
+  `FAIL_ATTESTATION_INTEGRITY`; destructive re-capture after Controller sync is
+  the next proof item.
 - Destructive security failures: `3505` signature tamper, `3531` replay,
   `3557` expiry, `3579` revoked latest index, `3623` profile mismatch, and
   `3649` host binding mismatch failed closed.
+- Revoked marker handling now maps to the `FAIL_REVOKED_ATTESTATION` family in
+  source. Historical live job `3601` was already fail-closed and should be
+  re-captured after Controller sync to the post-normalization commit.
 - Breakglass: `3667` passed only for scoped missing-envelope infrastructure
   visibility; `3509`, `3535`, `3627`, `3682`, and `3686` rejected security
   failures.
@@ -123,6 +133,11 @@ exercised:
   valid mirror host, and failed closed on
   `missing-artifact-blastwall-01.workshop.lan` with
   `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.
+- Scheduled loop checks fired at `17:00Z`, `18:00Z`, and `19:00Z` on
+  2026-05-19. KRA health jobs `3776`, `3797`, and `3802` passed; candidate
+  preflight `3780` passed; runtime workflow `3781` passed; inventory audit
+  jobs `3778`, `3799`, and `3804` failed closed on the intentional
+  missing-artifact fixture while the valid host remained clean.
 
 Remaining hold: source and lab evidence are ready for external review, but
 stable-v3 publication still needs named governance owners and sign-off. The
@@ -133,6 +148,7 @@ S-range claim remains held until broader scale evidence is captured.
 - `FAIL_KRA_UNAVAILABLE`: audit-side KRA or vault infrastructure outage.
 - `FAIL_ATTESTATION_NOT_VISIBLE`: signed artifact visible in marker but not in configured KRA path.
 - `FAIL_INDEX_NOT_VISIBLE`: index not visible or not current in configured path.
+- `FAIL_ATTESTATION_INTEGRITY`: marker, latest index, or envelope digest disagreement.
 - `FAIL_SIGNER_UNTRUSTED`: signer certificate or allowlist failure.
 - `FAIL_SIGNATURE_INVALID`, `FAIL_BINDING_MISMATCH`, `FAIL_DRIFTED_POLICY`, `FAIL_REVOKED_ATTESTATION`: host/security failures.
 

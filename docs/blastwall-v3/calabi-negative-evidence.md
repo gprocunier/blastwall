@@ -45,9 +45,9 @@ Each case below must be captured against a controlled/disposable Calabi host:
 |---|---|---|
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | AAP mutation job `3414`; preflight job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3425` |
 | Missing index | `FAIL_INDEX_NOT_VISIBLE` | AAP mutation job `3432`; preflight job `3439` failed as `FAIL_INDEX_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3443` |
-| Digest mismatch | digest/integrity failure | AAP mutation job `3450`; preflight job `3457` failed closed with `failure_class=digest_mismatch`, currently surfaced as `FAIL_ATTESTATION_NOT_VISIBLE`; restore job `3461` |
+| Digest mismatch | `FAIL_ATTESTATION_INTEGRITY` | AAP mutation job `3450`; historical preflight job `3457` failed closed with `failure_class=digest_mismatch` before the RC evidence source normalization; restore job `3461` |
 | Wrong generation | replay/binding failure | AAP artifact job `3520`; mutation job `3524`; preflight job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; breakglass job `3535` rejected; restore job `3539` |
-| Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | Revoked-index artifact job `3568`; mutation job `3572`; preflight job `3579` failed as `FAIL_REVOKED_ATTESTATION`; restore job `3583`. Revoked-marker job `3601` failed closed earlier as invalid locator `marker is revoked`; restore job `3605` |
+| Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | Revoked-index artifact job `3568`; mutation job `3572`; preflight job `3579` failed as `FAIL_REVOKED_ATTESTATION`; restore job `3583`. Historical revoked-marker job `3601` failed closed before the RC evidence source normalization; restore job `3605` |
 | Expired attestation | expired attestation failure | AAP artifact job `3546`; mutation job `3550`; preflight job `3557` failed as `FAIL_STALE_ATTESTATION`; restore job `3561` |
 | Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected; current-branch job `3478` failed as `FAIL_DRIFTED_POLICY` |
 | KRA stale/missing canary | infra visibility failure | positive job `3698`; missing-canary job `3701` failed `FAIL_CANARY_MISSING`; bad-primary job `3702` failed closed; canary schedule job `3731` passed |
@@ -143,8 +143,9 @@ Artifact visibility cases:
   `failure_class=vault_not_found`. Restore job `3443` succeeded.
 - Digest mismatch: mutation job `3450` used the valid golden envelope ref with
   an intentionally wrong marker digest. Preflight job `3457` failed closed with
-  `failure_class=digest_mismatch`; the current top-level failure state remains
-  `FAIL_ATTESTATION_NOT_VISIBLE`. Restore job `3461` succeeded.
+  `failure_class=digest_mismatch`. The RC evidence source patch now maps this
+  verifier path to `FAIL_ATTESTATION_INTEGRITY`; re-capture is pending after
+  Controller sync. Restore job `3461` succeeded.
 
 Replay, expiry, revocation, crypto, and binding cases:
 
@@ -168,10 +169,9 @@ Replay, expiry, revocation, crypto, and binding cases:
   job `3579` failed as `FAIL_REVOKED_ATTESTATION`. Restore job `3583` and
   inventory sync `3587` succeeded.
 - Revoked marker: artifact job `3590`, mutation job `3594`, and preflight job
-  `3601` failed closed during locator resolution with
-  `invalid v3 marker locator: marker is revoked`. This is a state-surface gap:
-  the security behavior is fail-closed, but the observed state is not the
-  top-level `FAIL_REVOKED_ATTESTATION` used for revoked latest-index evidence.
+  `3601` failed closed during locator resolution. The RC evidence source patch
+  now maps revoked locator failures to the `FAIL_REVOKED_ATTESTATION` family;
+  re-capture is pending after Controller sync.
   Restore job `3605` and inventory sync `3609` succeeded.
 - Profile mismatch: artifact job `3612`, mutation job `3616`, and preflight job
   `3623` failed as `FAIL_PROFILE_MISMATCH`. Breakglass job `3627` also failed

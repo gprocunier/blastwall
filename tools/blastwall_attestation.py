@@ -620,9 +620,9 @@ def verify_latest_index(
     marker_attest_sha256 = _marker_value(marker, "attest_sha256")
     envelope_digest = attestation_envelope_sha256(envelope_obj)
     if index_obj["latest_attest_sha256"] != envelope_digest:
-        raise AttestationVerificationError("FAIL_ATTESTATION_DIGEST", "index latest_attest_sha256 does not match envelope")
+        raise AttestationVerificationError("FAIL_ATTESTATION_INTEGRITY", "index latest_attest_sha256 does not match envelope")
     if marker_attest_sha256 and marker_attest_sha256 != envelope_digest:
-        raise AttestationVerificationError("FAIL_ATTESTATION_DIGEST", "marker attest_sha256 does not match envelope")
+        raise AttestationVerificationError("FAIL_ATTESTATION_INTEGRITY", "marker attest_sha256 does not match envelope")
 
     return {
         "envelope": envelope_obj,

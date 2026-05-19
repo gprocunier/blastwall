@@ -3,7 +3,7 @@
 ## Branch
 - branch: blastwall-v3-signed-attestation
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: `789e95f82a91a5541e0ef7889dab9fc7595a5454`
+- current commit: working tree after `14f7f472f70c1eb66f8ece35b194ed4e2da8b137`
 - implementation gate commit: `02c4d7490bfa7671802a71d3079846c27bd92b11`
 
 ## Phase Status
@@ -26,6 +26,7 @@
 | 14 | complete | docs agent + PM | HEAD | docs render, syntax, full test | Added operator, KRA topology, revocation/breakglass, readiness, and external-review docs. |
 | 15 | complete | hardening gate | HEAD | sign pytest, policy static, syntax, `make test-fast`, docs test | Replaced prior weak KRA/preflight edges, classified shell exceptions, and recorded the destructive negative packet. |
 | 16 | complete | stable-evidence gate | `9e9e5e8` | policy static, audit pytest, syntax, live AAP jobs | Installed continuous schedules, fixed Controller-side inventory audit FreeIPA bootstrap, completed three-host mixed-state evidence, and recorded strict audit fail-closed behavior. |
+| 17 | complete | RC evidence gate | working tree | attestation targeted pytest, policy static pending, docs pending | Normalized digest and revoked-marker failure states, added RC decision/governance/soak evidence docs, and refreshed scheduled-loop evidence. |
 
 ## Security Invariants
 - marker is locator only
@@ -45,6 +46,8 @@
   `BLASTWALL_CURRENT_POLICY_SHA256`. The policy pipeline supplies this from
   install artifacts; manually launched runtime gates must pass the same value.
 - Final stable-v3 publication still needs named governance owners and sign-off.
+- Digest-mismatch and revoked-marker destructive cases should be re-captured
+  after the post-normalization commit is synced into Controller.
 - S-range readiness is not claimed; run the broader mixed-state scale gate
   before making an S-range claim.
 
@@ -252,3 +255,11 @@
 - tests run: `python3 tests/policy_static.py`; `python3 -m pytest -q tests/test_audit_blastwall_inventory.py`; `ansible-playbook --syntax-check playbooks/audit-inventory-membership.yml`; `git diff --check`; live AAP project sync `3771`; strict audit job `3772`
 - open issues: stable-v3 publication remains held pending governance owner assignment and sign-off; S-range claim remains held pending broader scale evidence
 - security invariants checked: inventory remains selector-only; strict audit retrieves signed evidence from explicit KRA path before treating a current marker as valid; missing artifact is reported as `FAIL_ATTESTATION_NOT_VISIBLE` instead of marker suitability or generic auth failure
+
+### Phase 17
+- phase: 17 stable-v3 RC evidence gate
+- files changed: `tools/blastwall_attestation.py`, `tools/blastwall_attestation_verify.py`, `tools/blastwall_attestation_sign.py`, attestation tests, `tests/policy_static.py`, `docs/blastwall-v3/*`, `V3_*_LEDGER.md`, `release/STABLE_V3_DECISION.md`
+- tests added: digest mismatch maps to `FAIL_ATTESTATION_INTEGRITY`; revoked marker maps to `FAIL_REVOKED_ATTESTATION`; breakglass cannot bypass either; static guard rejects stale attestation failure states in tools
+- tests run: `python3 -m pytest -q tests/test_blastwall_attestation_index.py tests/test_blastwall_attestation_verify.py tests/test_blastwall_attestation_sign.py` (`45 passed`); live Controller read-only schedule query and collection availability check
+- open issues: governance owners remain pending; digest-mismatch and revoked-marker destructive cases need re-capture after Controller sync to this source patch; S-range remains future work
+- security invariants checked: marker remains locator only; breakglass remains infrastructure visibility only; signed envelope/latest index/live hash requirements are unchanged; scheduled loop fired without unexpected state movement

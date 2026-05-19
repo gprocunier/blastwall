@@ -50,10 +50,10 @@ scope_freeze:
 | 01 | complete | Test Harness | pending | `make test-fast`; `python3 tests/policy_static.py`; registry validation; drift check; `python3 -m pytest -q tests`; syntax checks for preflight/sign/promote/attestation-vault-health | all passed; `167 passed` in full pytest; static coverage confirmed for collection floor, profile-derived post-promotion preflight, raw IPA fallback approval/readback, explicit KRA inputs, and no marker-only stable-v3 pass | none |
 | 02 | complete | KRA/Vault | `78c7c51`, `6d5e65a` | syntax check; `python3 tests/policy_static.py`; AAP project sync to `6d5e65a`; live AAP health jobs `3292` and `3290` | healthy job `3292` passed; missing-canary job `3290` failed as `FAIL_CANARY_MISSING` with IdM, KRA, and vault reachable | canary-positive freshness remains optional unless a real canary vault is configured |
 | 03 | complete | Architecture | `a801759`, `39e83c2`, `cb59520`, `09e73a6`, `21d637f`, `3cca7ff`, `06e7831` | syntax check; `python3 tests/policy_static.py`; live AAP marker harness jobs | controlled stale-host marker harness created as JT `30`; restore job `3389` passed; IdM Admin credential corrected to real IdM admin secret; golden preflight job `3471` passed after destructive restores | collection `ipahost` still fails on this host and uses documented lab-only CLI fallback |
-| 04 | complete | KRA/Vault | `06e7831` | live AAP preflight against controlled stale host | missing envelope job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE`; missing index job `3439` failed as `FAIL_INDEX_NOT_VISIBLE`; digest mismatch job `3457` failed with `failure_class=digest_mismatch` under `FAIL_ATTESTATION_NOT_VISIBLE`; restore jobs `3425`, `3443`, `3461` completed | digest mismatch is not surfaced as a distinct top-level failure state |
-| 05 | complete_with_gap | Attestation | `3ff61e0` | live AAP artifact harness, marker harness, inventory sync, and preflight jobs | replay job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; expiry job `3557` failed as `FAIL_STALE_ATTESTATION`; revoked-index job `3579` failed as `FAIL_REVOKED_ATTESTATION`; revoked-marker job `3601` failed closed during locator resolution | revoked marker surfaces as `invalid v3 marker locator: marker is revoked`, not top-level `FAIL_REVOKED_ATTESTATION` |
+| 04 | complete_with_source_followup | KRA/Vault | `06e7831` plus RC evidence patch | live AAP preflight; source regression tests | missing envelope job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE`; missing index job `3439` failed as `FAIL_INDEX_NOT_VISIBLE`; historical digest mismatch job `3457` failed closed with `failure_class=digest_mismatch`; source now maps digest disagreement to `FAIL_ATTESTATION_INTEGRITY` | re-capture digest mismatch after Controller sync to post-normalization source |
+| 05 | complete_with_source_followup | Attestation | `3ff61e0` plus RC evidence patch | live AAP artifact harness, marker harness, inventory sync, preflight jobs, source regression tests | replay job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; expiry job `3557` failed as `FAIL_STALE_ATTESTATION`; revoked-index job `3579` failed as `FAIL_REVOKED_ATTESTATION`; revoked-marker source path now maps to `FAIL_REVOKED_ATTESTATION` | re-capture revoked-marker case after Controller sync to post-normalization source |
 | 06 | complete | Attestation | `3ff61e0` | live AAP preflight against golden and controlled stale-host artifacts | policy drift job `3478` failed as `FAIL_DRIFTED_POLICY`; signer allowlist mismatch job `3485` failed as `FAIL_SIGNER_UNTRUSTED`; signature tamper job `3505` failed as `FAIL_SIGNATURE_INVALID`; profile mismatch job `3623` failed as `FAIL_PROFILE_MISMATCH`; host binding job `3649` failed as `FAIL_BINDING_MISMATCH` | none for covered cases |
-| 07 | complete | Preflight | `3ff61e0` | live AAP breakglass positive and rejection jobs | missing-envelope breakglass job `3667` passed only with scoped metadata; drift job `3682`, signer job `3686`, signature job `3509`, profile job `3627`, and replay job `3535` all rejected breakglass | digest mismatch remains folded under envelope visibility and should not be used as the integrity-breakglass proof |
+| 07 | complete | Preflight | `3ff61e0` plus RC evidence patch | live AAP breakglass positive/rejection jobs; source regression tests | missing-envelope breakglass job `3667` passed only with scoped metadata; drift job `3682`, signer job `3686`, signature job `3509`, profile job `3627`, and replay job `3535` all rejected breakglass; source tests reject breakglass for digest mismatch and revoked marker | re-capture the two normalized source states in the next destructive rehearsal |
 | 08 | pending | Inventory | | inventory sync and two-host reset proof | mirror current + stale reference states observed after sync `3690`; golden preflight `3693` passed after destructive restores | required three-host mixed-state gate is not live-proven |
 | 09 | complete_plan | AAP/Ops | | docs plan | continuous verification plan updated for Controller workflow/JT cadence and evidence outputs | schedule not yet installed |
 | 10 | complete | Collections | `3ff61e0` | syntax/static checks; no-shell artifact harness | artifact harness uses `ansible.builtin.command` with `argv` plus `eigenstate.ipa.vault_artifact`; static guard added so it is not registered as a production template | existing lab-only marker harness still has documented CLI fallback |
@@ -184,9 +184,10 @@ digest_mismatch:
   preflight_job: 3457
   restore_job: 3461
   host: stale-blastwall-01.workshop.lan
-  observed_failure_state: FAIL_ATTESTATION_NOT_VISIBLE
+  observed_failure_state_historical: FAIL_ATTESTATION_NOT_VISIBLE
+  normalized_source_failure_state: FAIL_ATTESTATION_INTEGRITY
   failure_class: digest_mismatch
-  note: digest mismatch is fail-closed but currently folded under envelope visibility
+  note: historical live job failed closed before RC evidence source normalization
 ```
 
 ## Phase 05-07 Attestation and Breakglass Notes
@@ -251,8 +252,9 @@ revoked_marker:
   preflight_job: 3601
   restore_job: 3605
   restore_sync: 3609
-  observed_failure_state: FAIL_LOCATOR_REJECTED
-  message: "invalid v3 marker locator: marker is revoked"
+  observed_failure_state_historical: FAIL_LOCATOR_REJECTED
+  normalized_source_failure_state: FAIL_REVOKED_ATTESTATION
+  message_historical: "invalid v3 marker locator: marker is revoked"
 profile_mismatch:
   artifact_job: 3612
   mutation_job: 3616
@@ -302,7 +304,7 @@ post_matrix_restore:
 | Replayed generation | `FAIL_REPLAYED_ATTESTATION` | `FAIL_REPLAYED_ATTESTATION`, `attestation generation is older than latest index` | artifact `3520`, mutation `3524`, preflight `3531`, breakglass `3535`, restore `3539` | PASS_FAIL_CLOSED_BREAKGLASS_REJECTED |
 | Expired attestation | `FAIL_STALE_ATTESTATION` | `FAIL_STALE_ATTESTATION`, `attestation evidence is outside validity window` | artifact `3546`, mutation `3550`, preflight `3557`, restore `3561` | PASS_FAIL_CLOSED |
 | Revoked latest index | `FAIL_REVOKED_ATTESTATION` | `FAIL_REVOKED_ATTESTATION`, `latest index is revoked` | artifact `3568`, mutation `3572`, preflight `3579`, restore `3583` | PASS_FAIL_CLOSED |
-| Revoked marker | revoked marker failure | `invalid v3 marker locator: marker is revoked` before verifier task | artifact `3590`, mutation `3594`, preflight `3601`, restore `3605` | PASS_FAIL_CLOSED_WITH_STATE_GAP |
+| Revoked marker | `FAIL_REVOKED_ATTESTATION` | historical job `3601` failed closed before RC source normalization; source now reports the revoked-attestation family | artifact `3590`, mutation `3594`, preflight `3601`, restore `3605` | PASS_FAIL_CLOSED_RECAPTURE_PENDING |
 | Profile mismatch | `FAIL_PROFILE_MISMATCH` | `FAIL_PROFILE_MISMATCH`, `payload profiles do not match required profiles` | artifact `3612`, mutation `3616`, preflight `3623`, breakglass `3627`, restore `3631` | PASS_FAIL_CLOSED_BREAKGLASS_REJECTED |
 | Host binding mismatch | `FAIL_BINDING_MISMATCH` | `FAIL_BINDING_MISMATCH`, `payload subject_host does not match selected host` | artifact `3638`, mutation `3642`, preflight `3649`, restore `3653` | PASS_FAIL_CLOSED |
 | Breakglass missing envelope | scoped infra bypass | `PASS`, `override_failure_state=FAIL_ATTESTATION_NOT_VISIBLE` | mutation `3660`, preflight `3667`, restore `3671` | PASS_ALLOWED_INFRA_ONLY |

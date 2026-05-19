@@ -11,13 +11,21 @@
 - `docs/blastwall-v3/multi-host-continuous-verification-plan.md`: mixed-state
   and continuous verification operating plan.
 - `docs/blastwall-v3/stable-v3-release-decision.md`: current release posture.
+- `docs/blastwall-v3/stable-v3-rc-decision.md`: RC-level GO/HOLD decision.
+- `docs/blastwall-v3/evidence-consistency-matrix.md`: live/source
+  failure-state reconciliation.
+- `docs/blastwall-v3/scheduled-loop-soak.md`: scheduled-loop evidence.
+- `docs/blastwall-v3/governance-owner-assignment.md`: required owner
+  assignment surface.
 
 ## Controller Evidence
 
 - Project: `Blastwall`, ID `8`.
 - Branch: `blastwall-v3-signed-attestation`.
-- Current synced commit: `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
-- Project update: `3771`.
+- Current synced commit observed at 2026-05-19T19:40Z:
+  `14f7f472f70c1eb66f8ece35b194ed4e2da8b137`.
+- Earlier three-host evidence project update: `3771` to
+  `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
 - Inventory source: `9`.
 - Preflight job template: `10`.
 - Runtime verification workflow template: `15`.
@@ -40,6 +48,8 @@
 - Later target-branch KRA health job: `3731`, successful.
 - Later target-branch candidate preflight job: `3735`, successful.
 - Later target-branch runtime workflow: `3736`, successful.
+- Scheduled candidate preflight job: `3780`, successful.
+- Scheduled runtime workflow: `3781`, successful.
 
 ## KRA Health
 
@@ -47,13 +57,16 @@
 - Missing canary: `3701`, failed as `FAIL_CANARY_MISSING`.
 - Bad configured KRA primary/server: `3702`, failed closed on
   `missing-kra.workshop.lan`.
-- Canary health after schedules: `3731`, successful with canary present.
+- Canary health after schedules: `3731`, `3776`, `3797`, and `3802`,
+  successful with canary present.
 
 ## Artifact Visibility
 
 - Missing envelope: mutation `3414`, preflight `3421`, restore `3425`.
 - Missing index: mutation `3432`, preflight `3439`, restore `3443`.
 - Digest mismatch: mutation `3450`, preflight `3457`, restore `3461`.
+  Source now normalizes this verifier path to `FAIL_ATTESTATION_INTEGRITY`;
+  re-capture is pending after Controller sync to the post-normalization commit.
 
 ## Replay, Expiry, Revocation
 
@@ -65,6 +78,8 @@
   restore `3583`, restore sync `3587`.
 - Revoked marker: artifact `3590`, mutation `3594`, preflight `3601`,
   restore `3605`, restore sync `3609`.
+  Source now normalizes this locator path to `FAIL_REVOKED_ATTESTATION`;
+  re-capture is pending after Controller sync to the post-normalization commit.
 
 ## Crypto, Binding, and Drift
 
@@ -102,7 +117,8 @@
 - Schedule `7`: `Blastwall stable-v3 inventory audit hourly`, enabled.
 - Schedule `8`: `Blastwall stable-v3 candidate preflight daily`, enabled.
 - Schedule `9`: `Blastwall stable-v3 runtime verification daily`, enabled.
-- Exercised checks: `3731`, `3735`, `3736`, `3772`.
+- Exercised checks: `3731`, `3735`, `3736`, `3772`, `3776`, `3778`,
+  `3780`, `3781`, `3797`, `3799`, `3802`, `3804`.
 
 ## Current Artifact Bindings
 

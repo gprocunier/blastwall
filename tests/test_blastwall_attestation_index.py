@@ -183,7 +183,7 @@ class BlastwallAttestationIndexTests(unittest.TestCase):
         index = self.build_index(latest_attest_sha256="d" * 64)
         with self.assertRaises(attestation.AttestationVerificationError) as exc:
             self.verify(index=index)
-        self.assertEqual(exc.exception.failure_state, "FAIL_ATTESTATION_DIGEST")
+        self.assertEqual(exc.exception.failure_state, "FAIL_ATTESTATION_INTEGRITY")
 
     def test_marker_digest_mismatch_fails(self) -> None:
         marker = {
@@ -193,7 +193,7 @@ class BlastwallAttestationIndexTests(unittest.TestCase):
         }
         with self.assertRaises(attestation.AttestationVerificationError) as exc:
             self.verify(marker=marker)
-        self.assertEqual(exc.exception.failure_state, "FAIL_ATTESTATION_DIGEST")
+        self.assertEqual(exc.exception.failure_state, "FAIL_ATTESTATION_INTEGRITY")
 
     def test_marker_generation_mismatch_fails_binding(self) -> None:
         marker = {

@@ -936,7 +936,7 @@ Failure output must distinguish host verification failures from attestation-infr
 | `FAIL_MISSING_MARKER` | No Blastwall marker is present. | host / marker |
 | `FAIL_UNSUPPORTED_MARKER_VERSION` | Marker version is unsupported. | marker |
 | `FAIL_DUPLICATE_RESERVED_MARKER_FIELD` | A reserved marker key appears more than once. | marker |
-| `FAIL_REVOKED_MARKER` | Marker state is revoked. | host / governance |
+| `FAIL_REVOKED_ATTESTATION` | Marker, latest index, or attestation state is revoked. | host / governance |
 | `FAIL_EXPIRED_MARKER` | Marker expiry is in the past. | marker |
 | `FAIL_INFRA_VAULT_KRA` | Targeted KRA replica is unavailable, not KRA-enabled, unreachable, or unhealthy. | infrastructure |
 | `FAIL_ATTESTATION_NOT_VISIBLE` | Marker exists, but referenced attestation is not visible from configured KRA path after bounded retry. | infrastructure / consistency |
@@ -944,7 +944,7 @@ Failure output must distinguish host verification failures from attestation-infr
 | `FAIL_KRA_REPLICATION_LAG` | Artifact or index appears on one configured KRA replica but not another. | infrastructure / consistency |
 | `FAIL_VAULT_PROXY_PATH` | Vault access succeeded only through a proxy path when direct KRA target was required. | infrastructure / topology |
 | `FAIL_MISSING_ATTESTATION` | Artifact is genuinely missing, deleted, tombstoned, or was never created. | attestation |
-| `FAIL_ATTESTATION_DIGEST` | Artifact digest does not match marker. | attestation |
+| `FAIL_ATTESTATION_INTEGRITY` | Marker, latest index, or envelope digest does not agree. | attestation |
 | `FAIL_UNSUPPORTED_ENVELOPE_VERSION` | Envelope version is unsupported. | attestation |
 | `FAIL_JSON_CANONICALIZATION` | Payload cannot be canonicalized or has duplicate JSON properties. | attestation |
 | `FAIL_SIGNATURE` | Detached signature verification fails. | signature |
@@ -1552,7 +1552,7 @@ breakglass works only for attestation infrastructure failure
 | # | Test | Expected |
 |---:|---|---|
 | 1 | Valid v3 marker + valid envelope + latest index + live hash match | PASS |
-| 2 | Marker digest mismatch | FAIL_ATTESTATION_DIGEST |
+| 2 | Marker digest mismatch | FAIL_ATTESTATION_INTEGRITY |
 | 3 | Missing vault artifact | FAIL_MISSING_ATTESTATION |
 | 4 | Bad signature | FAIL_SIGNATURE |
 | 5 | Signer not in allowlist | FAIL_SIGNER_NOT_ALLOWED |
@@ -1567,8 +1567,8 @@ breakglass works only for attestation infrastructure failure
 | 14 | Expired attestation | FAIL_STALE_ATTESTATION |
 | 15 | Old generation with newer signed index | FAIL_REPLAYED_ATTESTATION |
 | 16 | Missing latest-generation index in stable-v3 | FAIL_MISSING_INDEX |
-| 17 | Revoked marker | FAIL_REVOKED_MARKER |
-| 18 | Tombstoned artifact | FAIL_MISSING_ATTESTATION or FAIL_REVOKED_MARKER |
+| 17 | Revoked marker | FAIL_REVOKED_ATTESTATION |
+| 18 | Tombstoned artifact | FAIL_MISSING_ATTESTATION or FAIL_REVOKED_ATTESTATION |
 | 19 | v2 marker in stable-v3 mode | FAIL_UNSUPPORTED_MARKER_VERSION or unsigned-marker rejection |
 | 20 | v2 marker in transition mode | PASS or WARN, depending policy |
 | 21 | Breakglass for vault outage | PASS only with explicit approved breakglass |

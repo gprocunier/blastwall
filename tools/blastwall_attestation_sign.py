@@ -584,7 +584,7 @@ def resolve_existing_artifacts(
         allow_dry_run_profiles=inputs.allow_dry_run_profiles,
     )
     if parsed_marker.version != 3 or parsed_marker.errors or not parsed_marker.hint:
-        raise ValueError(f"invalid v3 marker locator: {'; '.join(parsed_marker.errors)}")
+        raise ValueError(_invalid_marker_locator_message(parsed_marker.errors))
     if not parsed_marker.attest_ref or not parsed_marker.attest_sha256:
         raise ValueError("v3 marker locator is missing attestation reference or digest")
     if parsed_marker.generation is None:
@@ -640,7 +640,7 @@ def retrieve_existing_artifacts(
         allow_dry_run_profiles=inputs.allow_dry_run_profiles,
     )
     if parsed_marker.version != 3 or parsed_marker.errors or not parsed_marker.hint:
-        raise ValueError(f"invalid v3 marker locator: {'; '.join(parsed_marker.errors)}")
+        raise ValueError(_invalid_marker_locator_message(parsed_marker.errors))
     if not parsed_marker.attest_ref or not parsed_marker.attest_sha256:
         raise ValueError("v3 marker locator is missing attestation reference or digest")
     if parsed_marker.generation is None:
@@ -709,8 +709,19 @@ def retrieve_existing_artifacts(
     }
 
 
+def _invalid_marker_locator_message(errors: list[str]) -> str:
+    message = "; ".join(errors) if errors else "marker did not satisfy stable-v3 locator requirements"
+    if any("marker is revoked" in error for error in errors):
+        return f"FAIL_REVOKED_ATTESTATION: invalid v3 marker locator: {message}"
+    return f"invalid v3 marker locator: {message}"
+
+
 def _failure_report(exc: Exception) -> dict[str, Any]:
-    report: dict[str, Any] = {"status": "FAIL", "message": str(exc)}
+    message = str(exc)
+    report: dict[str, Any] = {"status": "FAIL", "message": message}
+    failure_state = message.split(":", 1)[0].strip()
+    if failure_state.startswith("FAIL_"):
+        report["failure_state"] = failure_state
     if isinstance(exc, blastwall_attestation_vault.VaultCommandError):
         report["vault_error"] = exc.context.to_dict()
     return report

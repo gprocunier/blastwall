@@ -262,6 +262,41 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertEqual(Path(resolved["envelope_file"]).name, f"{self.inputs.subject_host}.json")
         self.assertEqual(Path(resolved["index_file"]).name, f"{self.inputs.subject_host}.json")
 
+    def test_resolve_existing_revoked_marker_reports_revoked_attestation_state(self) -> None:
+        memory_vault = MemoryVault()
+        signed = signer.sign_store_readback(
+            self.inputs,
+            registry=self.registry,
+            vault_config=self.vault_config,
+            envelope_dir=None,
+            index_dir=None,
+            command_runner=memory_vault,
+        )
+        revoked_marker = marker.emit_marker_v3(
+            registry=self.registry,
+            rpm=self.inputs.rpm_nevra,
+            profiles=self.inputs.profiles,
+            target=self.inputs.target,
+            state="revoked",
+            attest_ref=signed["attestation_ref"],
+            attest_sha256=signed["attestation_sha256"],
+            signer_kid=signed["signer_kid"],
+            exp=(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30))
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z"),
+            generation=signed["index_generation"],
+        )
+        with self.assertRaisesRegex(ValueError, "FAIL_REVOKED_ATTESTATION"):
+            signer.resolve_existing_artifacts(
+                self.inputs,
+                registry=self.registry,
+                vault_config=self.vault_config,
+                marker_text=revoked_marker,
+                envelope_dir=self.temp_path / "revoked_envelopes",
+                index_dir=self.temp_path / "revoked_indexes",
+            )
+
     def test_retrieve_existing_rejects_digest_mismatch_before_signature_verification(self) -> None:
         memory_vault = MemoryVault()
         signed = signer.sign_store_readback(
@@ -372,6 +407,13 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["vault_error"]["vault_error_type"], "auth_failure")
         self.assertEqual(report["vault_error"]["stderr"], "ipa: ERROR: Insufficient access")
+
+    def test_failure_report_extracts_failure_state_prefix(self) -> None:
+        report = signer._failure_report(
+            ValueError("FAIL_REVOKED_ATTESTATION: invalid v3 marker locator: marker is revoked")
+        )
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["failure_state"], "FAIL_REVOKED_ATTESTATION")
 
     def test_vault_config_defaults_retry_fields_for_build_artifacts_cli(self) -> None:
         config = signer._vault_config(

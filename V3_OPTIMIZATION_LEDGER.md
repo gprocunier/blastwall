@@ -300,13 +300,13 @@ tests run:
   PASS npm run test:docs
 evidence captured:
   docs now state eigenstate.ipa 1.18.1 dependency, current Controller-visible
-  healthy workflow 2843, and HOLD_LIVE_EVIDENCE for missing destructive
-  negative matrix.
+  healthy workflow 2843, and the then-current live-evidence hold before
+  the destructive matrix was attached.
 security invariants checked:
   claim boundary remains stable-candidate, not production-stable fleet proof.
 open issues:
-  final state remains HOLD_LIVE_EVIDENCE until phase 08 destructive live matrix
-  is run and attached.
+  historical phase state remained a live-evidence hold until the later
+  destructive live matrix was run and attached.
 next phase handoff:
   Run full validation; if clean, run live Calabi gates or publish the branch as
   a code-hardening checkpoint with live evidence explicitly pending.
@@ -402,4 +402,54 @@ next phase handoff:
   Refresh the AAP Project to this working tree, rerun the healthy policy
   pipeline, then execute the destructive negative matrix from the Calabi
   evidence packet.
+```
+
+## Phase 14 - RC Evidence State Normalization
+
+```text
+phase: 14 rc evidence state normalization
+commit: working tree after 14f7f472f70c1eb66f8ece35b194ed4e2da8b137
+files changed:
+  tools/blastwall_attestation.py
+  tools/blastwall_attestation_verify.py
+  tools/blastwall_attestation_sign.py
+  tests/test_blastwall_attestation_index.py
+  tests/test_blastwall_attestation_verify.py
+  tests/test_blastwall_attestation_sign.py
+  tests/policy_static.py
+  docs/blastwall-v3/evidence-consistency-matrix.md
+  docs/blastwall-v3/stable-v3-rc-decision.md
+  docs/blastwall-v3/scheduled-loop-soak.md
+  docs/blastwall-v3/governance-owner-assignment.md
+  docs/blastwall-v3/second-maintainer-diagnostic-exercise.md
+  docs/blastwall-v3/final-stable-v3-decision.md
+tests added:
+  normalized digest mismatch failure state
+  normalized revoked-marker failure state
+  breakglass rejection for digest mismatch and revoked marker
+  static rejection of stale attestation failure state names in tools
+tests run:
+  PASS python3 -m pytest -q tests/test_blastwall_attestation_index.py tests/test_blastwall_attestation_verify.py tests/test_blastwall_attestation_sign.py
+  PASS read-only Calabi Controller schedule query
+  PASS ansible-galaxy collection list eigenstate.ipa
+  PASS ansible-doc collection surface checks for idm, vault_health, vault_artifact, access_path, and sudo_risk
+evidence captured:
+  AAP schedules 6 through 9 are enabled.
+  Scheduled KRA health jobs 3776, 3797, and 3802 passed.
+  Scheduled candidate preflight 3780 passed.
+  Scheduled runtime workflow 3781 passed.
+  Scheduled inventory audits 3778, 3799, and 3804 failed closed only on the
+  intentional missing-artifact fixture.
+security invariants checked:
+  breakglass remains limited to attestation/index visibility failures.
+  digest and revocation are security/attestation failures, not infrastructure
+  visibility bypass cases.
+open issues:
+  governance owner assignment remains pending.
+  destructive digest-mismatch and revoked-marker cases need re-capture after
+  this source normalization is synced into Controller.
+next phase handoff:
+  Run the full local validation suite, commit and push, sync Controller to the
+  pushed commit, then re-run the two normalized destructive cases when the lab
+  window is available.
 ```

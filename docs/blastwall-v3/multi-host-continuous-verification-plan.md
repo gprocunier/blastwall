@@ -68,6 +68,11 @@ Initial exercised checks:
 - Runtime verification workflow `3736` passed.
 - Strict inventory audit job `3772` verified the valid host and failed closed
   on the missing-artifact fixture with `FAIL_ATTESTATION_NOT_VISIBLE`.
+- Scheduled runs `3776`, `3797`, and `3802` kept KRA health green.
+- Scheduled candidate preflight `3780` and scheduled runtime workflow `3781`
+  passed.
+- Scheduled inventory audit `3778`, `3799`, and `3804` failed closed on the
+  intentional missing-artifact fixture while keeping the valid host clean.
 
 The destructive negative harnesses remain unscheduled and lab-only:
 
@@ -105,6 +110,7 @@ Continue centralizing evidence snapshots with:
 - Missing evidence to complete broader claims:
   - S-range mixed-state gate at 10+ hosts
   - named owners, retention, and escalation paths for the schedule
+  - longer 24-hour or 72-hour soak window after ownership is assigned
 
 ## Decision posture
 

@@ -11,6 +11,8 @@ Use this checklist before claiming stable-v3.
 - KRA/vault owner named.
 - Revocation authority named.
 - Breakglass approval path named and tested.
+- Governance assignment is recorded in
+  `docs/blastwall-v3/governance-owner-assignment.md`.
 
 ## Configuration and ownership
 
@@ -58,6 +60,13 @@ Use this checklist before claiming stable-v3.
 
 - Missing attestation fetch: observed as `FAIL_ATTESTATION_NOT_VISIBLE`.
 - Missing latest index: observed as `FAIL_INDEX_NOT_VISIBLE`.
+- Digest disagreement: observed in source as `FAIL_ATTESTATION_INTEGRITY`;
+  historical Calabi job `3457` failed closed before the normalized source state
+  was Controller-visible.
+- Revoked marker or latest index: observed in source as
+  `FAIL_REVOKED_ATTESTATION`; historical revoked-index job `3579` already
+  showed this live and historical revoked-marker job `3601` failed closed
+  before the normalized source state was Controller-visible.
 - KRA unavailable during audit: observed as `FAIL_KRA_UNAVAILABLE` with
   `vault_error_type` details.
 - Signature failure: security fail, not recoverable via breakglass.
@@ -122,6 +131,10 @@ Current Calabi RC evidence:
   health, `7` hourly inventory audit, `8` daily candidate preflight, and `9`
   daily runtime verification. KRA health `3731`, candidate preflight `3735`,
   and runtime workflow `3736` passed.
+- Scheduled runs after installation also fired: KRA health `3776`, `3797`,
+  and `3802` passed; candidate preflight `3780` passed; runtime workflow
+  `3781` passed; inventory audit `3778`, `3799`, and `3804` failed closed on
+  the intentional missing-artifact fixture.
 - Strict inventory audit job `3772` authenticated to FreeIPA, verified the
   valid mirror host, and failed closed on the broken current marker with
   `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.

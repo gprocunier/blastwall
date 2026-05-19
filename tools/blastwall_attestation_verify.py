@@ -203,7 +203,7 @@ def _marker_failure_state(errors: list[str]) -> str:
     if any("unsupported marker version" in error for error in errors):
         return "FAIL_UNSUPPORTED_MARKER_VERSION"
     if any("marker is revoked" in error for error in errors):
-        return "FAIL_REVOKED_MARKER"
+        return "FAIL_REVOKED_ATTESTATION"
     if any("marker has expired" in error for error in errors):
         return "FAIL_EXPIRED_MARKER"
     return "FAIL_MARKER_TAMPERED"
@@ -216,7 +216,7 @@ def _crypto_failure_state(error: ValueError) -> str:
     if "allowlisted" in message or "not trusted" in message or "signer certificate" in message:
         return "FAIL_SIGNER_UNTRUSTED"
     if "payload_sha256" in message or "digest" in message:
-        return "FAIL_ATTESTATION_DIGEST"
+        return "FAIL_ATTESTATION_INTEGRITY"
     if "unsupported envelope_version" in message:
         return "FAIL_UNSUPPORTED_ENVELOPE_VERSION"
     if "duplicate JSON property" in message:

@@ -1037,6 +1037,26 @@ for required_v3_file in [
 ]:
     if not (ROOT / required_v3_file).exists():
         fail(f"missing v3 attestation file: {required_v3_file}")
+attestation_tool_text = "\n".join(
+    (ROOT / path).read_text(encoding="utf-8")
+    for path in [
+        "tools/blastwall_attestation.py",
+        "tools/blastwall_attestation_verify.py",
+        "tools/blastwall_attestation_sign.py",
+    ]
+)
+for required_failure_state in [
+    "FAIL_ATTESTATION_INTEGRITY",
+    "FAIL_REVOKED_ATTESTATION",
+]:
+    if required_failure_state not in attestation_tool_text:
+        fail(f"stable-v3 attestation tools must expose normalized failure state {required_failure_state}")
+for stale_failure_state in [
+    "FAIL_ATTESTATION_DIGEST",
+    "FAIL_REVOKED_MARKER",
+]:
+    if stale_failure_state in attestation_tool_text:
+        fail(f"stable-v3 attestation tools still expose stale failure state {stale_failure_state}")
 for required_v3_doc in [
     "signed-attestation-design.md",
     "operator-runbook.md",
@@ -1046,6 +1066,12 @@ for required_v3_doc in [
     "external-review-packet.md",
     "shell-and-collection-exceptions.md",
     "stable-v3-release-decision.md",
+    "stable-v3-rc-decision.md",
+    "evidence-consistency-matrix.md",
+    "scheduled-loop-soak.md",
+    "governance-owner-assignment.md",
+    "second-maintainer-diagnostic-exercise.md",
+    "final-stable-v3-decision.md",
     "evidence-index.md",
 ]:
     if not (ROOT / "docs" / "blastwall-v3" / required_v3_doc).exists():
