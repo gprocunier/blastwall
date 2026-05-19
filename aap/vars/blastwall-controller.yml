@@ -186,6 +186,7 @@ blastwall_aap_stable_evidence_schedules:
         blastwall_aap_profile_extra_vars |
         combine(blastwall_aap_attestation_extra_vars) |
         combine({
+          'BLASTWALL_INVENTORY_SOURCE': blastwall_aap_inventory_source_path,
           'BLASTWALL_VERIFY_ATTESTATIONS': 'true',
           'BLASTWALL_FAIL_ON_CURRENT_TO_STALE': 'true',
           'BLASTWALL_FAIL_ON_CURRENT_MARKER_PARSE_ERROR': 'true',
@@ -304,7 +305,12 @@ blastwall_aap_v3_job_templates:
       - "{{ blastwall_aap_attestation_idm_credential }}"
       - "{{ blastwall_aap_attestation_verifier_credential }}"
     limit: ""
-    extra_vars: "{{ blastwall_aap_profile_extra_vars | combine(blastwall_aap_attestation_extra_vars) }}"
+    extra_vars: >-
+      {{
+        blastwall_aap_profile_extra_vars |
+        combine(blastwall_aap_attestation_extra_vars) |
+        combine({'BLASTWALL_INVENTORY_SOURCE': blastwall_aap_inventory_source_path})
+      }}
   - name: Blastwall sign attestation
     playbook: playbooks/sign-attestation.yml
     credentials:

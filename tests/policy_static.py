@@ -1130,6 +1130,7 @@ if "schedule_rrule" in aap_controller:
 for required_schedule_signal in [
     "Blastwall stable-v3 KRA health hourly",
     "Blastwall stable-v3 inventory audit hourly",
+    "BLASTWALL_INVENTORY_SOURCE",
     "Blastwall stable-v3 candidate preflight daily",
     "Blastwall stable-v3 runtime verification daily",
     "BLASTWALL_FAIL_ON_CURRENT_MARKER_WITHOUT_VALID_ATTESTATION",
@@ -1137,6 +1138,9 @@ for required_schedule_signal in [
 ]:
     if required_schedule_signal not in aap_vars + aap_controller:
         fail(f"AAP stable-v3 continuous verification missing {required_schedule_signal}")
+inventory_audit_playbook = (ROOT / "playbooks" / "audit-inventory-membership.yml").read_text(encoding="utf-8")
+if "blastwall_inventory_source_raw" not in inventory_audit_playbook or "playbook_dir ~ '/../'" not in inventory_audit_playbook:
+    fail("inventory audit playbook must resolve project-relative inventory sources from the playbook directory")
 v3_negative_marker_harness = (ROOT / "playbooks" / "negative-gate-idm-marker.yml").read_text(encoding="utf-8")
 for required_negative_marker_signal in [
     "Apply a controlled Blastwall negative-gate IdM marker state",

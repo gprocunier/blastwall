@@ -4,9 +4,15 @@
   connection: local
   gather_facts: false
   vars:
-    blastwall_inventory_source: >-
+    blastwall_inventory_source_raw: >-
       {{ BLASTWALL_INVENTORY_SOURCE |
       default(lookup('env', 'BLASTWALL_INVENTORY_SOURCE') | default('inventory/blastwall-idm.yml', true), true) }}
+    blastwall_inventory_source: >-
+      {{
+        blastwall_inventory_source_raw
+        if blastwall_inventory_source_raw.startswith('/')
+        else playbook_dir ~ '/../' ~ blastwall_inventory_source_raw
+      }}
     blastwall_inventory_json_path: >-
       {{ BLASTWALL_INVENTORY_JSON |
       default(lookup('env', 'BLASTWALL_INVENTORY_JSON') | default('', true), true) }}
