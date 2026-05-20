@@ -52,6 +52,7 @@
     blastwall_attestation_mode: >-
       {{ BLASTWALL_ATTESTATION_MODE |
       default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true) }}
+    blastwall_v3_signed_promotion: "{{ blastwall_attestation_mode in ['transition-v3', 'stable-v3'] }}"
     blastwall_stable_v3_promotion: "{{ blastwall_attestation_mode == 'stable-v3' }}"
     blastwall_attestation_state: >-
       {{ BLASTWALL_ATTESTATION_STATE |
@@ -170,17 +171,18 @@
           - not blastwall_update_idm_marker | bool or blastwall_policy_marker_rpm_sha256 is match('^[0-9a-f]{64}$')
           - not blastwall_update_idm_marker | bool or blastwall_policy_module_sha256 is match('^[0-9a-f]{64}$')
           - not blastwall_update_idm_marker | bool or blastwall_profile_registry_sha256 is match('^[0-9a-f]{64}$')
-          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_signer_certificate | length > 0
-          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_ca_bundle | length > 0
-          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_signer_allowlist | length > 0
-          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_primary | length > 0
-          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_servers | length > 0
+          - not blastwall_v3_signed_promotion | bool or blastwall_attestation_signer_certificate | length > 0
+          - not blastwall_v3_signed_promotion | bool or blastwall_attestation_ca_bundle | length > 0
+          - not blastwall_v3_signed_promotion | bool or blastwall_attestation_signer_allowlist | length > 0
+          - not blastwall_v3_signed_promotion | bool or blastwall_attestation_vault_primary | length > 0
+          - not blastwall_v3_signed_promotion | bool or blastwall_attestation_vault_servers | length > 0
         fail_msg: >-
           Set IPA_SERVER, IPA_DOMAIN, IPA_REALM, IPA_PRINCIPAL, IPA_PASSWORD,
           64-character BLASTWALL_POLICY_RPM_SHA256, and 64-character
           BLASTWALL_POLICY_SHA256 values for the FreeIPA host marker update.
-          Stable-v3 promotion also requires attestation signer certificate,
-          CA bundle, signer allowlist, and materialized envelope/index paths.
+          transition-v3/stable-v3 promotion also requires attestation signer
+          certificate, CA bundle, signer allowlist, and materialized
+          envelope/index paths.
       run_once: true
       delegate_to: localhost
 
@@ -272,7 +274,7 @@
       become: false
       when:
         - blastwall_update_idm_marker | bool
-        - not blastwall_stable_v3_promotion | bool
+        - not blastwall_v3_signed_promotion | bool
 
     - name: Render failed Blastwall marker for collection fallback
       ansible.builtin.command:
@@ -283,7 +285,7 @@
       become: false
       when:
         - blastwall_update_idm_marker | bool
-        - not blastwall_stable_v3_promotion | bool
+        - not blastwall_v3_signed_promotion | bool
 
     - name: Verify stable-v3 attestation before marker publication
       ansible.builtin.command:
@@ -323,7 +325,7 @@
           }}
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
         - blastwall_signed_attestation_marker | length == 0
 
     - name: Store stable-v3 attestation promotion evidence
@@ -331,7 +333,7 @@
         blastwall_v3_attestation_promotion_evidence: "{{ blastwall_v3_attestation_promotion.stdout | from_json }}"
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
         - blastwall_signed_attestation_marker | length == 0
 
     - name: Use verified stable-v3 locator marker for IdM publication
@@ -340,7 +342,7 @@
           stdout: "{{ blastwall_v3_attestation_promotion_evidence.marker }}"
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
         - blastwall_signed_attestation_marker | length == 0
 
     - name: Use signed stable-v3 locator marker from pipeline signing evidence
@@ -349,7 +351,7 @@
           stdout: "{{ blastwall_signed_attestation_marker }}"
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
         - blastwall_signed_attestation_marker | length > 0
 
     - name: Retrieve and verify supplied stable-v3 marker before IdM publication
@@ -399,7 +401,7 @@
           }}
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
 
     - name: Report stable-v3 attestation promotion evidence
       ansible.builtin.debug:
@@ -412,7 +414,7 @@
           source_revision: "{{ blastwall_v3_attestation_promotion_evidence.source_revision }}"
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
         - blastwall_signed_attestation_marker | length == 0
 
     - name: Report stable-v3 pipeline signing evidence
@@ -425,7 +427,7 @@
           source: pipeline-signing-evidence
       when:
         - blastwall_update_idm_marker | bool
-        - blastwall_stable_v3_promotion | bool
+        - blastwall_v3_signed_promotion | bool
         - blastwall_signed_attestation_marker | length > 0
 
     - name: Pre-validate promoted Blastwall marker before IdM publication
@@ -462,7 +464,7 @@
           }}
       when:
         - blastwall_update_idm_marker | bool
-        - not blastwall_stable_v3_promotion | bool
+        - not blastwall_v3_signed_promotion | bool
 
     - name: Publish verified Blastwall host marker to IdM
       block:
@@ -655,14 +657,14 @@
           ignore_errors: true
           when:
             - blastwall_update_idm_marker | bool
-            - not blastwall_stable_v3_promotion | bool
+            - not blastwall_v3_signed_promotion | bool
 
         - name: Stop after failed policy promotion
           ansible.builtin.fail:
             msg: >-
               Blastwall policy marker promotion failed on {{ inventory_hostname }}.
-              {% if blastwall_stable_v3_promotion | bool %}
-              No v3 marker was published because stable-v3 requires verified
+              {% if blastwall_v3_signed_promotion | bool %}
+              No v3 marker was published because transition-v3/stable-v3 requires verified
               envelope and index visibility before IdM publication.
               {% else %}
               The host marker was set to failed when marker updates were enabled.

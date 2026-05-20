@@ -1439,7 +1439,7 @@ for required_stable_v3_marker_gate in [
     "retrieve-existing",
     "--marker', blastwall_policy_marker.stdout",
     "KRB5CCNAME",
-    "blastwall_stable_v3_promotion | bool",
+    "blastwall_v3_signed_promotion | bool",
     "blastwall_attestation_vault_primary",
     "blastwall_attestation_vault_servers",
     "blastwall_attestation_vault_scope",
