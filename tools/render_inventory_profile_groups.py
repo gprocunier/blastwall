@@ -253,7 +253,7 @@ def render_profile_group_expressions(registry_path: Path = DEFAULT_REGISTRY) -> 
     signed_attestation_mode = (
         "((BLASTWALL_ATTESTATION_MODE | "
         "default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)) "
-        "in ['stable-v3', 'breakglass'])"
+        "in ['transition-v3', 'stable-v3', 'breakglass'])"
     )
     schema_error = _and_block(
         "(",

@@ -132,7 +132,7 @@
         BLASTWALL_ATTESTATION_MODE |
         default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)
       }}
-    blastwall_attestation_signed_mode: "{{ blastwall_attestation_mode in ['stable-v3', 'breakglass'] }}"
+    blastwall_attestation_signed_mode: "{{ blastwall_attestation_mode in ['transition-v3', 'stable-v3', 'breakglass'] }}"
     blastwall_breakglass: >-
       {{
         BLASTWALL_BREAKGLASS |

@@ -343,6 +343,8 @@ if profile_base_expr is None:
     fail("tools/render_inventory_profile_groups.py is missing blastwall_profile_base")
 if "BLASTWALL_ALLOW_DRY_RUN_PROFILES" not in profile_base_expr:
     fail("rendered blastwall_profile_base does not guard dry-run profiles behind BLASTWALL_ALLOW_DRY_RUN_PROFILES")
+if "in ['transition-v3', 'stable-v3', 'breakglass']" not in profile_base_expr:
+    fail("rendered inventory groups must treat transition-v3 as signed attestation mode")
 normalized_profile_base = re.sub(r"\s+", "", profile_base_expr)
 
 strange_marker = inventory_renderer.blastwall_marker.emit_marker_v2(
@@ -1386,6 +1388,8 @@ if (
     or "lab/RC shared vault custody" not in v3_audit
 ):
     fail("transition/RC shared custody must be labelled as lab/RC custody in playbook output")
+if "blastwall_attestation_mode in ['transition-v3', 'stable-v3', 'breakglass']" not in v3_preflight:
+    fail("transition-v3 preflight must run the signed attestation verifier path")
 if "sign-store-readback" in v3_sign:
     fail("sign-attestation.yml must not use the raw-vault sign-store-readback default path")
 if "Write FreeIPA client config for attestation vault writes" not in v3_sign:

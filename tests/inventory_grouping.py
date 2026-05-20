@@ -171,9 +171,13 @@ fixture = substitute_placeholders(
 )
 
 mode_expected = fixture["expected"]
+mode_expected["transition_v3"] = mode_expected["stable_v3"]
+mode_expected["transition_v3_allow_dry_run"] = mode_expected["stable_v3_allow_dry_run"]
 modes = (
     ("default", False, "reference-v2"),
     ("allow_dry_run", True, "reference-v2"),
+    ("transition_v3", False, "transition-v3"),
+    ("transition_v3_allow_dry_run", True, "transition-v3"),
     ("stable_v3", False, "stable-v3"),
     ("stable_v3_allow_dry_run", True, "stable-v3"),
 )
@@ -235,7 +239,7 @@ for mode, allow_dry_run, attestation_mode in modes:
             for raw in markers
             if isinstance(raw, str) and raw.startswith("blastwall:")
         ]
-        signed_mode = attestation_mode in {"stable-v3", "breakglass"}
+        signed_mode = attestation_mode in {"transition-v3", "stable-v3", "breakglass"}
         current = any(
             (
                 (signed_mode and result.hint)

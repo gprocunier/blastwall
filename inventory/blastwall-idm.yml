@@ -23,7 +23,7 @@ groups:
     (
 
     not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
-    true)) in ['stable-v3', 'breakglass'])
+    true)) in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -105,7 +105,7 @@ groups:
     or
 
     ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
-    in ['stable-v3', 'breakglass'])
+    in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -154,7 +154,7 @@ groups:
     (
 
     not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
-    true)) in ['stable-v3', 'breakglass'])
+    true)) in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -236,7 +236,7 @@ groups:
     or
 
     ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
-    in ['stable-v3', 'breakglass'])
+    in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -287,7 +287,7 @@ groups:
     (
 
     not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
-    true)) in ['stable-v3', 'breakglass'])
+    true)) in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -369,7 +369,7 @@ groups:
     or
 
     ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
-    in ['stable-v3', 'breakglass'])
+    in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -495,7 +495,7 @@ groups:
     (
 
     not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
-    true)) in ['stable-v3', 'breakglass'])
+    true)) in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -577,7 +577,7 @@ groups:
     or
 
     ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
-    in ['stable-v3', 'breakglass'])
+    in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -626,7 +626,7 @@ groups:
     (
 
     not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
-    true)) in ['stable-v3', 'breakglass'])
+    true)) in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -708,7 +708,7 @@ groups:
     or
 
     ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true))
-    in ['stable-v3', 'breakglass'])
+    in ['transition-v3', 'stable-v3', 'breakglass'])
 
     and
 
@@ -756,7 +756,7 @@ groups:
 
     (
           not ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2',
-    true), true)) in ['stable-v3', 'breakglass'])
+    true), true)) in ['transition-v3', 'stable-v3', 'breakglass'])
           and
           (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
     true), true) | bool)
@@ -780,7 +780,7 @@ groups:
 
     (
           ((BLASTWALL_ATTESTATION_MODE | default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true),
-    true)) in ['stable-v3', 'breakglass'])
+    true)) in ['transition-v3', 'stable-v3', 'breakglass'])
           and
           (BLASTWALL_ALLOW_DRY_RUN_PROFILES | default(lookup('env', 'BLASTWALL_ALLOW_DRY_RUN_PROFILES') | default('false',
     true), true) | bool)
