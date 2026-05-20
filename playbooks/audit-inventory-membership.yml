@@ -131,6 +131,28 @@
         bool
       }}
   tasks:
+    - name: Assert stable-v3 inventory audit does not use lab/RC shared vault custody
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_mode != 'stable-v3' or blastwall_vault_scope != 'shared'
+        fail_msg: >-
+          stable-v3 inventory audit rejects shared vault scope as lab/RC
+          custody. Use service-owned or named-user custody for stable-v3, or
+          label Calabi shared evidence as transition/RC.
+      when: blastwall_verify_attestations | bool
+
+    - name: Report lab/RC shared custody mode
+      ansible.builtin.debug:
+        msg:
+          custody: lab/RC shared vault custody
+          mode: "{{ blastwall_attestation_mode }}"
+          vault_scope: "{{ blastwall_vault_scope }}"
+          vault_owner: "{{ blastwall_vault_owner }}"
+      when:
+        - blastwall_verify_attestations | bool
+        - blastwall_attestation_mode != 'stable-v3'
+        - blastwall_vault_scope == 'shared'
+
     - name: Capture ansible-inventory output when no JSON path is supplied
       ansible.builtin.command:
         argv:
@@ -249,6 +271,7 @@
             + (['--fail-on-current-to-stale'] if blastwall_fail_on_current_to_stale | bool else [])
             + (['--fail-on-current-marker-parse-error'] if blastwall_fail_on_current_marker_parse_error | bool else [])
             + (['--verify-attestations'] if blastwall_verify_attestations | bool else [])
+            + (['--attestation-mode', blastwall_attestation_mode] if blastwall_verify_attestations else [])
             + (['--vault-server', blastwall_vault_server] if blastwall_verify_attestations and blastwall_vault_server | length > 0 else [])
             + (['--vault-scope', blastwall_vault_scope] if blastwall_verify_attestations else [])
             + (['--vault-owner', blastwall_vault_owner] if blastwall_verify_attestations else [])

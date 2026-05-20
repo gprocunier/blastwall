@@ -338,6 +338,32 @@ class BlastwallInventoryAuditTests(unittest.TestCase):
         report = json.loads(result.stdout)
         self.assertEqual(report["current_marker_parse_error_hosts"], ["bad-current.example.com"])
 
+    def test_cli_stable_v3_rejects_shared_vault_scope(self) -> None:
+        inventory = {"_meta": {"hostvars": {}}}
+        with tempfile.TemporaryDirectory(prefix="blastwall-audit-test-") as temp_dir:
+            inventory_path = Path(temp_dir) / "inventory.json"
+            inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(AUDIT_PATH),
+                    "--inventory-json",
+                    str(inventory_path),
+                    "--verify-attestations",
+                    "--attestation-mode",
+                    "stable-v3",
+                    "--vault-scope",
+                    "shared",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        self.assertEqual(result.returncode, 1, result.stdout)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["failure_state"], "FAIL_STABLE_V3_SHARED_CUSTODY")
+
     def test_current_to_stale_movement_is_reported(self) -> None:
         current_inventory = {
             "_meta": {"hostvars": {"host.example.com": {"idm_userclass": []}}},

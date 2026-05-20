@@ -1026,6 +1026,8 @@ v3_preflight = (ROOT / "playbooks" / "preflight.yml").read_text(encoding="utf-8"
 v3_hbac_access = (ROOT / "playbooks" / "hbac-access-test.yml").read_text(encoding="utf-8")
 v3_health = (ROOT / "playbooks" / "attestation-vault-health.yml").read_text(encoding="utf-8")
 v3_verifier = (ROOT / "tools" / "blastwall_attestation_verify.py").read_text(encoding="utf-8")
+v3_audit = (ROOT / "playbooks" / "audit-inventory-membership.yml").read_text(encoding="utf-8")
+audit_tool_text = (ROOT / "tools" / "audit_blastwall_inventory.py").read_text(encoding="utf-8")
 aap_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")
 aap_controller = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
 for required_v3_file in [
@@ -1360,12 +1362,29 @@ for playbook_name, playbook_text, required_shared_guard in [
         v3_promote,
         "not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_scope != 'shared'",
     ),
+    (
+        "attestation-vault-health.yml",
+        v3_health,
+        "blastwall_attestation_mode != 'stable-v3' or blastwall_attestation_vault_scope != 'shared'",
+    ),
+    (
+        "audit-inventory-membership.yml",
+        v3_audit,
+        "blastwall_attestation_mode != 'stable-v3' or blastwall_vault_scope != 'shared'",
+    ),
 ]:
     if required_shared_guard not in playbook_text:
         fail(f"{playbook_name} must reject shared vault custody for stable-v3")
 if "--attestation-mode" not in v3_sign or "--attestation-mode" not in v3_promote:
     fail("stable-v3 signing/promotion helpers must pass attestation mode into custody validation")
-if "lab/RC shared vault custody" not in v3_sign or "lab/RC shared vault custody" not in v3_preflight:
+if "--attestation-mode" not in v3_audit or "FAIL_STABLE_V3_SHARED_CUSTODY" not in audit_tool_text:
+    fail("stable-v3 inventory audit must reject shared vault custody with a machine-readable failure state")
+if (
+    "lab/RC shared vault custody" not in v3_sign
+    or "lab/RC shared vault custody" not in v3_preflight
+    or "lab/RC shared vault custody" not in v3_health
+    or "lab/RC shared vault custody" not in v3_audit
+):
     fail("transition/RC shared custody must be labelled as lab/RC custody in playbook output")
 if "sign-store-readback" in v3_sign:
     fail("sign-attestation.yml must not use the raw-vault sign-store-readback default path")
@@ -1527,6 +1546,7 @@ if "skeleton" in v3_health.lower() or "placeholder" in v3_health.lower():
 for explicit_health_input in [
     "BLASTWALL_ATTESTATION_VAULT_SCOPE |",
     "BLASTWALL_ATTESTATION_VAULT_OWNER |",
+    "BLASTWALL_ATTESTATION_MODE |",
     "BLASTWALL_ATTESTATION_HEALTH_CANARY |",
     "BLASTWALL_ATTESTATION_CANARY_MAX_AGE_SECONDS |",
 ]:

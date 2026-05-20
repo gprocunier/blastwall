@@ -21,6 +21,11 @@
     ipa_ca: "{{ lookup('env', 'IPA_CERT') | default('/etc/ipa/ca.crt', true) }}"
     ipa_basedn: >-
       dc={{ ipa_domain | replace('.', ',dc=') }}
+    blastwall_attestation_mode: >-
+      {{
+        BLASTWALL_ATTESTATION_MODE |
+        default(lookup('env', 'BLASTWALL_ATTESTATION_MODE') | default('reference-v2', true), true)
+      }}
     blastwall_attestation_vault_primary: >-
       {{
         BLASTWALL_ATTESTATION_VAULT_PRIMARY |
@@ -65,11 +70,25 @@
           - blastwall_attestation_vault_primary in blastwall_attestation_vault_servers
           - blastwall_attestation_vault_scope in ['shared', 'service', 'user']
           - blastwall_attestation_vault_scope == 'shared' or blastwall_attestation_vault_owner | length > 0
+          - blastwall_attestation_mode != 'stable-v3' or blastwall_attestation_vault_scope != 'shared'
           - ipa_login_principal | length > 0
           - ipa_keytab | length > 0 or ipa_password | length > 0
         fail_msg: >-
           Set explicit KRA vault primary/server list/scope and IdM credentials
-          before running the Blastwall attestation vault health gate.
+          before running the Blastwall attestation vault health gate. stable-v3
+          rejects shared vault scope as lab/RC custody; use service-owned or
+          named-user custody, or label Calabi shared evidence as transition/RC.
+
+    - name: Report lab/RC shared custody mode
+      ansible.builtin.debug:
+        msg:
+          custody: lab/RC shared vault custody
+          mode: "{{ blastwall_attestation_mode }}"
+          vault_scope: "{{ blastwall_attestation_vault_scope }}"
+          vault_owner: "{{ blastwall_attestation_vault_owner }}"
+      when:
+        - blastwall_attestation_mode != 'stable-v3'
+        - blastwall_attestation_vault_scope == 'shared'
 
     - name: Resolve configured KRA vault servers
       ansible.builtin.command:

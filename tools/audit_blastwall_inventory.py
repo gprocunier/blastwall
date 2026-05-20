@@ -45,6 +45,17 @@ def _default_vault_config(vault_server: str, vault_scope: str, vault_owner: str)
     )
 
 
+def _shared_custody_failure_report() -> dict[str, Any]:
+    return {
+        "failure_state": "FAIL_STABLE_V3_SHARED_CUSTODY",
+        "message": (
+            "stable-v3 rejects shared vault scope; use service-owned or "
+            "named-user vault custody. Shared vault scope is lab/RC custody "
+            "for transition-v3 or reference workflows only."
+        ),
+    }
+
+
 def _default_read_artifact(*, server: str, config: blastwall_attestation_vault.VaultConfig, vault_ref: str) -> blastwall_attestation_vault.VaultReadResult:
     return blastwall_attestation_vault.read_vault_artifact(
         server=server,
@@ -365,6 +376,7 @@ def audit_inventory(
     accepted_rpms: set[str],
     required_profiles: set[str],
     verify_attestations: bool = False,
+    attestation_mode: str = "reference-v2",
     vault_server: str | None = None,
     vault_scope: str = "service",
     vault_owner: str = "blastwall-attestation",
@@ -378,6 +390,9 @@ def audit_inventory(
     read_vault_artifact: ArtifactReadResult = _default_read_artifact,
     verify_marker_attestation: VerifyAttestationResult = _default_verify_attestation,
 ) -> dict[str, Any]:
+    if verify_attestations and attestation_mode == "stable-v3" and vault_scope == "shared":
+        return _shared_custody_failure_report()
+
     hostvars = _hostvars(inventory)
     host_groups = _host_groups(inventory)
     schema_errors: dict[str, str] = {}
@@ -521,6 +536,7 @@ def main() -> int:
     parser.add_argument("--fail-on-current-to-stale", action="store_true")
     parser.add_argument("--fail-on-current-marker-parse-error", action="store_true")
     parser.add_argument("--verify-attestations", action="store_true")
+    parser.add_argument("--attestation-mode", default=os.getenv("BLASTWALL_ATTESTATION_MODE", "reference-v2"))
     parser.add_argument("--vault-server")
     parser.add_argument("--vault-scope", default="service")
     parser.add_argument("--vault-owner", default="blastwall-attestation")
@@ -566,6 +582,7 @@ def main() -> int:
         expected_target=args.expected_target,
         expected_rpm=args.expected_rpm,
         verify_attestations=args.verify_attestations,
+        attestation_mode=args.attestation_mode,
         vault_server=vault_server,
         vault_scope=args.vault_scope,
         vault_owner=args.vault_owner,
@@ -575,6 +592,8 @@ def main() -> int:
         previous=previous,
     )
     print(json.dumps(report, sort_keys=True))
+    if report.get("failure_state") == "FAIL_STABLE_V3_SHARED_CUSTODY":
+        return 1
     if args.fail_on_current_to_stale and report["current_to_stale"]:
         return 1
     if args.fail_on_current_marker_parse_error and report["current_marker_parse_error_hosts"]:
