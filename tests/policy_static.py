@@ -1528,6 +1528,8 @@ if "Remove stale stable-v3 materialized attestation envelopes" not in v3_preflig
     fail("stable-v3 preflight must clear stale materialized envelopes before KRA reads")
 if "item.read_back_verified | default(false) | bool" not in v3_preflight:
     fail("stable-v3 preflight must not throw raw Ansible missing-attribute errors for absent KRA artifacts")
+if "item.failure_class | default('') == 'digest_mismatch'" not in v3_preflight:
+    fail("stable-v3 preflight must preserve digest mismatch as FAIL_ATTESTATION_INTEGRITY")
 if "not blastwall_breakglass | bool" not in v3_preflight:
     fail("stable-v3 preflight must let verifier-owned breakglass handling evaluate missing KRA artifacts")
 if "scope_profiles=tuple(sorted(set(required_profiles" in v3_verifier:

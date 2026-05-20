@@ -903,10 +903,17 @@
           - not (item.failed | default(false))
           - item.read_back_verified | default(false) | bool
         fail_msg: >-
+          {% if item.failure_class | default('') == 'digest_mismatch' -%}
+          FAIL_ATTESTATION_INTEGRITY: stable-v3 attestation envelope digest
+          does not match the marker digest for {{ item.item.item }}:
+          failure_class={{ item.failure_class | default('unknown') }},
+          message={{ item.msg | default('') }}.
+          {%- else -%}
           FAIL_ATTESTATION_NOT_VISIBLE: stable-v3 attestation envelope is not
           readable or does not match the marker digest for {{ item.item.item }}:
           failure_class={{ item.failure_class | default('unknown') }},
           message={{ item.msg | default('') }}.
+          {%- endif %}
       loop: "{{ blastwall_attestation_envelope_reads.results | default([]) }}"
       loop_control:
         label: "{{ item.item.item | default('unknown') }}"
