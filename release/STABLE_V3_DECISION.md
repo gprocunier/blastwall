@@ -1,6 +1,6 @@
 # Stable-v3 Release Decision
 
-Date: 2026-05-19
+Date: 2026-05-20
 Branch: `blastwall-v3-signed-attestation`
 Commit: see current branch head
 Decision: HOLD
@@ -9,13 +9,13 @@ Decision: HOLD
 
 Blastwall v3 source and Calabi lab evidence are ready for external review. The
 publication decision remains held because governance owners and sign-off are
-not recorded. This is a release-governance hold, not an identified
+not recorded and stable-v3 service-owned or named-user custody health is not
+live-green in Calabi. This is a governance/custody hold, not an identified
 marker-only, breakglass, or verifier bypass.
 
 The live Controller-visible evidence commit is
-`14f7f472f70c1eb66f8ece35b194ed4e2da8b137` as observed at
-2026-05-19T19:40Z. The RC evidence source patch adds clearer
-failure-state normalization and review documents on top of that branch state.
+`f50c1228ddcf4544a38634f05fd87179210c6917` as observed after project update
+`4221` on 2026-05-20 UTC.
 
 ## Evidence Accepted
 
@@ -39,12 +39,18 @@ failure-state normalization and review documents on top of that branch state.
   missing-artifact fixture.
 - Source normalizes digest disagreement to `FAIL_ATTESTATION_INTEGRITY` and
   revoked marker to `FAIL_REVOKED_ATTESTATION`.
+- Final normalized destructive recapture is recorded: digest mismatch
+  preflight `4233` failed as `FAIL_ATTESTATION_INTEGRITY`; revoked-marker
+  preflight `4255` failed as `FAIL_REVOKED_ATTESTATION`; final restore
+  inventory update `4270` passed.
+- Stable-v3 shared vault custody was rejected in job `3918`; transition-v3
+  lab/RC shared custody remains usable and explicitly labelled.
 
 ## Evidence Missing
 
 - Named governance owners and sign-off for stable-v3 operation.
-- Destructive re-capture for digest mismatch and revoked marker after the
-  post-normalization source patch is synced into Controller.
+- Live-green stable-v3 service-owned or named-user custody health. Calabi jobs
+  `3914`, `3987`, and `3991` failed in the vault-health path.
 - S-range scale evidence. The current evidence proves the candidate
   mixed-state gate, not broad S-range readiness.
 
@@ -88,8 +94,7 @@ index verification, live policy hash binding, and AAP-recorded evidence.
 
 - Assign and record stable-v3 governance owners.
 - Confirm retention and escalation for AAP schedules `6` through `9`.
-- Sync the post-normalization commit into Controller and re-capture digest
-  mismatch plus revoked-marker destructive cases.
+- Resolve stable-v3 service-owned or named-user custody health in Calabi.
 - Run the S-range mixed-state scale gate before claiming S-range readiness.
 
 ## Sign-Off

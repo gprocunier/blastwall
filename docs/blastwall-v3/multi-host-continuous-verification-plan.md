@@ -107,12 +107,21 @@ Continue centralizing evidence snapshots with:
     `3723`, and strict inventory audit `3772` proved the expected split.
   - Continuous schedules `6` through `9` are installed and initial runs are
     recorded.
+  - Corrected transition-v3 lab/RC shared-custody path passed policy pipeline
+    workflow `4046`, standalone signed preflight `4082`, and runtime workflow
+    `4102`; strict audit `4098` failed closed on the intentional
+    missing-artifact fixture.
+  - Digest mismatch and revoked-marker recaptures failed closed as
+    `FAIL_ATTESTATION_INTEGRITY` in job `4233` and
+    `FAIL_REVOKED_ATTESTATION` in job `4255`.
 - Missing evidence to complete broader claims:
   - S-range mixed-state gate at 10+ hosts
+  - live-green stable-v3 service-owned or named-user custody health
   - named owners, retention, and escalation paths for the schedule
   - longer 24-hour or 72-hour soak window after ownership is assigned
 
 ## Decision posture
 
 Until those items complete, the documentation-led decision is
-`HOLD for stable-v3 publication pending governance owner assignment and sign-off.`
+`HOLD for stable-v3 publication pending governance owner assignment, custody
+health, and sign-off.`

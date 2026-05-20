@@ -50,15 +50,15 @@ scope_freeze:
 | 01 | complete | Test Harness | pending | `make test-fast`; `python3 tests/policy_static.py`; registry validation; drift check; `python3 -m pytest -q tests`; syntax checks for preflight/sign/promote/attestation-vault-health | all passed; `167 passed` in full pytest; static coverage confirmed for collection floor, profile-derived post-promotion preflight, raw IPA fallback approval/readback, explicit KRA inputs, and no marker-only stable-v3 pass | none |
 | 02 | complete | KRA/Vault | `78c7c51`, `6d5e65a` | syntax check; `python3 tests/policy_static.py`; AAP project sync to `6d5e65a`; live AAP health jobs `3292` and `3290` | healthy job `3292` passed; missing-canary job `3290` failed as `FAIL_CANARY_MISSING` with IdM, KRA, and vault reachable | canary-positive freshness remains optional unless a real canary vault is configured |
 | 03 | complete | Architecture | `a801759`, `39e83c2`, `cb59520`, `09e73a6`, `21d637f`, `3cca7ff`, `06e7831` | syntax check; `python3 tests/policy_static.py`; live AAP marker harness jobs | controlled stale-host marker harness created as JT `30`; restore job `3389` passed; IdM Admin credential corrected to real IdM admin secret; golden preflight job `3471` passed after destructive restores | collection `ipahost` still fails on this host and uses documented lab-only CLI fallback |
-| 04 | complete_with_source_followup | KRA/Vault | `06e7831` plus RC evidence patch | live AAP preflight; source regression tests | missing envelope job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE`; missing index job `3439` failed as `FAIL_INDEX_NOT_VISIBLE`; historical digest mismatch job `3457` failed closed with `failure_class=digest_mismatch`; source now maps digest disagreement to `FAIL_ATTESTATION_INTEGRITY` | re-capture digest mismatch after Controller sync to post-normalization source |
-| 05 | complete_with_source_followup | Attestation | `3ff61e0` plus RC evidence patch | live AAP artifact harness, marker harness, inventory sync, preflight jobs, source regression tests | replay job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; expiry job `3557` failed as `FAIL_STALE_ATTESTATION`; revoked-index job `3579` failed as `FAIL_REVOKED_ATTESTATION`; revoked-marker source path now maps to `FAIL_REVOKED_ATTESTATION` | re-capture revoked-marker case after Controller sync to post-normalization source |
+| 04 | complete | KRA/Vault | `06e7831` plus `f50c122` recapture | live AAP preflight; source regression tests | missing envelope job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE`; missing index job `3439` failed as `FAIL_INDEX_NOT_VISIBLE`; final digest mismatch recapture job `4233` failed as `FAIL_ATTESTATION_INTEGRITY` | none for covered cases |
+| 05 | complete | Attestation | `3ff61e0` plus `f50c122` recapture | live AAP artifact harness, marker harness, inventory sync, preflight jobs, source regression tests | replay job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; expiry job `3557` failed as `FAIL_STALE_ATTESTATION`; revoked-index job `3579` failed as `FAIL_REVOKED_ATTESTATION`; final revoked-marker recapture job `4255` failed as `FAIL_REVOKED_ATTESTATION` | none for covered cases |
 | 06 | complete | Attestation | `3ff61e0` | live AAP preflight against golden and controlled stale-host artifacts | policy drift job `3478` failed as `FAIL_DRIFTED_POLICY`; signer allowlist mismatch job `3485` failed as `FAIL_SIGNER_UNTRUSTED`; signature tamper job `3505` failed as `FAIL_SIGNATURE_INVALID`; profile mismatch job `3623` failed as `FAIL_PROFILE_MISMATCH`; host binding job `3649` failed as `FAIL_BINDING_MISMATCH` | none for covered cases |
-| 07 | complete | Preflight | `3ff61e0` plus RC evidence patch | live AAP breakglass positive/rejection jobs; source regression tests | missing-envelope breakglass job `3667` passed only with scoped metadata; drift job `3682`, signer job `3686`, signature job `3509`, profile job `3627`, and replay job `3535` all rejected breakglass; source tests reject breakglass for digest mismatch and revoked marker | re-capture the two normalized source states in the next destructive rehearsal |
-| 08 | pending | Inventory | | inventory sync and two-host reset proof | mirror current + stale reference states observed after sync `3690`; golden preflight `3693` passed after destructive restores | required three-host mixed-state gate is not live-proven |
-| 09 | complete_plan | AAP/Ops | | docs plan | continuous verification plan updated for Controller workflow/JT cadence and evidence outputs | schedule not yet installed |
+| 07 | complete | Preflight | `3ff61e0` plus `f50c122` recapture | live AAP breakglass positive/rejection jobs; source regression tests | missing-envelope breakglass job `3667` passed only with scoped metadata; drift job `3682`, signer job `3686`, signature job `3509`, profile job `3627`, and replay job `3535` all rejected breakglass; source tests reject breakglass for digest mismatch and revoked marker | none for covered cases |
+| 08 | complete | Inventory | `fb339d7` | inventory sync and mixed-state proof | inventory sync `3712`; candidate preflight `3725` passed; stale preflight `3728` failed closed; profile-base preflight `3723` failed closed on broken fixture; strict audit `3772` failed closed on the missing artifact fixture | none for covered candidate scope |
+| 09 | complete | AAP/Ops | `0ddfb81` -> `9e9e5e8` | live AAP schedules and strict audit | schedules `6` through `9` installed; KRA health `3731`, candidate preflight `3735`, runtime `3736`, strict audit `3772`, and scheduled jobs through `3804` recorded | long-duration operations soak still needs ownership |
 | 10 | complete | Collections | `3ff61e0` | syntax/static checks; no-shell artifact harness | artifact harness uses `ansible.builtin.command` with `argv` plus `eigenstate.ipa.vault_artifact`; static guard added so it is not registered as a production template | existing lab-only marker harness still has documented CLI fallback |
 | 11 | complete | Docs/PM | pending | evidence packet updates | ledger, negative evidence packet, release decision, evidence index, readiness checklist, and external review packet include destructive negative job IDs through `3693` | none |
-| 12 | complete | Architecture | pending | final architecture review | release posture is `GO for stable-v3 source readiness` and `HOLD for stable-v3 publication pending evidence` | Phase 08 three-host mixed-state gate remains the publication blocker |
+| 12 | complete | Architecture | pending | final architecture review | release posture is `GO for external review` and `HOLD for stable-v3 publication pending governance and custody readiness` | governance owner assignment, stable-v3 non-shared custody health, and S-range remain publication blockers |
 
 ## Security Invariants Checked
 
@@ -180,14 +180,20 @@ missing_index:
   observed_failure_state: FAIL_INDEX_NOT_VISIBLE
   failure_class: vault_not_found
 digest_mismatch:
-  mutation_job: 3450
-  preflight_job: 3457
-  restore_job: 3461
+  historical_mutation_job: 3450
+  historical_preflight_job: 3457
+  historical_restore_job: 3461
+  recapture_artifact_job: 4222
+  recapture_mutation_job: 4226
+  recapture_inventory_update: 4230
+  recapture_preflight_job: 4233
+  recapture_restore_job: 4237
+  recapture_restore_inventory: 4241
   host: stale-blastwall-01.workshop.lan
   observed_failure_state_historical: FAIL_ATTESTATION_NOT_VISIBLE
-  normalized_source_failure_state: FAIL_ATTESTATION_INTEGRITY
+  observed_failure_state_final: FAIL_ATTESTATION_INTEGRITY
   failure_class: digest_mismatch
-  note: historical live job failed closed before RC evidence source normalization
+  note: final recapture ran after Controller project sync 4221 to f50c1228ddcf4544a38634f05fd87179210c6917
 ```
 
 ## Phase 05-07 Attestation and Breakglass Notes
@@ -247,13 +253,21 @@ revoked_index:
   restore_sync: 3587
   observed_failure_state: FAIL_REVOKED_ATTESTATION
 revoked_marker:
-  artifact_job: 3590
-  mutation_job: 3594
-  preflight_job: 3601
-  restore_job: 3605
-  restore_sync: 3609
+  historical_artifact_job: 3590
+  historical_mutation_job: 3594
+  historical_preflight_job: 3601
+  historical_restore_job: 3605
+  historical_restore_sync: 3609
+  recapture_artifact_job: 4244
+  recapture_mutation_job: 4248
+  recapture_inventory_update: 4252
+  recapture_preflight_job: 4255
+  recapture_restore_job: 4259
+  recapture_restore_inventory: 4263
+  final_safety_restore: 4266
+  final_inventory_update: 4270
   observed_failure_state_historical: FAIL_LOCATOR_REJECTED
-  normalized_source_failure_state: FAIL_REVOKED_ATTESTATION
+  observed_failure_state_final: FAIL_REVOKED_ATTESTATION
   message_historical: "invalid v3 marker locator: marker is revoked"
 profile_mismatch:
   artifact_job: 3612
@@ -297,14 +311,14 @@ post_matrix_restore:
 |---|---|---|---|---|
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | `FAIL_ATTESTATION_NOT_VISIBLE`, `failure_class=vault_not_found` | mutation `3414`, preflight `3421`, restore `3425` | PASS_FAIL_CLOSED |
 | Missing index | `FAIL_INDEX_NOT_VISIBLE` | `FAIL_INDEX_NOT_VISIBLE`, `failure_class=vault_not_found` | mutation `3432`, preflight `3439`, restore `3443` | PASS_FAIL_CLOSED |
-| Digest mismatch | digest/integrity failure | `FAIL_ATTESTATION_NOT_VISIBLE`, `failure_class=digest_mismatch` | mutation `3450`, preflight `3457`, restore `3461` | PASS_FAIL_CLOSED_WITH_STATE_GAP |
+| Digest mismatch | `FAIL_ATTESTATION_INTEGRITY` | final recapture `4233` failed as `FAIL_ATTESTATION_INTEGRITY`; historical `3457` failed closed before normalization | artifact `4222`, mutation `4226`, inventory `4230`, preflight `4233`, restore `4237`, sync `4241` | PASS_FAIL_CLOSED |
 | Policy hash drift | `FAIL_DRIFTED_POLICY` | `FAIL_DRIFTED_POLICY`, `current installed policy hash does not match signed payload` | preflight `3478` | PASS_FAIL_CLOSED |
 | Signer not allowlisted | `FAIL_SIGNER_UNTRUSTED` | `FAIL_SIGNER_UNTRUSTED`, `signer_kid is not allowlisted` | preflight `3485` | PASS_FAIL_CLOSED |
 | Signature tamper | `FAIL_SIGNATURE_INVALID` | `FAIL_SIGNATURE_INVALID`, `signature verification failed` | artifact `3494`, mutation `3498`, preflight `3505`, breakglass `3509`, restore `3513` | PASS_FAIL_CLOSED_BREAKGLASS_REJECTED |
 | Replayed generation | `FAIL_REPLAYED_ATTESTATION` | `FAIL_REPLAYED_ATTESTATION`, `attestation generation is older than latest index` | artifact `3520`, mutation `3524`, preflight `3531`, breakglass `3535`, restore `3539` | PASS_FAIL_CLOSED_BREAKGLASS_REJECTED |
 | Expired attestation | `FAIL_STALE_ATTESTATION` | `FAIL_STALE_ATTESTATION`, `attestation evidence is outside validity window` | artifact `3546`, mutation `3550`, preflight `3557`, restore `3561` | PASS_FAIL_CLOSED |
 | Revoked latest index | `FAIL_REVOKED_ATTESTATION` | `FAIL_REVOKED_ATTESTATION`, `latest index is revoked` | artifact `3568`, mutation `3572`, preflight `3579`, restore `3583` | PASS_FAIL_CLOSED |
-| Revoked marker | `FAIL_REVOKED_ATTESTATION` | historical job `3601` failed closed before RC source normalization; source now reports the revoked-attestation family | artifact `3590`, mutation `3594`, preflight `3601`, restore `3605` | PASS_FAIL_CLOSED_RECAPTURE_PENDING |
+| Revoked marker | `FAIL_REVOKED_ATTESTATION` | final recapture `4255` failed as `FAIL_REVOKED_ATTESTATION`; historical `3601` failed closed before normalization | artifact `4244`, mutation `4248`, inventory `4252`, preflight `4255`, restore `4259`, sync `4263`, final restore `4266`, sync `4270` | PASS_FAIL_CLOSED |
 | Profile mismatch | `FAIL_PROFILE_MISMATCH` | `FAIL_PROFILE_MISMATCH`, `payload profiles do not match required profiles` | artifact `3612`, mutation `3616`, preflight `3623`, breakglass `3627`, restore `3631` | PASS_FAIL_CLOSED_BREAKGLASS_REJECTED |
 | Host binding mismatch | `FAIL_BINDING_MISMATCH` | `FAIL_BINDING_MISMATCH`, `payload subject_host does not match selected host` | artifact `3638`, mutation `3642`, preflight `3649`, restore `3653` | PASS_FAIL_CLOSED |
 | Breakglass missing envelope | scoped infra bypass | `PASS`, `override_failure_state=FAIL_ATTESTATION_NOT_VISIBLE` | mutation `3660`, preflight `3667`, restore `3671` | PASS_ALLOWED_INFRA_ONLY |
@@ -317,7 +331,7 @@ post_matrix_restore:
 |---|---|---|---|---|
 | mirror-registry.workshop.lan | current signed stable-v3 marker | sync `3690` | job `3693` passed | PASS |
 | stale-blastwall-01.workshop.lan | original reference-v2/v1-style stale marker | sync `3690` | not eligible for stable-v3 after restore | PASS_STALE_FIXTURE |
-| third fixture host | not present | pending | pending | HOLD_MIXED_STATE |
+| missing-artifact-blastwall-01.workshop.lan | current v3 marker pointing at absent envelope | sync `3712` | profile preflight `3723` and strict audit `3772` failed closed | PASS_FAIL_CLOSED |
 
 ## Continuous Verification Plan
 
@@ -331,9 +345,9 @@ owner: pending governance assignment
 ## Final Decision
 
 ```text
-verdict: HOLD for stable-v3 publication pending evidence.
-reason: destructive negative security cases now fail closed, but the required three-host mixed-state gate and governance-owned continuous schedule are not yet complete
-stable-v3 source readiness: GO for stable-v3 source readiness.
-stable-v3 publication: HOLD pending mixed-state validation, continuous verification schedule ownership, and governance approval
-remaining_blockers: Phase 08 three-host mixed-state gate; Phase 09 schedule installation if required for release governance
+verdict: HOLD for stable-v3 publication pending governance and custody readiness.
+reason: destructive negative security cases fail closed, mixed-state evidence is captured, and schedules are installed, but governance owners remain pending and stable-v3 non-shared custody is not live-green in Calabi.
+stable-v3 source readiness: GO for external review.
+stable-v3 publication: HOLD pending governance approval and service-owned or named-user custody health
+remaining_blockers: governance owner assignment; stable-v3 non-shared custody health; S-range scale evidence
 ```

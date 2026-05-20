@@ -446,10 +446,9 @@ security invariants checked:
   visibility bypass cases.
 open issues:
   governance owner assignment remains pending.
-  destructive digest-mismatch and revoked-marker cases need re-capture after
-  this source normalization is synced into Controller.
+  stable-v3 service-owned or named-user custody health is not live-green in
+  Calabi; jobs 3914, 3987, and 3991 failed in the vault-health path.
 next phase handoff:
-  Run the full local validation suite, commit and push, sync Controller to the
-  pushed commit, then re-run the two normalized destructive cases when the lab
-  window is available.
+  Run the full local validation suite, commit and push, then resolve the
+  stable-v3 non-shared custody health path before publication.
 ```

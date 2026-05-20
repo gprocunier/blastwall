@@ -15,7 +15,7 @@ The operating boundary for that claim is
 | Claim | Decision | Reason |
 |---|---:|---|
 | Engineering RC | GO | Source gates pass locally, Controller-visible evidence exists, destructive negative cases fail closed, and schedule wiring is active. |
-| Stable-v3 publication | HOLD | Required governance owners and sign-off are not assigned. |
+| Stable-v3 publication | HOLD | Required governance owners/sign-off are not assigned, and stable-v3 non-shared custody health is not live-green. |
 | S-range | HOLD | 10+ host fleet evidence is excluded from this pack and not complete. |
 
 ## Evidence Attached
@@ -34,13 +34,12 @@ The operating boundary for that claim is
 ## Remaining Risks
 
 - Governance owners are pending.
+- Stable-v3 service-owned or named-user custody is not live-green in Calabi;
+  jobs `3914`, `3987`, and `3991` failed in the vault-health path.
 - Long-duration scheduled-loop soak is not complete.
-- Digest-mismatch and revoked-marker destructive cases need re-capture after
-  this source normalization patch is synced into Controller.
 - S-range scale behavior is not proven.
 
 ## Required Next Action
 
-Assign owners, sync the post-normalization commit into Controller, re-run the
-two normalized destructive cases, then decide whether the publication hold can
-move to sign-off review.
+Assign owners, resolve stable-v3 service-owned or named-user custody health in
+Calabi, then decide whether the publication hold can move to sign-off review.

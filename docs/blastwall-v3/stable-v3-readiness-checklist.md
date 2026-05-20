@@ -68,13 +68,13 @@ The canonical expected-state contract is
 
 - Missing attestation fetch: observed as `FAIL_ATTESTATION_NOT_VISIBLE`.
 - Missing latest index: observed as `FAIL_INDEX_NOT_VISIBLE`.
-- Digest disagreement: observed in source as `FAIL_ATTESTATION_INTEGRITY`;
-  historical Calabi job `3457` failed closed before the normalized source state
-  was Controller-visible.
-- Revoked marker or latest index: observed in source as
-  `FAIL_REVOKED_ATTESTATION`; historical revoked-index job `3579` already
-  showed this live and historical revoked-marker job `3601` failed closed
-  before the normalized source state was Controller-visible.
+- Digest disagreement: observed live as `FAIL_ATTESTATION_INTEGRITY` in final
+  recapture job `4233`; historical Calabi job `3457` failed closed before the
+  normalized source state was Controller-visible.
+- Revoked marker or latest index: revoked-index job `3579` and final
+  revoked-marker recapture job `4255` failed as `FAIL_REVOKED_ATTESTATION`;
+  historical revoked-marker job `3601` failed closed before the normalized
+  source state was Controller-visible.
 - KRA unavailable during audit: observed as `FAIL_KRA_UNAVAILABLE` with
   `vault_error_type` details.
 - Signature failure: security fail, not recoverable via breakglass.
@@ -102,7 +102,23 @@ Minimum evidence package for sign-off:
 Current Calabi RC evidence:
 
 - Healthy-path Calabi v3 KRA/AAP/SPO gate completed on 2026-05-18 UTC.
-- Latest target-branch continuous-evidence check completed on 2026-05-19 UTC
+- Latest pre-mortem remediation evidence completed on 2026-05-20 UTC after
+  Controller project sync `4221` to
+  `f50c1228ddcf4544a38634f05fd87179210c6917`.
+- Stable-v3 shared-custody guard job `3918` failed closed with
+  `stable-v3 rejects shared vault scope`; stable-v3 non-shared custody probes
+  `3914`, `3987`, and `3991` failed in the live vault-health path and remain
+  publication/custody blockers.
+- Transition-v3 lab/RC shared-custody health job `3922` passed. Corrected
+  transition-v3 lab/RC policy pipeline workflow `4046`, standalone signed
+  preflight job `4082`, and runtime workflow `4102` passed. Strict inventory
+  audit job `4098` failed closed on the intentional missing-artifact fixture.
+- Final destructive recapture after source normalization: digest mismatch
+  preflight job `4233` failed as `FAIL_ATTESTATION_INTEGRITY`; revoked-marker
+  preflight job `4255` failed as `FAIL_REVOKED_ATTESTATION`. Restore jobs and
+  inventory updates `4237`, `4241`, `4259`, `4263`, `4266`, and `4270`
+  returned the fixture host to its original reference marker.
+- Earlier target-branch continuous-evidence check completed on 2026-05-19 UTC
   at `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
 - Latest Controller-visible stable-v3 policy pipeline workflow `2843` passed,
   including OpenShift/SPO apply-validation job `2857`, managed-host
@@ -146,8 +162,9 @@ Current Calabi RC evidence:
 - Strict inventory audit job `3772` authenticated to FreeIPA, verified the
   valid mirror host, and failed closed on the broken current marker with
   `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.
-- Remaining publication hold: governance owners and sign-off must be assigned.
-  The S-range claim remains held pending broader scale evidence.
+- Remaining publication hold: governance owners/sign-off must be assigned and
+  stable-v3 service-owned or named-user custody health must be live-green. The
+  S-range claim remains held pending broader scale evidence.
 
 ## Go/No-Go
 

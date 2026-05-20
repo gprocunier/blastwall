@@ -10,9 +10,9 @@ head_start: d5c0877100ec782f866b6806370492e30f78f06d
 head_after_negative_gate_adoption: d6365aa841802ebbdd083852b506bf37c6484c06
 head_after_continuous_loop: 9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b
 head_after_docs_decision: 789e95f82a91a5541e0ef7889dab9fc7595a5454
-head_after_rc_evidence_patch: working tree
+head_after_rc_evidence_patch: f50c1228ddcf4544a38634f05fd87179210c6917
 date_started_utc: 2026-05-19T15:55:51Z
-date_completed_utc: 2026-05-19T19:42:00Z
+date_completed_utc: 2026-05-20T18:16:05Z
 tracked_status_at_start: clean
 untracked_existing_preserved:
   - WORK_LEDGER.md
@@ -26,7 +26,7 @@ untracked_existing_preserved:
 ```yaml
 v3_architecture: preserve
 healthy_path_v3_evidence: preserve
-stable_v3_publication: HOLD until governance owners and sign-off are assigned
+stable_v3_publication: HOLD until governance owners, custody health, and sign-off are assigned
 s_range_claim: HOLD
 new_selinux_deny_scopes: prohibited
 new_marker_grammar: prohibited
@@ -56,8 +56,9 @@ core_invariant: "Inventory selects. Markers locate. Vault artifacts carry signed
 | 10 | complete | `9e9e5e8` | helper path search; policy static guards | stable-v3 custody path is `eigenstate.ipa.vault_artifact`; Blastwall Python handles artifact construction and verification semantics | raw helper modes are compatibility/test surfaces, not default custody |
 | 11 | complete | `9e9e5e8` | shell search; syntax; docs review | remaining stable-v3 shell use classified, including inventory audit Kerberos bootstrap | no unexplained shell in the critical path |
 | 12 | complete | `789e95f` | docs and ledgers updated | external review packet, readiness checklist, evidence index, runbooks, and decision docs refreshed | claim boundary remains explicit |
-| 13 | complete | `789e95f` | final review | source/evidence gate ready for external review; publication still held on governance owner/sign-off | no no-go condition observed |
-| 14 | complete | working tree | targeted attestation pytest; read-only AAP schedule query; collection availability check | digest/revoked source states normalized; RC decision, evidence matrix, governance, second-maintainer, final decision, and scheduled-loop soak docs added | destructive re-capture pending after Controller sync |
+| 13 | complete | `789e95f` | final review | source/evidence gate ready for external review; publication still held on governance, custody health, and sign-off | no no-go condition observed |
+| 14 | complete | `f50c122` | targeted attestation pytest; read-only AAP schedule query; collection availability check | digest/revoked source states normalized; RC decision, evidence matrix, governance, second-maintainer, final decision, and scheduled-loop soak docs added | Controller-visible recapture complete |
+| 15 | complete | `f50c122` | live AAP jobs; cleanup verification | stable-v3 shared custody rejected in job `3918`; transition-v3 lab/RC path passed in `4046`, `4082`, and `4102`; digest recapture `4233` failed as `FAIL_ATTESTATION_INTEGRITY`; revoked-marker recapture `4255` failed as `FAIL_REVOKED_ATTESTATION`; final restore sync `4270` passed | stable-v3 service-owned or named-user custody health still blocked by jobs `3914`, `3987`, and `3991` |
 
 ## Destructive Negative Evidence
 
@@ -65,14 +66,14 @@ core_invariant: "Inventory selects. Markers locate. Vault artifacts carry signed
 |---|---|---|---|---|---|
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | failed closed with `failure_class=vault_not_found` | mutation `3414`, preflight `3421` | `3425` | GO |
 | Missing index | `FAIL_INDEX_NOT_VISIBLE` | failed closed with `failure_class=vault_not_found` | mutation `3432`, preflight `3439` | `3443` | GO |
-| Digest mismatch | `FAIL_ATTESTATION_INTEGRITY` | historical job failed closed with `failure_class=digest_mismatch`; source normalized in RC evidence patch | mutation `3450`, preflight `3457` | `3461` | GO; re-capture pending |
+| Digest mismatch | `FAIL_ATTESTATION_INTEGRITY` | final recapture failed closed as `FAIL_ATTESTATION_INTEGRITY`; historical job `3457` failed closed before normalization | artifact `4222`, mutation `4226`, inventory `4230`, preflight `4233` | `4237`, sync `4241` | GO |
 | Policy drift | `FAIL_DRIFTED_POLICY` | failed closed | preflight `3478`, breakglass rejection `3682` | n/a | GO |
 | Signer untrusted | `FAIL_SIGNER_UNTRUSTED` | failed closed | preflight `3485`, breakglass rejection `3686` | n/a | GO |
 | Signature tamper | `FAIL_SIGNATURE_INVALID` | failed closed; breakglass rejected | artifact `3494`, mutation `3498`, preflight `3505`, breakglass `3509` | `3513`, sync `3517` | GO |
 | Replay | `FAIL_REPLAYED_ATTESTATION` | failed closed; breakglass rejected | artifact `3520`, mutation `3524`, preflight `3531`, breakglass `3535` | `3539`, sync `3543` | GO |
 | Expiry | `FAIL_STALE_ATTESTATION` | failed closed | artifact `3546`, mutation `3550`, preflight `3557` | `3561`, sync `3565` | GO |
 | Revoked latest index | `FAIL_REVOKED_ATTESTATION` | failed closed | artifact `3568`, mutation `3572`, preflight `3579` | `3583`, sync `3587` | GO |
-| Revoked marker | `FAIL_REVOKED_ATTESTATION` | historical job failed closed during locator resolution; source normalized in RC evidence patch | artifact `3590`, mutation `3594`, preflight `3601` | `3605`, sync `3609` | GO; re-capture pending |
+| Revoked marker | `FAIL_REVOKED_ATTESTATION` | final recapture failed closed as `FAIL_REVOKED_ATTESTATION`; historical job `3601` failed closed before normalization | artifact `4244`, mutation `4248`, inventory `4252`, preflight `4255` | `4259`, sync `4263`; final restore `4266`, sync `4270` | GO |
 | Profile mismatch | `FAIL_PROFILE_MISMATCH` | failed closed; breakglass rejected | artifact `3612`, mutation `3616`, preflight `3623`, breakglass `3627` | `3631`, sync `3635` | GO |
 | Host binding mismatch | `FAIL_BINDING_MISMATCH` | failed closed | artifact `3638`, mutation `3642`, preflight `3649` | `3653`, sync `3657` | GO |
 | Infra breakglass | scoped visibility bypass only | `3667` passed only for scoped missing-envelope visibility failure | mutation `3660`, preflight `3667` | `3671`, sync `3675` | GO |
@@ -112,7 +113,8 @@ shell_exceptions: documented in docs/blastwall-v3/shell-and-collection-exception
 
 ```text
 Source/evidence readiness: GO for external review.
-Publication decision: HOLD until governance owners and sign-off are assigned.
+Publication decision: HOLD until governance owners, custody health, and sign-off are assigned.
 S-range claim: HOLD until broader scale evidence is captured.
-Post-normalization recapture: HOLD for digest mismatch and revoked-marker live proof after Controller sync.
+Post-normalization recapture: GO for digest mismatch and revoked-marker live proof after Controller sync `4221`.
+Stable-v3 custody: HOLD until service-owned or named-user custody health is live-green.
 ```

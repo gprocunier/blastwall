@@ -54,9 +54,9 @@ Reference documents:
 
 ## Calabi evidence
 
-Latest target-branch evidence was captured on 2026-05-19 UTC on
+Latest target-branch evidence was captured on 2026-05-20 UTC on
 `blastwall-v3-signed-attestation`. The AAP project was synced to
-`9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b` by project update `3771`.
+`f50c1228ddcf4544a38634f05fd87179210c6917` by project update `4221`.
 
 Calabi is the current reference topology evidence path. It proves this
 workstation to `virt-01` to bastion to IdM/AAP/KRA path; it does not prove
@@ -106,17 +106,27 @@ Live negative checks currently recorded:
   configured KRA resolution for `missing-kra.workshop.lan`.
 - KRA health: job `3698` passed, missing-canary job `3701` failed
   `FAIL_CANARY_MISSING`, and bad-primary job `3702` failed closed.
-- Destructive artifact visibility: `3421` missing envelope,
-  `3439` missing index, and `3457` digest mismatch all failed closed.
-  The RC evidence source patch maps digest disagreement to
-  `FAIL_ATTESTATION_INTEGRITY`; destructive re-capture after Controller sync is
-  the next proof item.
+- Stable-v3 shared-custody guard: job `3918` failed closed with
+  `stable-v3 rejects shared vault scope`.
+- Stable-v3 non-shared custody probes: jobs `3914`, `3987`, and `3991` failed
+  in the live vault-health path and remain publication/custody blockers.
+- Transition-v3 lab/RC shared-custody path: health job `3922`, policy pipeline
+  workflow `4046`, standalone signed preflight `4082`, and runtime workflow
+  `4102` passed. Strict audit `4098` failed closed on the intentional
+  missing-artifact fixture.
+- Destructive artifact visibility: `3421` missing envelope and `3439` missing
+  index failed closed. Final digest mismatch recapture used artifact `4222`,
+  mutation `4226`, inventory `4230`, and preflight `4233`, which failed as
+  `FAIL_ATTESTATION_INTEGRITY`; restore `4237` and inventory `4241` succeeded.
 - Destructive security failures: `3505` signature tamper, `3531` replay,
   `3557` expiry, `3579` revoked latest index, `3623` profile mismatch, and
   `3649` host binding mismatch failed closed.
-- Revoked marker handling now maps to the `FAIL_REVOKED_ATTESTATION` family in
-  source. Historical live job `3601` was already fail-closed and should be
-  re-captured after Controller sync to the post-normalization commit.
+- Revoked marker handling now maps to the `FAIL_REVOKED_ATTESTATION` family.
+  Historical live job `3601` was already fail-closed. Final revoked-marker
+  recapture used artifact `4244`, mutation `4248`, inventory `4252`, and
+  preflight `4255`, which failed as `FAIL_REVOKED_ATTESTATION`; restore
+  `4259`, inventory `4263`, final safety restore `4266`, and final inventory
+  `4270` succeeded.
 - Breakglass: `3667` passed only for scoped missing-envelope infrastructure
   visibility; `3509`, `3535`, `3627`, `3682`, and `3686` rejected security
   failures.
@@ -148,8 +158,9 @@ exercised:
   missing-artifact fixture while the valid host remained clean.
 
 Remaining hold: source and lab evidence are ready for external review, but
-stable-v3 publication still needs named governance owners and sign-off. The
-S-range claim remains held until broader scale evidence is captured.
+stable-v3 publication still needs named governance owners, sign-off, and a
+live-green service-owned or named-user custody path. The S-range claim remains
+held until broader scale evidence is captured.
 
 ## Failure-state map
 

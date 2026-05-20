@@ -33,7 +33,8 @@ The RC evidence package preserves the v3 architecture:
 ## Completed Evidence
 
 - Healthy signed-attestation policy pipelines and runtime verification are
-  recorded in AAP, including workflow `2843` and runtime workflow `3736`.
+  recorded in AAP, including workflow `2843`, runtime workflow `3736`, and
+  corrected transition-v3 lab/RC workflow `4102`.
 - Destructive negative evidence covers missing envelope, missing index, replay,
   expiry, revoked latest index, policy drift, signer trust, signature tamper,
   profile mismatch, host binding mismatch, and breakglass rejection.
@@ -42,16 +43,20 @@ The RC evidence package preserves the v3 architecture:
 - Continuous verification schedules `6` through `9` are installed and have
   scheduled runs recorded.
 - Source now normalizes digest mismatch to `FAIL_ATTESTATION_INTEGRITY` and
-  revoked marker to `FAIL_REVOKED_ATTESTATION`.
+  revoked marker to `FAIL_REVOKED_ATTESTATION`; final live recapture jobs
+  `4233` and `4255` prove those states on Controller-visible commit
+  `f50c1228ddcf4544a38634f05fd87179210c6917`.
+- Stable-v3 rejects shared vault custody in job `3918`. Transition-v3 lab/RC
+  shared custody remains explicit and usable.
 
 ## Remaining Holds
 
 - Stable-v3 publication remains held until named owners and sign-off are
   recorded.
+- Stable-v3 service-owned or named-user custody is not live-green in Calabi;
+  jobs `3914`, `3987`, and `3991` failed in the vault-health path.
 - The scheduled-loop soak has initial and hourly evidence, but a longer
   24-hour or 72-hour soak is still an operating-readiness item.
-- Digest-mismatch and revoked-marker destructive cases should be re-captured
-  after the post-normalization source patch is Controller-visible.
 - S-range remains held until a 10+ host mixed-state gate, external red-team
   review, and ownership/scale evidence are complete.
 

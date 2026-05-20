@@ -2,7 +2,7 @@
 
 ## Verdict
 
-`HOLD for stable-v3 publication pending governance owner assignment and sign-off.`
+`HOLD for stable-v3 publication pending governance owner assignment, stable-v3 custody health, and sign-off.`
 
 Operational boundaries are recorded in
 `docs/blastwall-v3/operational-guidance.md`.
@@ -29,10 +29,9 @@ Hold items:
 - The S-range claim remains held until a broader mixed-state scale gate is run.
 - Stable-v3 shared vault custody is rejected; Calabi shared-vault evidence
   remains lab/RC reference evidence.
-- The RC evidence patch normalizes revoked-marker failures into the
-  `FAIL_REVOKED_ATTESTATION` family and digest disagreement into
-  `FAIL_ATTESTATION_INTEGRITY`; the next destructive rehearsal should
-  re-capture those two cases after Controller sync.
+- Stable-v3 service-owned or named-user custody is not live-green yet in
+  Calabi. Jobs `3914`, `3987`, and `3991` failed in the vault-health path and
+  must be resolved before publication.
 
 Completed items since the prior decision:
 
@@ -45,13 +44,21 @@ Completed items since the prior decision:
 - Scheduled runs `3776`, `3778`, `3780`, `3781`, `3797`, `3799`, `3802`, and
   `3804` confirm the schedule loop is firing; the audit failures are the
   expected broken-fixture fail-closed result.
+- Stable-v3 shared-custody guard job `3918` failed closed.
+- Transition-v3 lab/RC shared-custody health job `3922`, policy pipeline
+  workflow `4046`, standalone signed preflight job `4082`, and runtime
+  workflow `4102` passed.
+- Digest mismatch and revoked-marker destructive cases were re-captured on
+  commit `f50c1228ddcf4544a38634f05fd87179210c6917`: preflight `4233`
+  failed as `FAIL_ATTESTATION_INTEGRITY`, and preflight `4255` failed as
+  `FAIL_REVOKED_ATTESTATION`.
 
 ## Evidence Summary
 
 - Current branch: `blastwall-v3-signed-attestation`.
 - Current branch head: see current Git branch head for this file.
-- Controller-visible commit observed at 2026-05-19T19:40Z:
-  `14f7f472f70c1eb66f8ece35b194ed4e2da8b137`.
+- Controller-visible commit observed at 2026-05-20 UTC:
+  `f50c1228ddcf4544a38634f05fd87179210c6917`, project update `4221`.
 - Three-host evidence project sync: `3771` to
   `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
 - Post-matrix restore sync from destructive packet: `3690`.
@@ -66,19 +73,27 @@ Completed items since the prior decision:
   runtime workflow `3736`, strict inventory audit `3772`, scheduled KRA health
   `3776`/`3797`/`3802`, scheduled preflight `3780`, scheduled runtime `3781`,
   and scheduled audits `3778`/`3799`/`3804`.
+- Stable shared custody rejection: `3918`.
+- Stable non-shared custody blockers: `3914`, `3987`, `3991`.
+- Corrected transition-v3 lab/RC path: KRA health `3922`, policy pipeline
+  `4046`, standalone preflight `4082`, runtime workflow `4102`, and strict
+  audit `4098` expected fixture fail-closed.
 
 Fail-closed destructive evidence:
 
 - Missing envelope: `3421`, `FAIL_ATTESTATION_NOT_VISIBLE`.
 - Missing index: `3439`, `FAIL_INDEX_NOT_VISIBLE`.
-- Digest mismatch: `3457`, fail-closed with `failure_class=digest_mismatch`;
-  source now maps this path to `FAIL_ATTESTATION_INTEGRITY`.
+- Digest mismatch: historical `3457` failed closed with
+  `failure_class=digest_mismatch`; final recapture `4233` failed as
+  `FAIL_ATTESTATION_INTEGRITY`.
 - Policy drift: `3478`, `FAIL_DRIFTED_POLICY`.
 - Signer untrusted: `3485`, `FAIL_SIGNER_UNTRUSTED`.
 - Signature tamper: `3505`, `FAIL_SIGNATURE_INVALID`.
 - Replay: `3531`, `FAIL_REPLAYED_ATTESTATION`.
 - Expiry: `3557`, `FAIL_STALE_ATTESTATION`.
 - Revoked latest index: `3579`, `FAIL_REVOKED_ATTESTATION`.
+- Revoked marker: historical `3601` failed closed; final recapture `4255`
+  failed as `FAIL_REVOKED_ATTESTATION`.
 - Profile mismatch: `3623`, `FAIL_PROFILE_MISMATCH`.
 - Host binding mismatch: `3649`, `FAIL_BINDING_MISMATCH`.
 
@@ -100,7 +115,7 @@ place. Do not claim S-range readiness from this evidence packet.
 ```yaml
 verdict:
   source_readiness: GO for external review.
-  publication: HOLD pending governance owner assignment and sign-off.
+  publication: HOLD pending governance owner assignment, custody health, and sign-off.
   s_range_claim: HOLD pending broader scale evidence.
 go_items:
   - marker remains a locator and is not the trust proof
@@ -108,23 +123,25 @@ go_items:
   - live policy hash drift fails closed
   - KRA visibility failures remain separated from host/security failures
   - breakglass is infrastructure-only
-  - destructive negatives for replay, expiry, signature, signer, profile, host binding, policy drift, and revoked latest index are live-proven
-  - digest mismatch and revoked marker are source-normalized and need live re-capture after Controller sync
+  - destructive negatives for replay, expiry, signature, signer, profile, host binding, policy drift, revoked latest index, revoked marker, and digest mismatch are live-proven
+  - stable-v3 rejects shared vault custody
+  - transition-v3 lab/RC shared-custody path remains usable and explicitly labelled
   - three-host mixed-state selection and failure behavior are live-proven
   - continuous verification schedules are installed and exercised
 hold_items:
   - named governance owners and sign-off are not recorded
   - S-range mixed-state scale evidence is not captured
-  - digest mismatch and revoked marker destructive re-capture is pending for the post-normalization source patch
+  - stable-v3 service-owned or named-user custody is not live-green in Calabi
 no_go_items: []
 evidence_summary:
-  - controller-visible commit at 2026-05-19T19:40Z: 14f7f472f70c1eb66f8ece35b194ed4e2da8b137
+  - controller-visible commit at 2026-05-20 UTC: f50c1228ddcf4544a38634f05fd87179210c6917
   - strict inventory audit: 3772
   - scheduled loop latest jobs: 3802 and 3804
+  - final destructive recapture: 4233 and 4255
   - primary evidence ledger: V3_STABLE_EVIDENCE_GATE_LEDGER.md
 recommended_next_branch_or_release_action:
   - keep publication held
   - assign owners and sign off the operating model
-  - sync this source patch into Controller and re-capture digest mismatch plus revoked marker
+  - resolve stable-v3 service-owned or named-user custody health in Calabi
   - run the S-range scale gate before making an S-range claim
 ```

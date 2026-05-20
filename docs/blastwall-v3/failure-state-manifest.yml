@@ -61,5 +61,5 @@ cases:
 notes:
   - Breakglass can only pass after the verifier sees FAIL_ATTESTATION_NOT_VISIBLE
     or FAIL_INDEX_NOT_VISIBLE and all explicit scope metadata matches the run.
-  - Calabi job IDs in evidence docs remain historical observations unless
-    re-captured after Controller sync to the current branch commit.
+  - Digest mismatch and revoked-marker mappings were re-captured after
+    Controller sync 4221 to f50c1228ddcf4544a38634f05fd87179210c6917.

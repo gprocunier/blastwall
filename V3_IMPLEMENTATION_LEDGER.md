@@ -45,9 +45,10 @@
 - Standalone stable-v3 runtime verification requires an explicit
   `BLASTWALL_CURRENT_POLICY_SHA256`. The policy pipeline supplies this from
   install artifacts; manually launched runtime gates must pass the same value.
-- Final stable-v3 publication still needs named governance owners and sign-off.
-- Digest-mismatch and revoked-marker destructive cases should be re-captured
-  after the post-normalization commit is synced into Controller.
+- Final stable-v3 publication still needs named governance owners, live-green
+  custody health, and sign-off.
+- Stable-v3 service-owned or named-user custody health is not yet live-green
+  in Calabi; jobs `3914`, `3987`, and `3991` failed in the vault-health path.
 - S-range readiness is not claimed; run the broader mixed-state scale gate
   before making an S-range claim.
 
@@ -253,7 +254,7 @@
 - files changed: `aap/vars/blastwall-controller.yml`, `aap/configure-controller.yml`, `poc-calabi/aap/20-configure-controller.yml`, `playbooks/audit-inventory-membership.yml`, `tests/policy_static.py`, `V3_STABLE_EVIDENCE_GATE_LEDGER.md`, `docs/blastwall-v3/*`, `release/STABLE_V3_DECISION.md`
 - tests added: static guards for continuous schedules and inventory audit FreeIPA bootstrap
 - tests run: `python3 tests/policy_static.py`; `python3 -m pytest -q tests/test_audit_blastwall_inventory.py`; `ansible-playbook --syntax-check playbooks/audit-inventory-membership.yml`; `git diff --check`; live AAP project sync `3771`; strict audit job `3772`
-- open issues: stable-v3 publication remains held pending governance owner assignment and sign-off; S-range claim remains held pending broader scale evidence
+- open issues: stable-v3 publication remains held pending governance owner assignment, live-green custody health, and sign-off; S-range claim remains held pending broader scale evidence
 - security invariants checked: inventory remains selector-only; strict audit retrieves signed evidence from explicit KRA path before treating a current marker as valid; missing artifact is reported as `FAIL_ATTESTATION_NOT_VISIBLE` instead of marker suitability or generic auth failure
 
 ### Phase 17
@@ -261,5 +262,5 @@
 - files changed: `tools/blastwall_attestation.py`, `tools/blastwall_attestation_verify.py`, `tools/blastwall_attestation_sign.py`, attestation tests, `tests/policy_static.py`, `docs/blastwall-v3/*`, `V3_*_LEDGER.md`, `release/STABLE_V3_DECISION.md`
 - tests added: digest mismatch maps to `FAIL_ATTESTATION_INTEGRITY`; revoked marker maps to `FAIL_REVOKED_ATTESTATION`; breakglass cannot bypass either; static guard rejects stale attestation failure states in tools
 - tests run: `python3 -m pytest -q tests/test_blastwall_attestation_index.py tests/test_blastwall_attestation_verify.py tests/test_blastwall_attestation_sign.py` (`45 passed`); live Controller read-only schedule query and collection availability check
-- open issues: governance owners remain pending; digest-mismatch and revoked-marker destructive cases need re-capture after Controller sync to this source patch; S-range remains future work
+- open issues: governance owners remain pending; stable-v3 service-owned or named-user custody health is not live-green in Calabi; S-range remains future work
 - security invariants checked: marker remains locator only; breakglass remains infrastructure visibility only; signed envelope/latest index/live hash requirements are unchanged; scheduled loop fired without unexpected state movement

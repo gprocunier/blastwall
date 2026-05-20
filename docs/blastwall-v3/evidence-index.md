@@ -28,8 +28,8 @@
 - Branch: `blastwall-v3-signed-attestation`.
 - Boundary: Calabi evidence is reference-topology evidence, not broad
   portability proof.
-- Current synced commit observed at 2026-05-19T19:40Z:
-  `14f7f472f70c1eb66f8ece35b194ed4e2da8b137`.
+- Current synced commit observed at 2026-05-20 UTC:
+  `f50c1228ddcf4544a38634f05fd87179210c6917`, project update `4221`.
 - Earlier three-host evidence project update: `3771` to
   `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
 - Inventory source: `9`.
@@ -56,6 +56,16 @@
 - Later target-branch runtime workflow: `3736`, successful.
 - Scheduled candidate preflight job: `3780`, successful.
 - Scheduled runtime workflow: `3781`, successful.
+- Stable-v3 shared-custody guard: `3918`, failed closed with
+  `stable-v3 rejects shared vault scope`.
+- Transition-v3 lab/RC shared-custody health: `3922`, successful.
+- Corrected transition-v3 lab/RC policy pipeline: workflow `4046`, successful,
+  including sign `4064`, promotion `4068`, and post-promotion preflight `4075`.
+- Standalone signed transition-v3 preflight: `4082`, successful.
+- Runtime verification retry after a transient Controller project timeout:
+  workflow `4102`, successful.
+- Strict inventory audit after transition-v3 correction: `4098`, failed closed
+  on the intentional missing-artifact fixture after verifying the valid host.
 
 ## KRA Health
 
@@ -65,14 +75,19 @@
   `missing-kra.workshop.lan`.
 - Canary health after schedules: `3731`, `3776`, `3797`, and `3802`,
   successful with canary present.
+- Stable-v3 non-shared custody probes: `3914`, `3987`, and `3991`, failed in
+  the live vault-health path. Treat these as custody-readiness blockers, not
+  as stable-v3 security bypasses.
 
 ## Artifact Visibility
 
 - Missing envelope: mutation `3414`, preflight `3421`, restore `3425`.
 - Missing index: mutation `3432`, preflight `3439`, restore `3443`.
-- Digest mismatch: mutation `3450`, preflight `3457`, restore `3461`.
-  Source now normalizes this verifier path to `FAIL_ATTESTATION_INTEGRITY`;
-  re-capture is pending after Controller sync to the post-normalization commit.
+- Digest mismatch historical: mutation `3450`, preflight `3457`, restore
+  `3461`; failed closed before source normalization.
+- Digest mismatch final recapture: artifact `4222`, mutation `4226`, inventory
+  `4230`, preflight `4233` failed as `FAIL_ATTESTATION_INTEGRITY`, restore
+  `4237`, restore inventory `4241`.
 
 ## Replay, Expiry, Revocation
 
@@ -82,10 +97,13 @@
   restore `3561`, restore sync `3565`.
 - Revoked latest index: artifact `3568`, mutation `3572`, preflight `3579`,
   restore `3583`, restore sync `3587`.
-- Revoked marker: artifact `3590`, mutation `3594`, preflight `3601`,
-  restore `3605`, restore sync `3609`.
-  Source now normalizes this locator path to `FAIL_REVOKED_ATTESTATION`;
-  re-capture is pending after Controller sync to the post-normalization commit.
+- Revoked marker historical: artifact `3590`, mutation `3594`, preflight
+  `3601`, restore `3605`, restore sync `3609`; failed closed before source
+  normalization.
+- Revoked marker final recapture: artifact `4244`, mutation `4248`, inventory
+  `4252`, preflight `4255` failed as `FAIL_REVOKED_ATTESTATION`, restore
+  `4259`, restore inventory `4263`, final safety restore `4266`, final
+  inventory `4270`.
 
 ## Crypto, Binding, and Drift
 

@@ -51,9 +51,9 @@ Each case below must be captured against a controlled/disposable Calabi host:
 |---|---|---|
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | AAP mutation job `3414`; preflight job `3421` failed as `FAIL_ATTESTATION_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3425` |
 | Missing index | `FAIL_INDEX_NOT_VISIBLE` | AAP mutation job `3432`; preflight job `3439` failed as `FAIL_INDEX_NOT_VISIBLE` with `failure_class=vault_not_found`; restore job `3443` |
-| Digest mismatch | `FAIL_ATTESTATION_INTEGRITY` | AAP mutation job `3450`; historical preflight job `3457` failed closed with `failure_class=digest_mismatch` before the RC evidence source normalization; restore job `3461` |
+| Digest mismatch | `FAIL_ATTESTATION_INTEGRITY` | Final recapture after project sync `4221`: artifact `4222`; mutation `4226`; inventory `4230`; preflight `4233` failed as `FAIL_ATTESTATION_INTEGRITY`; restore `4237`; restore inventory `4241`. Historical job `3457` failed closed before normalization. |
 | Wrong generation | replay/binding failure | AAP artifact job `3520`; mutation job `3524`; preflight job `3531` failed as `FAIL_REPLAYED_ATTESTATION`; breakglass job `3535` rejected; restore job `3539` |
-| Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | Revoked-index artifact job `3568`; mutation job `3572`; preflight job `3579` failed as `FAIL_REVOKED_ATTESTATION`; restore job `3583`. Historical revoked-marker job `3601` failed closed before the RC evidence source normalization; restore job `3605` |
+| Revoked marker/index | `FAIL_REVOKED_ATTESTATION` | Revoked-index artifact job `3568`; mutation job `3572`; preflight job `3579` failed as `FAIL_REVOKED_ATTESTATION`; restore job `3583`. Final revoked-marker recapture after project sync `4221`: artifact `4244`; mutation `4248`; inventory `4252`; preflight `4255` failed as `FAIL_REVOKED_ATTESTATION`; restore `4259`; restore inventory `4263`; final safety restore `4266`; inventory `4270`. |
 | Expired attestation | expired attestation failure | AAP artifact job `3546`; mutation job `3550`; preflight job `3557` failed as `FAIL_STALE_ATTESTATION`; restore job `3561` |
 | Policy hash drift | `FAIL_DRIFTED_POLICY` | AAP preflight job `2827`, failed as expected; current-branch job `3478` failed as `FAIL_DRIFTED_POLICY` |
 | KRA stale/missing canary | infra visibility failure | positive job `3698`; missing-canary job `3701` failed `FAIL_CANARY_MISSING`; bad-primary job `3702` failed closed; canary schedule job `3731` passed |
@@ -64,7 +64,49 @@ Each case below must be captured against a controlled/disposable Calabi host:
 | Profile mismatch | binding/match failure | AAP artifact job `3612`; mutation job `3616`; preflight job `3623` failed as `FAIL_PROFILE_MISMATCH`; breakglass job `3627` rejected; restore job `3631` |
 | Host binding mismatch | `FAIL_BINDING_MISMATCH` | AAP artifact job `3638`; mutation job `3642`; preflight job `3649` failed as `FAIL_BINDING_MISMATCH`; restore job `3653` |
 
-## Current live evidence
+## Current live evidence after pre-mortem remediation
+
+Captured on 2026-05-20 UTC:
+
+- Branch: `blastwall-v3-signed-attestation`.
+- Commit: `f50c1228ddcf4544a38634f05fd87179210c6917`.
+- Controller project sync: `4221`, successful.
+- Stable-v3 shared-custody guard: job `3918` failed closed with
+  `stable-v3 rejects shared vault scope`.
+- Stable-v3 non-shared custody probes: jobs `3914`, `3987`, and `3991` failed
+  in the Controller vault-health path. These are publication/custody blockers,
+  not stable-v3 security bypasses.
+- Transition-v3 lab/RC shared-custody health: job `3922`, successful and
+  labelled as lab/RC custody.
+- Corrected transition-v3 policy pipeline: workflow `4046`, successful, with
+  render `4055`, build `4051`, install `4056`, verify `4060`, sign `4064`,
+  promote `4068`, post-promotion inventory `4072`, and post-promotion
+  preflight `4075`.
+- Standalone signed transition-v3 preflight: job `4082`, successful.
+- Runtime verification retry: workflow `4102`, successful, after a prior
+  Controller project update timeout in workflow `4086`.
+- Strict inventory audit: job `4098` failed closed on the intentional
+  missing-artifact fixture after verifying the valid mirror host.
+
+Final destructive recapture on the same Controller-visible source:
+
+- Digest mismatch: artifact job `4222`, mutation job `4226`, inventory update
+  `4230`, preflight job `4233` failed as `FAIL_ATTESTATION_INTEGRITY`, restore
+  job `4237`, restore inventory `4241`.
+- Revoked marker: artifact job `4244`, mutation job `4248`, inventory update
+  `4252`, preflight job `4255` failed as `FAIL_REVOKED_ATTESTATION`, restore
+  job `4259`, restore inventory `4263`, final safety restore `4266`, and final
+  inventory update `4270`.
+- Cleanup verification: temporary Controller group
+  `blastwall_negative_gate_target` removed, and
+  `stale-blastwall-01.workshop.lan` restored to its original single reference
+  marker.
+
+This evidence remains Calabi reference-topology evidence. Because the current
+positive path uses transition-v3 lab/RC shared custody, it does not remove the
+stable-v3 publication hold for service-owned or named-user custody.
+
+## Earlier current-branch evidence
 
 Positive current-branch gate on 2026-05-18 UTC:
 
@@ -148,10 +190,11 @@ Artifact visibility cases:
   Preflight job `3439` failed as `FAIL_INDEX_NOT_VISIBLE` with
   `failure_class=vault_not_found`. Restore job `3443` succeeded.
 - Digest mismatch: mutation job `3450` used the valid golden envelope ref with
-  an intentionally wrong marker digest. Preflight job `3457` failed closed with
-  `failure_class=digest_mismatch`. The RC evidence source patch now maps this
-  verifier path to `FAIL_ATTESTATION_INTEGRITY`; re-capture is pending after
-  Controller sync. Restore job `3461` succeeded.
+  an intentionally wrong marker digest. Historical preflight job `3457` failed
+  closed with `failure_class=digest_mismatch`. Final recapture on 2026-05-20
+  UTC used artifact job `4222`, mutation job `4226`, inventory update `4230`,
+  and preflight job `4233`, which failed as `FAIL_ATTESTATION_INTEGRITY`.
+  Restore job `4237` and inventory update `4241` succeeded.
 
 Replay, expiry, revocation, crypto, and binding cases:
 
@@ -175,10 +218,11 @@ Replay, expiry, revocation, crypto, and binding cases:
   job `3579` failed as `FAIL_REVOKED_ATTESTATION`. Restore job `3583` and
   inventory sync `3587` succeeded.
 - Revoked marker: artifact job `3590`, mutation job `3594`, and preflight job
-  `3601` failed closed during locator resolution. The RC evidence source patch
-  now maps revoked locator failures to the `FAIL_REVOKED_ATTESTATION` family;
-  re-capture is pending after Controller sync.
-  Restore job `3605` and inventory sync `3609` succeeded.
+  `3601` failed closed during locator resolution before source normalization.
+  Final recapture on 2026-05-20 UTC used artifact job `4244`, mutation job
+  `4248`, inventory update `4252`, and preflight job `4255`, which failed as
+  `FAIL_REVOKED_ATTESTATION`. Restore job `4259`, inventory update `4263`,
+  final safety restore `4266`, and final inventory update `4270` succeeded.
 - Profile mismatch: artifact job `3612`, mutation job `3616`, and preflight job
   `3623` failed as `FAIL_PROFILE_MISMATCH`. Breakglass job `3627` also failed
   as `FAIL_PROFILE_MISMATCH`. Restore job `3631` and inventory sync `3635`
@@ -302,5 +346,5 @@ expiry, revoked latest index, signature tamper, signer trust, policy drift,
 profile mismatch, host binding, and breakglass boundaries. The target branch
 also has three-host mixed-state evidence and an installed continuous
 verification loop. Remaining publication hold is governance approval and named
-owners; the S-range claim remains held until broader scale evidence is
-captured.
+owners plus live-green stable-v3 service-owned or named-user custody health;
+the S-range claim remains held until broader scale evidence is captured.
