@@ -7,6 +7,9 @@ release. The code and evidence packet are ready for reviewers to evaluate the
 v3 trust model and Calabi evidence. Publication remains held on governance
 ownership and sign-off.
 
+The operating boundary for that claim is
+`docs/blastwall-v3/operational-guidance.md`.
+
 ## Decision Table
 
 | Claim | Decision | Reason |
@@ -20,6 +23,8 @@ ownership and sign-off.
 - `V3_STABLE_EVIDENCE_GATE_LEDGER.md`
 - `V3_NEGATIVE_GATE_LEDGER.md`
 - `docs/blastwall-v3/evidence-index.md`
+- `docs/blastwall-v3/operational-guidance.md`
+- `docs/blastwall-v3/failure-state-manifest.yml`
 - `docs/blastwall-v3/evidence-consistency-matrix.md`
 - `docs/blastwall-v3/calabi-negative-evidence.md`
 - `docs/blastwall-v3/scheduled-loop-soak.md`

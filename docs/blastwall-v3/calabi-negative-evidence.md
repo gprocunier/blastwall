@@ -7,11 +7,17 @@ This packet contains the live destructive matrix captured through the
 negative-gate branch plus the later target-branch mixed-state and continuous
 verification evidence.
 
+Calabi is reference-topology evidence. It proves this lab path and should not
+be read as broad portability proof for arbitrary RHEL, OpenShift, IdM, AAP, or
+KRA generations.
+
 ## Scope
 
 - Baseline branch: `blastwall-v3-signed-attestation`
 - Negative-gate branch: `blastwall-v3-negative-gate-calabi`
 - Goal: prove fail-closed behavior and infra-only breakglass constraints under live negative conditions.
+- Claim boundary: reference topology only; S-range and broad portability claims
+  remain held.
 
 ## Required case set
 

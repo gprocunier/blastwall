@@ -344,6 +344,28 @@
           and live current policy hash. A v3 marker alone is not evidence.
       when: blastwall_attestation_signed_mode
 
+    - name: Assert stable-v3 does not use lab/RC shared vault custody
+      ansible.builtin.assert:
+        that:
+          - blastwall_attestation_mode != 'stable-v3' or blastwall_attestation_vault_scope != 'shared'
+        fail_msg: >-
+          stable-v3 rejects shared vault scope as lab/RC custody. Use a
+          service-owned or named-user signer/vault principal for stable-v3;
+          transition-v3 may use shared custody only as explicit lab/RC evidence.
+      when: blastwall_attestation_signed_mode
+
+    - name: Report lab/RC shared custody mode
+      ansible.builtin.debug:
+        msg:
+          custody: lab/RC shared vault custody
+          mode: "{{ blastwall_attestation_mode }}"
+          vault_scope: "{{ blastwall_attestation_vault_scope }}"
+          vault_owner: "{{ blastwall_attestation_vault_owner }}"
+      when:
+        - blastwall_attestation_signed_mode
+        - blastwall_attestation_mode != 'stable-v3'
+        - blastwall_attestation_vault_scope == 'shared'
+
     - name: Resolve configured stable-v3 KRA vault servers
       ansible.builtin.command:
         argv:
@@ -380,16 +402,27 @@
     - name: Assert breakglass metadata is complete when breakglass is active
       ansible.builtin.assert:
         that:
+          - blastwall_breakglass_host | length > 0
+          - blastwall_breakglass_profiles_csv | length > 0
+          - >-
+            (
+              blastwall_breakglass_profiles_csv.split(',')
+              | map('trim')
+              | reject('equalto', '')
+              | list
+              | sort
+            ) == (required_blastwall_profiles | sort)
           - blastwall_breakglass_approved_by | length > 0
           - blastwall_breakglass_ticket | length > 0
           - blastwall_breakglass_reason | length > 0
           - blastwall_breakglass_until | length > 0
           - blastwall_breakglass_until | int > 0
         fail_msg: >-
-          BLASTWALL_BREAKGLASS requires approved_by, ticket, reason, and unix
-          until metadata.
+          BLASTWALL_BREAKGLASS requires explicit host scope, explicit profile
+          scope matching BLASTWALL_REQUIRED_POLICY_PROFILES, approved_by,
+          ticket, reason, and unix until metadata.
       when:
-        - blastwall_attestation_mode == 'breakglass'
+        - blastwall_attestation_signed_mode
         - blastwall_breakglass | bool
 
     - name: Warn when marker validation is explicitly bypassed
@@ -1005,9 +1038,9 @@
             + ([
               '--breakglass',
               '--breakglass-host',
-              blastwall_breakglass_host | default(item, true),
+              blastwall_breakglass_host,
               '--breakglass-profiles-csv',
-              blastwall_breakglass_profiles_csv | default(blastwall_required_profile_csv, true),
+              blastwall_breakglass_profiles_csv,
               '--breakglass-approved-by',
               blastwall_breakglass_approved_by,
               '--breakglass-ticket',

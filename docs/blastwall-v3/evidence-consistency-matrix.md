@@ -8,6 +8,9 @@ failure-state contract. Historical live jobs remain named as observed; source
 normalizations added after those jobs are called out separately so reviewers do
 not confuse an old Controller run with current code behavior.
 
+The machine-readable contract for current expected states is
+`docs/blastwall-v3/failure-state-manifest.yml`.
+
 | Case | Expected state | Observed live state | AAP job/workflow | Host | Breakglass | Restore proof | Follow-up |
 |---|---|---|---|---|---|---|---|
 | Missing envelope | `FAIL_ATTESTATION_NOT_VISIBLE` | `FAIL_ATTESTATION_NOT_VISIBLE`, `failure_class=vault_not_found` | mutation `3414`, preflight `3421` | `stale-blastwall-01.workshop.lan` | allowed only in scoped infra case `3667` | `3425` | none |

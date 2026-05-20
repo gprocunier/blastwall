@@ -2,6 +2,10 @@
 
 Use this checklist before claiming stable-v3.
 
+Read `docs/blastwall-v3/operational-guidance.md` before using this checklist.
+It defines the stable-v3 operating boundary, custody expectations, destructive
+re-capture triggers, and Calabi reference-topology limits.
+
 ## Governance
 
 - Boundary owner named and reachable.
@@ -20,10 +24,11 @@ Use this checklist before claiming stable-v3.
   environment and bastion validation path.
 - `BLASTWALL_ATTESTATION_MODE` = `stable-v3` is explicitly set.
 - Primary KRA server configured and documented.
-- Explicit vault owner and scope are configured for service-owned path.
+- Explicit vault owner and non-shared scope are configured for the
+  service-owned or named-user path.
 - AAP signer-job custody credential has KRA vault write/read authority for the
-  selected scope. For shared-vault RC validation this is normally an IdM admin
-  credential; for production prefer a dedicated service-owned principal.
+  selected scope. Shared-vault custody is lab/RC evidence only and is rejected
+  for stable-v3.
 - Signer certificate allowlist is populated.
 - CA trust bundle is current and committed to environment.
 - Marker policy includes:
@@ -57,6 +62,9 @@ Use this checklist before claiming stable-v3.
 - Breakglass is rejected for host-verification failures.
 
 ## Failure-state checks
+
+The canonical expected-state contract is
+`docs/blastwall-v3/failure-state-manifest.yml`.
 
 - Missing attestation fetch: observed as `FAIL_ATTESTATION_NOT_VISIBLE`.
 - Missing latest index: observed as `FAIL_INDEX_NOT_VISIBLE`.

@@ -486,16 +486,6 @@ def main() -> int:
     required_profiles = [item for item in args.required_profiles_csv.split(",") if item]
     normalized_profiles = sorted(set(required_profiles or ["base"]))
     breakglass = _make_breakglass_context(args)
-    if breakglass is not None and not breakglass.scope_profiles:
-        breakglass = BreakglassContext(
-            enabled=True,
-            approved_by=breakglass.approved_by,
-            ticket=breakglass.ticket,
-            reason=breakglass.reason,
-            scope_host=breakglass.scope_host,
-            scope_profiles=tuple(sorted(set(required_profiles or ["base"]))),
-            valid_until=breakglass.valid_until,
-        )
     report = verify_attestation_for_marker(
         marker_text=args.marker,
         envelope_text=_load_json_path(args.envelope_json),

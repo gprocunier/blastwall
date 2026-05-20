@@ -6,6 +6,9 @@ This runbook defines how to invalidate trust and how to keep breakglass from wea
 
 The goal is always fast safe recovery with bounded exception handling.
 
+Use `docs/blastwall-v3/operational-guidance.md` for the stable-v3 breakglass
+audit contract and destructive re-capture triggers.
+
 ## Roles and approvals
 
 - Revocation authority: approves and triggers host/profile attestation invalidation.
@@ -54,7 +57,8 @@ Not allowed for breakglass:
 
 1. Create incident ticket with hostname, time window, and expected expiry.
 2. Set explicit breakglass scope:
-   - host or profile-specific,
+   - host-specific,
+   - profile-specific and matching the requested profile set,
    - time-limited,
    - reason code and owner.
 3. Re-run preflight with breakglass flag enabled.

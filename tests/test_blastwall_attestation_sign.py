@@ -415,6 +415,33 @@ class BlastwallAttestationSignTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["failure_state"], "FAIL_REVOKED_ATTESTATION")
 
+    def test_stable_v3_rejects_shared_vault_scope(self) -> None:
+        shared_config = vault.VaultConfig(
+            primary="idm-01.workshop.lan",
+            servers=("idm-01.workshop.lan",),
+            scope="shared",
+            owner="blastwall-attestation",
+            retry_delay_seconds=0,
+        )
+        with self.assertRaisesRegex(ValueError, "FAIL_STABLE_V3_SHARED_CUSTODY"):
+            signer._assert_vault_custody_allowed(
+                attestation_mode="stable-v3",
+                vault_config=shared_config,
+            )
+
+    def test_transition_v3_permits_explicit_shared_vault_scope(self) -> None:
+        shared_config = vault.VaultConfig(
+            primary="idm-01.workshop.lan",
+            servers=("idm-01.workshop.lan",),
+            scope="shared",
+            owner="blastwall-attestation",
+            retry_delay_seconds=0,
+        )
+        signer._assert_vault_custody_allowed(
+            attestation_mode="transition-v3",
+            vault_config=shared_config,
+        )
+
     def test_vault_config_defaults_retry_fields_for_build_artifacts_cli(self) -> None:
         config = signer._vault_config(
             argparse.Namespace(

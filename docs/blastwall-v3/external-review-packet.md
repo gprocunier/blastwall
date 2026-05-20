@@ -37,11 +37,13 @@ For high-assurance usage, operators should evaluate stronger signer isolation be
 Reference documents:
 
 - `docs/blastwall-v3/signed-attestation-design.md`
+- `docs/blastwall-v3/operational-guidance.md`
 - `docs/blastwall-v3/stable-v3-readiness-checklist.md`
 - `docs/blastwall-v3/operator-runbook.md`
 - `docs/blastwall-v3/kra-topology-runbook.md`
 - `docs/blastwall-v3/revocation-and-breakglass.md`
 - `docs/blastwall-v3/evidence-consistency-matrix.md`
+- `docs/blastwall-v3/failure-state-manifest.yml`
 - `docs/blastwall-v3/scheduled-loop-soak.md`
 - `docs/blastwall-v3/stable-v3-rc-decision.md`
 - `docs/blastwall-v3/governance-owner-assignment.md`
@@ -56,12 +58,18 @@ Latest target-branch evidence was captured on 2026-05-19 UTC on
 `blastwall-v3-signed-attestation`. The AAP project was synced to
 `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b` by project update `3771`.
 
+Calabi is the current reference topology evidence path. It proves this
+workstation to `virt-01` to bastion to IdM/AAP/KRA path; it does not prove
+broad portability across arbitrary RHEL, OpenShift, IdM, AAP, or KRA
+generations.
+
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).
 - `AAP project branch`: `blastwall-v3-signed-attestation`.
 - `KRA primary`: `idm-01.workshop.lan`.
 - `KRA server list`: `idm-01.workshop.lan`.
-- `KRA scope/owner`: `shared` / `blastwall-attestation`.
+- `KRA scope/owner`: `shared` / `blastwall-attestation` for Calabi lab/RC
+  custody. Stable-v3 rejects shared vault scope.
 - `Signer KID`: `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
 - `Policy NEVRA`: `blastwall-selinux-0.6.1-0.rc1`.
 - `Policy hash`:

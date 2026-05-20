@@ -12,6 +12,10 @@
   and continuous verification operating plan.
 - `docs/blastwall-v3/stable-v3-release-decision.md`: current release posture.
 - `docs/blastwall-v3/stable-v3-rc-decision.md`: RC-level GO/HOLD decision.
+- `docs/blastwall-v3/operational-guidance.md`: stable-v3 operating boundary,
+  custody expectations, breakglass audit rules, and claim limits.
+- `docs/blastwall-v3/failure-state-manifest.yml`: machine-readable expected
+  failure-state contract.
 - `docs/blastwall-v3/evidence-consistency-matrix.md`: live/source
   failure-state reconciliation.
 - `docs/blastwall-v3/scheduled-loop-soak.md`: scheduled-loop evidence.
@@ -22,6 +26,8 @@
 
 - Project: `Blastwall`, ID `8`.
 - Branch: `blastwall-v3-signed-attestation`.
+- Boundary: Calabi evidence is reference-topology evidence, not broad
+  portability proof.
 - Current synced commit observed at 2026-05-19T19:40Z:
   `14f7f472f70c1eb66f8ece35b194ed4e2da8b137`.
 - Earlier three-host evidence project update: `3771` to
@@ -131,6 +137,8 @@
   `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
 - Current golden attestation ref:
   `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779161194.json`.
+- Custody note: current Calabi golden evidence used shared lab/RC vault
+  custody. Stable-v3 rejects shared vault scope.
 - Current golden attestation hash:
   `8d7f4a9844d7bceee2e0114ae55f66aa507e541676aad98ad3667c09701c3b11`.
 - Signer KID:

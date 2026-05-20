@@ -1025,6 +1025,7 @@ v3_promote = (ROOT / "playbooks" / "promote-policy-rpm.yml").read_text(encoding=
 v3_preflight = (ROOT / "playbooks" / "preflight.yml").read_text(encoding="utf-8")
 v3_hbac_access = (ROOT / "playbooks" / "hbac-access-test.yml").read_text(encoding="utf-8")
 v3_health = (ROOT / "playbooks" / "attestation-vault-health.yml").read_text(encoding="utf-8")
+v3_verifier = (ROOT / "tools" / "blastwall_attestation_verify.py").read_text(encoding="utf-8")
 aap_vars = (ROOT / "aap" / "vars" / "blastwall-controller.yml").read_text(encoding="utf-8")
 aap_controller = (ROOT / "aap" / "configure-controller.yml").read_text(encoding="utf-8")
 for required_v3_file in [
@@ -1059,6 +1060,7 @@ for stale_failure_state in [
         fail(f"stable-v3 attestation tools still expose stale failure state {stale_failure_state}")
 for required_v3_doc in [
     "signed-attestation-design.md",
+    "operational-guidance.md",
     "operator-runbook.md",
     "kra-topology-runbook.md",
     "revocation-and-breakglass.md",
@@ -1076,6 +1078,100 @@ for required_v3_doc in [
 ]:
     if not (ROOT / "docs" / "blastwall-v3" / required_v3_doc).exists():
         fail(f"missing v3 documentation file: docs/blastwall-v3/{required_v3_doc}")
+failure_state_manifest_path = ROOT / "docs" / "blastwall-v3" / "failure-state-manifest.yml"
+if not failure_state_manifest_path.exists():
+    fail("missing v3 failure-state manifest: docs/blastwall-v3/failure-state-manifest.yml")
+failure_state_manifest = yaml.safe_load(failure_state_manifest_path.read_text(encoding="utf-8")) or {}
+manifest_cases = {
+    item.get("id"): item
+    for item in failure_state_manifest.get("cases", [])
+    if isinstance(item, dict)
+}
+expected_manifest_cases = {
+    "missing_envelope": "FAIL_ATTESTATION_NOT_VISIBLE",
+    "missing_index": "FAIL_INDEX_NOT_VISIBLE",
+    "digest_mismatch": "FAIL_ATTESTATION_INTEGRITY",
+    "revoked_marker": "FAIL_REVOKED_ATTESTATION",
+    "revoked_latest_index": "FAIL_REVOKED_ATTESTATION",
+    "replay": "FAIL_REPLAYED_ATTESTATION",
+    "expired": "FAIL_STALE_ATTESTATION",
+    "policy_drift": "FAIL_DRIFTED_POLICY",
+    "signer_untrusted": "FAIL_SIGNER_UNTRUSTED",
+    "signature_tamper": "FAIL_SIGNATURE_INVALID",
+    "profile_mismatch": "FAIL_PROFILE_MISMATCH",
+    "host_binding_mismatch": "FAIL_BINDING_MISMATCH",
+    "v2_marker": "FAIL_UNSUPPORTED_MARKER_VERSION",
+}
+for case_id, expected_state in expected_manifest_cases.items():
+    case = manifest_cases.get(case_id)
+    if not case:
+        fail(f"failure-state manifest missing case {case_id}")
+    if case.get("expected_state") != expected_state:
+        fail(
+            "failure-state manifest case "
+            f"{case_id} expected {expected_state}, got {case.get('expected_state')}"
+        )
+    if case.get("breakglass") != "allowed_if_explicit_scope" and case_id in {"missing_envelope", "missing_index"}:
+        fail(f"failure-state manifest must allow only explicit-scope breakglass for {case_id}")
+    if case_id not in {"missing_envelope", "missing_index"} and case.get("breakglass") == "allowed_if_explicit_scope":
+        fail(f"failure-state manifest must not allow breakglass for {case_id}")
+guidance = (ROOT / "docs" / "blastwall-v3" / "operational-guidance.md").read_text(encoding="utf-8")
+for required_guidance_section in [
+    "## Service-Owned Signer And Vault Custody",
+    "## Signer Separation And Lifecycle",
+    "## Breakglass Audit Expectations",
+    "## Destructive Re-Capture Triggers",
+    "## Calabi Evidence Boundary",
+    "## Ordinary Automation Corpus Replay",
+    "## SPO, KRA, And S-Range Non-Claims",
+    "## Reference Topology Positioning",
+]:
+    if required_guidance_section not in guidance:
+        fail(f"operational guidance missing required section {required_guidance_section}")
+for required_guidance_phrase in [
+    "Stable-v3 must use service-owned or named-user custody",
+    "Shared vault scope is lab/RC custody",
+    "not full remote attestation",
+    "Calabi evidence proves the current reference path",
+    "The S-range claim remains on hold",
+]:
+    if required_guidance_phrase not in guidance:
+        fail(f"operational guidance missing required claim boundary phrase: {required_guidance_phrase}")
+for doc_name in [
+    "stable-v3-readiness-checklist.md",
+    "operator-runbook.md",
+    "kra-topology-runbook.md",
+    "revocation-and-breakglass.md",
+    "external-review-packet.md",
+    "stable-v3-release-decision.md",
+    "stable-v3-rc-decision.md",
+    "final-stable-v3-decision.md",
+    "evidence-index.md",
+]:
+    doc_text = (ROOT / "docs" / "blastwall-v3" / doc_name).read_text(encoding="utf-8")
+    if "docs/blastwall-v3/operational-guidance.md" not in doc_text:
+        fail(f"docs/blastwall-v3/{doc_name} must link operational guidance")
+for doc_name in [
+    "stable-v3-readiness-checklist.md",
+    "external-review-packet.md",
+    "final-stable-v3-decision.md",
+    "evidence-index.md",
+]:
+    doc_text = (ROOT / "docs" / "blastwall-v3" / doc_name).read_text(encoding="utf-8")
+    if "docs/blastwall-v3/failure-state-manifest.yml" not in doc_text:
+        fail(f"docs/blastwall-v3/{doc_name} must link failure-state manifest")
+governance_doc = (ROOT / "docs" / "blastwall-v3" / "governance-owner-assignment.md").read_text(encoding="utf-8")
+if "| pending |" in governance_doc:
+    for doc_name in ["stable-v3-release-decision.md", "final-stable-v3-decision.md", "stable-v3-rc-decision.md"]:
+        doc_text = (ROOT / "docs" / "blastwall-v3" / doc_name).read_text(encoding="utf-8")
+        if re.search(r"(?im)^\s*publication\s*:\s*GO\b", doc_text):
+            fail(f"docs/blastwall-v3/{doc_name} must not set publication GO while governance rows are pending")
+        if re.search(r"(?i)\|\s*Stable-v3 publication\s*\|\s*GO\s*\|", doc_text):
+            fail(f"docs/blastwall-v3/{doc_name} must not table stable-v3 publication as GO while governance rows are pending")
+        if "HOLD" not in doc_text:
+            fail(f"docs/blastwall-v3/{doc_name} must preserve HOLD while governance rows are pending")
+        if "S-range" in doc_text and not re.search(r"(?is)S-range.{0,120}HOLD|HOLD.{0,120}S-range", doc_text):
+            fail(f"docs/blastwall-v3/{doc_name} must preserve S-range HOLD while governance rows are pending")
 for inventory_path in [
     ROOT / "inventory" / "blastwall-idm.yml",
     ROOT / "poc-calabi" / "inventory-eigenstate.yml",
@@ -1246,6 +1342,31 @@ for required_sign_custody_signal in [
 ]:
     if required_sign_custody_signal not in v3_sign:
         fail(f"sign-attestation.yml does not enforce collection-backed custody signal: {required_sign_custody_signal}")
+if "FAIL_STABLE_V3_SHARED_CUSTODY" not in attestation_tool_text:
+    fail("stable-v3 signing helper must reject shared vault custody with a machine-readable failure state")
+for playbook_name, playbook_text, required_shared_guard in [
+    (
+        "sign-attestation.yml",
+        v3_sign,
+        "blastwall_attestation_mode != 'stable-v3' or blastwall_attestation_vault_scope != 'shared'",
+    ),
+    (
+        "preflight.yml",
+        v3_preflight,
+        "blastwall_attestation_mode != 'stable-v3' or blastwall_attestation_vault_scope != 'shared'",
+    ),
+    (
+        "promote-policy-rpm.yml",
+        v3_promote,
+        "not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_scope != 'shared'",
+    ),
+]:
+    if required_shared_guard not in playbook_text:
+        fail(f"{playbook_name} must reject shared vault custody for stable-v3")
+if "--attestation-mode" not in v3_sign or "--attestation-mode" not in v3_promote:
+    fail("stable-v3 signing/promotion helpers must pass attestation mode into custody validation")
+if "lab/RC shared vault custody" not in v3_sign or "lab/RC shared vault custody" not in v3_preflight:
+    fail("transition/RC shared custody must be labelled as lab/RC custody in playbook output")
 if "sign-store-readback" in v3_sign:
     fail("sign-attestation.yml must not use the raw-vault sign-store-readback default path")
 if "Write FreeIPA client config for attestation vault writes" not in v3_sign:
@@ -1386,6 +1507,17 @@ if "item.read_back_verified | default(false) | bool" not in v3_preflight:
     fail("stable-v3 preflight must not throw raw Ansible missing-attribute errors for absent KRA artifacts")
 if "not blastwall_breakglass | bool" not in v3_preflight:
     fail("stable-v3 preflight must let verifier-owned breakglass handling evaluate missing KRA artifacts")
+if "scope_profiles=tuple(sorted(set(required_profiles" in v3_verifier:
+    fail("verifier CLI must not infer breakglass profile scope from requested profiles")
+if "blastwall_breakglass_profiles_csv | default(blastwall_required_profile_csv" in v3_preflight:
+    fail("stable-v3 preflight must not infer breakglass profile scope from requested profiles")
+for required_breakglass_scope_signal in [
+    "blastwall_breakglass_host | length > 0",
+    "blastwall_breakglass_profiles_csv | length > 0",
+    "== (required_blastwall_profiles | sort)",
+]:
+    if required_breakglass_scope_signal not in v3_preflight:
+        fail(f"stable-v3 preflight is missing explicit breakglass scope guard: {required_breakglass_scope_signal}")
 if "default(blastwall_probe_report_sha256 | default" in v3_sign:
     fail("sign-attestation.yml must not self-reference blastwall_probe_report_sha256 in direct-launch fallbacks")
 if "default(blastwall_policy_sha256 | default" in v3_sign:
@@ -1430,7 +1562,6 @@ if "^blastwall:.*(?:^blastwall:|;)v=3" in v3_preflight:
     fail("stable-v3 preflight marker selector does not match blastwall:v=3 prefix markers")
 if "'sign_attestation'] if blastwall_aap_attestation_enabled" not in aap_controller:
     fail("AAP policy pipeline does not route verified candidates through sign_attestation before marker promotion")
-v3_verifier = (ROOT / "tools" / "blastwall_attestation_verify.py").read_text(encoding="utf-8")
 if "FAIL_ATTESTATION_NOT_VISIBLE" not in v3_verifier or "FAIL_INDEX_NOT_VISIBLE" not in v3_verifier:
     fail("stable-v3 preflight/verifier does not expose missing artifact/index failure states")
 print("PASS: v3 signed attestation workflow keeps signer, verifier, and marker promotion separated")

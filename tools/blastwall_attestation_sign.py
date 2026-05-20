@@ -7,6 +7,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import secrets
 import subprocess
 import sys
@@ -141,6 +142,27 @@ def _vault_config(args: argparse.Namespace) -> blastwall_attestation_vault.Vault
             ),
         }
     )
+
+
+def _attestation_mode(args: argparse.Namespace) -> str:
+    return str(
+        getattr(args, "attestation_mode", "")
+        or os.environ.get("BLASTWALL_ATTESTATION_MODE", "")
+        or "reference-v2"
+    ).strip()
+
+
+def _assert_vault_custody_allowed(
+    *,
+    attestation_mode: str,
+    vault_config: blastwall_attestation_vault.VaultConfig,
+) -> None:
+    if attestation_mode == "stable-v3" and vault_config.scope == "shared":
+        raise ValueError(
+            "FAIL_STABLE_V3_SHARED_CUSTODY: stable-v3 rejects shared vault scope; "
+            "use service-owned or named-user vault custody. Shared vault scope is "
+            "lab/RC custody for transition-v3 or reference workflows only."
+        )
 
 
 def _build_sign_inputs(args: argparse.Namespace, registry_path: Path) -> SignInputs:
@@ -729,6 +751,10 @@ def _failure_report(exc: Exception) -> dict[str, Any]:
 
 def _add_common_args(parser: argparse.ArgumentParser, *, generation_required: bool = True) -> None:
     parser.add_argument("--registry", type=Path, default=blastwall_marker.DEFAULT_REGISTRY)
+    parser.add_argument(
+        "--attestation-mode",
+        default=os.environ.get("BLASTWALL_ATTESTATION_MODE", "reference-v2"),
+    )
     parser.add_argument("--subject-host", required=True)
     parser.add_argument("--target", default="rhel-login")
     parser.add_argument("--rpm", default=blastwall_marker.DEFAULT_RPM)
@@ -814,18 +840,28 @@ def main() -> int:
     inputs = _build_sign_inputs(args, args.registry)
     try:
         if args.mode == "sign-store-readback":
+            vault_config = _vault_config(args)
+            _assert_vault_custody_allowed(
+                attestation_mode=_attestation_mode(args),
+                vault_config=vault_config,
+            )
             report = sign_store_readback(
                 inputs,
                 registry=registry,
-                vault_config=_vault_config(args),
+                vault_config=vault_config,
                 envelope_dir=args.envelope_dir,
                 index_dir=args.index_dir,
             )
         elif args.mode == "build-artifacts":
+            vault_config = _vault_config(args)
+            _assert_vault_custody_allowed(
+                attestation_mode=_attestation_mode(args),
+                vault_config=vault_config,
+            )
             report = build_signed_artifacts(
                 inputs,
                 registry=registry,
-                vault_config=_vault_config(args),
+                vault_config=vault_config,
                 envelope_dir=args.envelope_dir,
                 index_dir=args.index_dir,
             )
@@ -837,19 +873,29 @@ def main() -> int:
                 index_text=_read_json_text(args.index_json),
             )
         elif args.mode == "retrieve-existing":
+            vault_config = _vault_config(args)
+            _assert_vault_custody_allowed(
+                attestation_mode=_attestation_mode(args),
+                vault_config=vault_config,
+            )
             report = retrieve_existing_artifacts(
                 inputs,
                 registry=registry,
-                vault_config=_vault_config(args),
+                vault_config=vault_config,
                 marker_text=args.marker,
                 envelope_dir=args.envelope_dir,
                 index_dir=args.index_dir,
             )
         else:
+            vault_config = _vault_config(args)
+            _assert_vault_custody_allowed(
+                attestation_mode=_attestation_mode(args),
+                vault_config=vault_config,
+            )
             report = resolve_existing_artifacts(
                 inputs,
                 registry=registry,
-                vault_config=_vault_config(args),
+                vault_config=vault_config,
                 marker_text=args.marker,
                 envelope_dir=args.envelope_dir,
                 index_dir=args.index_dir,

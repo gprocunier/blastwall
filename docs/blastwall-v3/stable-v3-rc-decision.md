@@ -3,6 +3,8 @@
 Date: 2026-05-19 UTC
 Branch: `blastwall-v3-signed-attestation`
 
+Operating boundary: `docs/blastwall-v3/operational-guidance.md`.
+
 ## Decision
 
 ```text
@@ -64,6 +66,7 @@ surface. All owner rows remain pending until a human owner accepts the role.
 This decision does not claim 10+ host S-range fleet evidence.
 This decision does not claim independent external red-team completion.
 This decision does not claim final publication approval while governance owners are pending.
+This decision does not claim broad portability beyond the Calabi reference topology.
 ```
 
 ## Sign-Off

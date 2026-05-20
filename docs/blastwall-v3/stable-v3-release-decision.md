@@ -4,6 +4,9 @@
 
 `HOLD for stable-v3 publication pending governance owner assignment and sign-off.`
 
+Operational boundaries are recorded in
+`docs/blastwall-v3/operational-guidance.md`.
+
 ## Source And Evidence Readiness
 
 `GO for external review of the stable-v3 source and Calabi evidence gate.`
@@ -24,6 +27,8 @@ Hold items:
   revocation authority, and breakglass approval path still need final
   assignment before a stable publication claim.
 - The S-range claim remains held until a broader mixed-state scale gate is run.
+- Stable-v3 shared vault custody is rejected; Calabi shared-vault evidence
+  remains lab/RC reference evidence.
 - The RC evidence patch normalizes revoked-marker failures into the
   `FAIL_REVOKED_ATTESTATION` family and digest disagreement into
   `FAIL_ATTESTATION_INTEGRITY`; the next destructive rehearsal should

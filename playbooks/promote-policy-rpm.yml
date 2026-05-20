@@ -184,6 +184,16 @@
       run_once: true
       delegate_to: localhost
 
+    - name: Assert stable-v3 marker promotion does not use lab/RC shared vault custody
+      ansible.builtin.assert:
+        that:
+          - not blastwall_stable_v3_promotion | bool or blastwall_attestation_vault_scope != 'shared'
+        fail_msg: >-
+          stable-v3 promotion rejects shared vault scope as lab/RC custody. Use
+          a service-owned or named-user signer/vault principal for stable-v3.
+      run_once: true
+      delegate_to: localhost
+
     - name: Assert strange-socket-v1 dry-run intent is consistent
       ansible.builtin.assert:
         that:
@@ -361,6 +371,7 @@
               playbook_dir ~ '/../tools/blastwall_attestation_sign.py',
               'retrieve-existing',
               '--registry', blastwall_profile_registry_path,
+              '--attestation-mode', blastwall_attestation_mode,
               '--marker', blastwall_policy_marker.stdout,
               '--subject-host', inventory_hostname,
               '--target', 'rhel-login',

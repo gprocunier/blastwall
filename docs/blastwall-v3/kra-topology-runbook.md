@@ -9,6 +9,10 @@ v3 uses two IdM-backed paths that behave differently:
 
 Both can be healthy independently. A healthy LDAP path does not guarantee KRA-backed artifact visibility.
 
+Use `docs/blastwall-v3/operational-guidance.md` for the stable-v3 custody
+boundary and the rule that shared vault scope is lab/RC custody, not stable-v3
+custody.
+
 ## Assumptions
 
 - KRA-enabled IdM replicas are explicitly configured.
@@ -27,6 +31,10 @@ Use a dedicated service identity for vault artifact writes/reads:
 - keep artifact path prefixes constrained by a service owner and host scope,
 - avoid letting ordinary automation delete or read attestation artifacts,
 - ensure service credential rotation and separation from AAP UI session credentials.
+
+Stable-v3 rejects shared vault scope. If Calabi or another lab still uses
+shared vault custody, label that evidence as transition/RC evidence and keep it
+out of stable-v3 publication claims.
 
 ## Topology modes
 

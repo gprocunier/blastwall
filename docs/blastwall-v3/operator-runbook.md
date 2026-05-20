@@ -12,6 +12,10 @@ through `eigenstate.ipa.access_path`, classifies sudo expansion through
 `eigenstate.ipa.vault_health`, and retrieves artifacts through
 `eigenstate.ipa.vault_artifact`.
 
+Use `docs/blastwall-v3/operational-guidance.md` as the controlling guidance
+for stable-v3 custody, breakglass audit requirements, destructive re-capture
+triggers, and reference-topology claim boundaries.
+
 ## Scope
 
 - Read and respond to preflight outcomes for marker-based host gating.
@@ -47,6 +51,8 @@ This means:
 - v3 protects against marker tampering and unsigned evidence confusion.
 - It does not add defense in depth against a fully compromised AAP controller that can alter evidence creation.
 - breakglass can still be used for attestation infrastructure failures, but not for host verification failures.
+- Calabi evidence proves the reference topology path; it does not prove broad
+  RHEL, OpenShift, IdM, AAP, or KRA portability.
 
 ## 3) Required roles
 

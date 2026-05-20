@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
+import yaml
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -278,6 +279,20 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
             valid_until=_now() + datetime.timedelta(seconds=valid_seconds),
         )
 
+    def _breakglass_context_with_profiles(self, profiles: tuple[str, ...]) -> verifier.BreakglassContext:
+        return verifier.BreakglassContext(
+            enabled=True,
+            approved_by="security",
+            ticket="RITM-0001",
+            reason="attestation infrastructure outage",
+            scope_host="mirror-registry.workshop.lan",
+            scope_profiles=profiles,
+            valid_until=_now() + datetime.timedelta(seconds=900),
+        )
+
+    def _failure_manifest(self) -> dict[str, Any]:
+        return yaml.safe_load((ROOT / "docs" / "blastwall-v3" / "failure-state-manifest.yml").read_text()) or {}
+
     def test_valid_attestation_passes(self) -> None:
         report = self.verify()
         self.assertEqual(report.status, "PASS", report.to_dict())
@@ -492,6 +507,83 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
         self.assertEqual(report.status, "FAIL")
         self.assertEqual(report.failure_state, "FAIL_BREAKGLASS_SCOPE")
 
+    def test_breakglass_requires_explicit_profile_scope(self) -> None:
+        report = self.verify(
+            envelope_text=None,
+            breakglass=self._breakglass_context_with_profiles(()),
+        )
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.failure_state, "FAIL_BREAKGLASS_SCOPE")
+
+    def test_breakglass_requires_profile_scope_to_match_requested_profiles(self) -> None:
+        report = self.verify(
+            envelope_text=None,
+            breakglass=self._breakglass_context_with_profiles(("base", "strange-socket-v1")),
+        )
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.failure_state, "FAIL_BREAKGLASS_SCOPE")
+
+    def test_failure_state_manifest_matches_local_verifier_behavior(self) -> None:
+        manifest_cases = {
+            item["id"]: item["expected_state"]
+            for item in self._failure_manifest().get("cases", [])
+        }
+        checks = {
+            "missing_envelope": self.verify(envelope_text=None),
+            "missing_index": self.verify(index_text=None),
+            "digest_mismatch": self.verify(marker_text=self.marker_text.replace(self.envelope_sha, "e" * 64)),
+            "policy_drift": self.verify(current_policy_sha256="d" * 64),
+            "replay": self.verify(
+                index_text=json.dumps(
+                    attestation.build_latest_index(
+                        {**self.index, "latest_generation": 8},
+                        private_key=_pem_private_key(self.signer_key),
+                        signer_certificate=_pem_bytes(self.signer_cert),
+                    )
+                )
+            ),
+            "signature_tamper": self.verify(
+                envelope_text=json.dumps({**self.envelope, "signature": "A" * len(self.envelope["signature"])})
+            ),
+            "profile_mismatch": self.verify(
+                index_text=json.dumps(
+                    attestation.build_latest_index(
+                        {**self.index, "profile_set": ["base", "strange-socket-v1"]},
+                        private_key=_pem_private_key(self.signer_key),
+                        signer_certificate=_pem_bytes(self.signer_cert),
+                    )
+                )
+            ),
+            "host_binding_mismatch": self.verify(expected_host="other-host.example"),
+            "v2_marker": self.verify(
+                marker_text=marker.emit_marker_v2(
+                    registry=self.registry,
+                    registry_hash=self.registry_hash,
+                    policy_hash=self.policy_sha,
+                    rpm=marker.DEFAULT_RPM,
+                )
+            ),
+        }
+        revoked_marker = marker.emit_marker_v3(
+            registry=self.registry,
+            rpm=marker.DEFAULT_RPM,
+            profiles=["base"],
+            attest_ref=self.attest_ref,
+            attest_sha256=self.envelope_sha,
+            signer_kid=self.signer_kid,
+            exp=(_now() + datetime.timedelta(minutes=30)).isoformat().replace("+00:00", "Z"),
+            generation=self.payload["generation"],
+            state="revoked",
+        )
+        checks["revoked_marker"] = self.verify(marker_text=revoked_marker)
+
+        for case_id, report in checks.items():
+            self.assertEqual(
+                report.failure_state,
+                manifest_cases[case_id],
+                f"{case_id} diverged from failure-state manifest",
+            )
+
     def test_cli_reports_json_and_exit_status(self) -> None:
         with tempfile.TemporaryDirectory(prefix="blastwall-attest-verify-") as temp_dir:
             temp = Path(temp_dir)
@@ -533,6 +625,51 @@ class BlastwallAttestationVerifierTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["status"], "PASS")
+
+    def test_cli_breakglass_requires_explicit_profiles(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="blastwall-attest-verify-") as temp_dir:
+            temp = Path(temp_dir)
+            cert_path = temp / "signer.pem"
+            ca_path = temp / "ca.pem"
+            cert_path.write_bytes(_pem_bytes(self.signer_cert))
+            ca_path.write_bytes(_pem_bytes(self.ca_cert))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOLS / "blastwall_attestation_verify.py"),
+                    "--marker",
+                    self.marker_text,
+                    "--signer-certificate",
+                    str(cert_path),
+                    "--ca-bundle",
+                    str(ca_path),
+                    "--signer-allowlist-csv",
+                    self.signer_kid,
+                    "--expected-host",
+                    "mirror-registry.workshop.lan",
+                    "--expected-registry-sha256",
+                    self.registry_hash,
+                    "--current-policy-sha256",
+                    self.policy_sha,
+                    "--breakglass",
+                    "--breakglass-host",
+                    "mirror-registry.workshop.lan",
+                    "--breakglass-approved-by",
+                    "security",
+                    "--breakglass-ticket",
+                    "RITM-0001",
+                    "--breakglass-reason",
+                    "attestation infrastructure outage",
+                    "--breakglass-until",
+                    str(int((_now() + datetime.timedelta(minutes=15)).timestamp())),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(json.loads(result.stdout)["failure_state"], "FAIL_BREAKGLASS_SCOPE")
 
 
 if __name__ == "__main__":
