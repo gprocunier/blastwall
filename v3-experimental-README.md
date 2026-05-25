@@ -1,8 +1,13 @@
-# Blastwall v3 Experimental README
+# Blastwall v3 Design Journey
 
-Blastwall v3 is the signed-attestation branch of Blastwall. It continues the
-same core idea from v1 and v2: privileged automation should not arrive on a
-managed host with the same unconstrained local shape as a human administrator.
+This note explains the design journey from the original Blastwall proof through
+the v3 signed-evidence reference exemplar. For the current v3 front door, start
+with [`README.md`](README.md) and the
+[`external review packet`](docs/blastwall-v3/external-review-packet.md).
+
+Blastwall v3 continues the same core idea from v1 and v2: privileged automation
+should not arrive on a managed host with the same unconstrained local shape as a
+human administrator.
 
 The v3 change is about trust. v1 proved host-local SELinux enforcement. v2 made
 the policy posture profile-aware, hash-bound, and release-checkable. v3 keeps
@@ -12,7 +17,7 @@ just because it is present in IdM.
 Current branch:
 
 ```text
-blastwall-v3-signed-attestation
+v3
 ```
 
 Required collection baseline:
@@ -259,8 +264,9 @@ v3 separates the signing and verification surfaces:
 - Preflight receives verifier trust material and KRA read custody.
 - The signer private key is not attached to preflight or marker promotion.
 
-The current lab uses shared-vault RC custody for practicality. Production-style
-deployment should prefer a dedicated service-owned custody principal.
+Stable-v3 rejects shared vault custody. The Calabi reference exemplar records a
+service-owned custody path for stable-v3, while explicit transition/RC modes can
+still use lab shared custody for bounded compatibility work.
 
 ### Audit, Revocation, and Breakglass
 
@@ -307,36 +313,21 @@ source policy + profiles.yml
 
 ## Current Evidence
 
-The current v3 branch has completed the healthy-path Calabi KRA/AAP gate.
+The current v3 branch is ready as a reference exemplar publication. The current
+evidence packet lives in:
 
-Calabi gate summary:
+- `docs/blastwall-v3/external-review-packet.md`
+- `docs/blastwall-v3/evidence-index.md`
+- `docs/blastwall-v3/calabi-negative-evidence.md`
+- `docs/blastwall-v3/failure-state-manifest.yml`
+- `docs/blastwall-v3/final-stable-v3-decision.md`
 
-- Branch: `blastwall-v3-signed-attestation`.
-- Implementation gate commit:
-  `02c4d7490bfa7671802a71d3079846c27bd92b11`.
-- Policy pipeline workflow `2177`: successful.
-- Runtime verification workflow `2227`: successful.
-- Runtime preflight job `2236`: retrieved the marker-referenced KRA envelope
-  and latest index, then verified `status=PASS`.
-- Managed-host verification job `2240`: successful.
-- Managed-host evidence digest:
-  `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
-- Signed attestation generation: `1778994368`.
-- Attestation ref:
-  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1778994368.json`.
-- Attestation hash:
-  `c84bb22a1944862ae0db74eeed5cc1153ded23d19afce3fcb4486f7fcb1ec190`.
-
-The managed-host verification confirmed the base deny posture still blocks
-AF_ALG, BPF map/prog load, AF_PACKET, user namespaces, `io_uring_setup`, Dirty
-Frag `NETLINK_XFRM`, Dirty Frag `AF_RXRPC`, and Fragnesia `AF_ALG` entry
-points with `EPERM`/`EACCES` evidence.
-
-Destructive live negative cases for missing artifacts, missing indexes,
-revocation, and breakglass were not re-run against the live Calabi marker in
-that pass. The local regression matrix covers those failure classes. Run a live
-negative packet before final production stable-v3 sign-off if reviewers require
-live failure evidence rather than local proof.
+The Calabi reference topology records healthy service-owned custody evidence,
+signed policy pipeline evidence, runtime verification, inventory audit,
+destructive failure cases, revoked-attestation handling, scoped breakglass, and
+scheduled continuous verification. The evidence proves the reference path and
+operating pattern; adopters should add local ownership, retention, escalation,
+and scale evidence before treating the pattern as their own operating control.
 
 ## What v3 Does Not Claim
 

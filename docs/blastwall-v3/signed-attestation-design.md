@@ -105,23 +105,9 @@ A signed attestation artifact that binds:
 
 ### 3.1 Recommendation
 
-Because Blastwall v2 is not yet published as stable, there are two possible implementation strategies:
-
-1. refactor the current v2 feature branch directly; or
-2. create a new v3 feature branch based on the latest remediated v2 branch.
-
-The historical implementation strategy was:
-
-```text
-Create a new feature branch from the latest remediated v2 branch:
-  blastwall-v3-signed-attestation
-
-or, if preserving phase naming:
-  blastwall-v2-phase-09-v3-attestation
-```
-
-That implementation branch has since been promoted into the publication branch
-`v3`.
+The signed-attestation work is published from the `v3` branch. Earlier
+implementation branches were consolidated into that branch so reviewers and
+operators have one current v3 surface to follow.
 
 ### 3.2 Rationale
 

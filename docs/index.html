@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>blastwall | SELinux automation boundary</title>
-    <meta name="description" content="SELinux, IdM, and Ansible Automation Platform guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
-    <meta property="og:title" content="blastwall">
-    <meta property="og:description" content="SELinux, IdM, and Ansible Automation Platform guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
+    <title>blastwall v3 | signed evidence for privileged automation</title>
+    <meta name="description" content="Blastwall v3 is a signed-evidence reference exemplar for keeping privileged automation constrained, visible, and verified before launch.">
+    <meta property="og:title" content="blastwall v3">
+    <meta property="og:description" content="A signed-evidence reference exemplar for privileged automation on RHEL with IdM, AAP, KRA, and SELinux.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://gprocunier.github.io/blastwall/">
+    <meta property="og:url" content="https://blastwall.org/">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="blastwall">
-    <meta name="twitter:description" content="SELinux, IdM, and Ansible Automation Platform guardrails for keeping privileged automation constrained, visible, and policy-gated before it reaches managed hosts.">
+    <meta name="twitter:title" content="blastwall v3">
+    <meta name="twitter:description" content="A signed-evidence reference exemplar for privileged automation on RHEL with IdM, AAP, KRA, and SELinux.">
     <meta name="google-site-verification" content="-cAcLaA0l0O_JyCuMrNDwKoISaFm8JtOsfjnvXLGgA4" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,15 +23,15 @@
   <body>
     <header class="site-header">
       <div class="site-header__inner">
-        <p class="eyebrow">SELinux Automation Boundary</p>
+        <p class="eyebrow">Signed Evidence Reference Exemplar</p>
         <div class="site-brand">
           <div>
-            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
-            <p class="site-brand__tagline">The faster automation moves, the more it needs a hard boundary before it reaches the systems people depend on.</p>
+            <h1 class="site-brand__title"><a href="./">blastwall v3</a></h1>
+            <p class="site-brand__tagline">Privileged automation should be selected by policy, confined by SELinux, and trusted only after signed evidence verifies the host state.</p>
           </div>
         </div>
         <nav class="site-header__actions" aria-label="Project links">
-          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://github.com/gprocunier/blastwall/tree/v3"><kbd>GitHub Repo</kbd></a>
           <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
           <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
         </nav>
@@ -40,210 +40,120 @@
 
     <main class="page-shell page-shell--wide">
       <article class="content-column markdown-body">
-        <p class="lead"><code>blastwall</code> is a proof of concept for privileged automation security on RHEL: Red Hat Identity Management (<a href="glossary.html#idm">IdM</a>) defines who may arrive, Ansible Automation Platform (<a href="glossary.html#aap">AAP</a>) acts on that state, and SELinux confines the session once it reaches the managed host.</p>
-        <p>The recent <a href="https://copy.fail/">copy.fail</a> work was the first pressure test. <a href="https://github.com/V4bel/dirtyfrag">Dirty Frag</a>, publicly documented on May 7, 2026, moved the same page-cache-write class into xfrm-ESP and RxRPC paths. <a href="https://github.com/v12-security/pocs/tree/main/fragnesia">Fragnesia</a>, disclosed on May 13, 2026, is a separate ESP-in-TCP/XFRM issue in the same mitigation family. Blastwall asks whether risky kernel surfaces can be denied for privileged automation identities through the SELinux, IdM, AAP, and RHEL content-delivery model operators already use.</p>
+        <p class="lead"><code>blastwall v3</code> is the signed-evidence branch of Blastwall. IdM records the automation relationship, AAP gates launch, SELinux confines the managed-host session, and stable-v3 preflight verifies signed evidence before a selected host is trusted.</p>
+        <p>The branch is a reference exemplar: it shows how to operate the pattern in a real Calabi lab topology with IdM, AAP, KRA, and RHEL hosts. The original public site at <a href="https://blastwall.org/">blastwall.org</a> remains the root entry point for the earlier Blastwall proof.</p>
 
         <section id="two-minute-version">
           <h2>The 2-Minute Version</h2>
-          <p>Privileged automation is a governed identity path, not just a remote shell. Blastwall gives that path a central record, a preflight gate, a host-local SELinux domain, and visible evidence when the selected host is suitable.</p>
-          <p>That matters because emergency exploit mitigation can become automation posture: source, RPM, rollout, verification, host marker, AAP inventory sync, and preflight selection.</p>
+          <p>v3 changes the marker from proof into a locator. Inventory can use the marker to find candidate hosts, but preflight must retrieve the marker-referenced attestation, verify the signature, check the latest-generation index, and compare the signed claim with live host state.</p>
+          <p>That keeps the useful v1 and v2 shape - IdM, AAP, SELinux, profile registry, policy hashes, and managed-host probes - while adding a signed evidence gate before runtime work proceeds.</p>
         </section>
 
         <section id="start">
           <h2>Start Here</h2>
-          <p>Pick the page by the job you need the documentation to do. Each path has one next page.</p>
+          <p>Pick the page by the review or operating job you need to do.</p>
           <table class="comparison-table">
             <thead>
               <tr><th>I need...</th><th>Start With</th><th>What You Will Know</th></tr>
             </thead>
             <tbody>
-              <tr><td data-label="I need...">The 2-minute concept</td><td data-label="Start With"><a href="architecture.html">Architecture</a></td><td data-label="What You Will Know">How IdM, eigenstate.ipa, AAP, SSH, SELinux, and audit evidence divide the work.</td></tr>
-              <tr><td data-label="I need...">To operate the policy after the proof</td><td data-label="Start With"><a href="day2-operations.html">Day 2 Operations</a></td><td data-label="What You Will Know">Where policy comes from, how to build a baseline disposition, and how new CVEs become tested deny scopes.</td></tr>
-              <tr><td data-label="I need...">OpenShift workload confinement</td><td data-label="Start With"><a href="openshift-spo.html">OpenShift/SPO</a></td><td data-label="What You Will Know">How SPO installs the <code>blastwall</code> and <code>blastwall-nested</code> workload classes, SCC selects each type, and safe UBI probes validate selected nodes.</td></tr>
-              <tr><td data-label="I need...">Current v2 release state</td><td data-label="Start With"><a href="blastwall-v2/release-notes.md">Release Notes</a></td><td data-label="What You Will Know">Which profiles are stable, which profile remains dry-run, and what is deferred before strange sockets become default posture.</td></tr>
-              <tr><td data-label="I need...">Proof in Ansible Automation Platform</td><td data-label="Start With"><a href="aap-demo.html">AAP Demo</a></td><td data-label="What You Will Know">What Controller shows: credential smoke, inventory sync, preflight, workflow nodes, and managed-host verification.</td></tr>
-              <tr><td data-label="I need...">Proof without AAP</td><td data-label="Start With"><a href="demo.html">Ansible Demo</a></td><td data-label="What You Will Know">How the bootstrap path creates IdM state, rolls out policy, runs direct probes, reads audit evidence, and proves self-protection.</td></tr>
-              <tr><td data-label="I need...">To replay the AAP proof</td><td data-label="Start With"><a href="quick-demo.html">AAP Lab</a></td><td data-label="What You Will Know">How to replay the prepared AAP proof with <code>awx</code> and inspect expected output.</td></tr>
-              <tr><td data-label="I need...">To replay the non-AAP proof</td><td data-label="Start With"><a href="ansible-lab.html">Ansible Lab</a></td><td data-label="What You Will Know">How to replay the Ansible-only path from <code>bastion-01</code> and inspect host-local SELinux evidence.</td></tr>
-              <tr><td data-label="I need...">To record the OpenShift path</td><td data-label="Start With"><a href="openshift-spo-demo.html">OpenShift/SPO Demo</a></td><td data-label="What You Will Know">The CLI proof sequence for profile readiness, SCC admission, pod SELinux context, and blocked or skipped safe probes.</td></tr>
-              <tr><td data-label="I need...">To challenge the security claim</td><td data-label="Start With"><a href="threat-model.html">Threat Model</a></td><td data-label="What You Will Know">The assumptions, attack paths, mitigations, residual risks, and future work.</td></tr>
-              <tr><td data-label="I need...">Implementation details</td><td data-label="Start With"><a href="reference.html">Reference</a></td><td data-label="What You Will Know">Exact AAP objects, IdM records, SELinux contexts, probes, artifacts, hostnames, and outputs.</td></tr>
+              <tr><td data-label="I need...">The v3 trust model</td><td data-label="Start With"><a href="blastwall-v3/external-review-packet.md">External Review Packet</a></td><td data-label="What You Will Know">How marker selection, signed evidence, KRA visibility, live host state, and failure behavior fit together.</td></tr>
+              <tr><td data-label="I need...">The design details</td><td data-label="Start With"><a href="blastwall-v3/signed-attestation-design.md">Signed Attestation Design</a></td><td data-label="What You Will Know">The marker grammar, attestation envelope, latest index, signer boundary, and verifier behavior.</td></tr>
+              <tr><td data-label="I need...">To operate the path</td><td data-label="Start With"><a href="blastwall-v3/operator-runbook.md">Operator Runbook</a></td><td data-label="What You Will Know">The normal operating flow, decision tree, common failure pages, and evidence handling.</td></tr>
+              <tr><td data-label="I need...">Custody and ownership guidance</td><td data-label="Start With"><a href="blastwall-v3/operational-guidance.md">Operational Guidance</a></td><td data-label="What You Will Know">How to think about service-owned signer custody, breakglass, replay, destructive recapture, and topology positioning.</td></tr>
+              <tr><td data-label="I need...">KRA/vault topology details</td><td data-label="Start With"><a href="blastwall-v3/kra-topology-runbook.md">KRA Topology Runbook</a></td><td data-label="What You Will Know">Which vault visibility and custody assumptions stable-v3 checks before trusting evidence.</td></tr>
+              <tr><td data-label="I need...">Revocation and exception rules</td><td data-label="Start With"><a href="blastwall-v3/revocation-and-breakglass.md">Revocation and Breakglass</a></td><td data-label="What You Will Know">How revoked evidence fails closed and why breakglass is limited to scoped infrastructure visibility.</td></tr>
+              <tr><td data-label="I need...">OpenShift workload confinement</td><td data-label="Start With"><a href="openshift-spo.html">OpenShift/SPO</a></td><td data-label="What You Will Know">How the OpenShift workload path keeps SPO profile usage explicit while v3 evidence covers selected targets.</td></tr>
+              <tr><td data-label="I need...">To record the OpenShift proof</td><td data-label="Start With"><a href="openshift-spo-demo.html">OpenShift/SPO Demo</a></td><td data-label="What You Will Know">The recorded workload proof for profile readiness, SCC admission, pod context, and safe probes.</td></tr>
+              <tr><td data-label="I need...">Current evidence</td><td data-label="Start With"><a href="blastwall-v3/evidence-index.md">Evidence Index</a></td><td data-label="What You Will Know">Which Calabi jobs, artifacts, and failure states back the reference exemplar.</td></tr>
+              <tr><td data-label="I need...">Adopter readiness</td><td data-label="Start With"><a href="blastwall-v3/stable-v3-readiness-checklist.md">Readiness Checklist</a></td><td data-label="What You Will Know">What a local adopter should confirm before treating the pattern as an operating control.</td></tr>
             </tbody>
           </table>
         </section>
 
-        <section id="problem">
-          <h2>The Problem</h2>
-          <p>Privileged automation often gets the same broad local shape as an operator, then runs faster, across more hosts, with less human friction. If that automation lands unconfined, a mistake or exploit starts from a position that is difficult to defend.</p>
-          <p>Think of the automation identity like a service truck with master keys. The useful control is not only the key. It is the dispatch record, the driver identity, the approved job site, and the worksite limits before the truck rolls into every building.</p>
-          <p><a href="https://copy.fail/">Copy Fail</a> makes this practical. Exploit-specific tools such as <a href="https://github.com/atgreen/block-copyfail">block-copyfail</a> can block a vulnerable AF_ALG shape with BPF LSM precision. Blastwall asks a different scoped question: should privileged automation have that broad surface while the fleet waits for kernel fixes?</p>
-          <figure class="diagram-card" id="copy-fail-map">
+        <section id="marker-proof">
+          <h2>Marker Is Locator, Evidence Is Proof</h2>
+          <p>v2 made host posture structured and release-checkable. v3 makes the trust boundary explicit: a host marker can help AAP select a candidate, but stable-v3 launch depends on signed evidence and live verification.</p>
+          <figure class="diagram-card" id="idm-aap-flow">
             <figcaption>
-              <strong>Copy Fail: Precision Tool vs Automation Boundary</strong>
-              <span>BPF LSM answers the exact kernel-argument question. Blastwall answers the identity, rollout, and privileged automation boundary question.</span>
+              <strong>Selection And Verification Boundary</strong>
+              <span>IdM provides relationship state and marker hints. AAP consumes those hints, retrieves signed evidence, and proceeds only after verifier-owned checks pass.</span>
             </figcaption>
-            <img class="diagram-artifact" src="assets/diagrams/copy-fail-map.svg" alt="Copy Fail precision tool versus Blastwall automation boundary">
+            <img class="diagram-artifact" src="assets/diagrams/idm-aap-flow.svg" alt="IdM, eigenstate.ipa, AAP, SSH, and SELinux enforcement flow">
           </figure>
+        </section>
+
+        <section id="reference-topology">
+          <h2>Reference Topology</h2>
+          <p>The Calabi evidence path exercises workstation to <code>virt-01</code> to bastion to IdM/AAP/KRA to managed host. It proves the reference path, failure behavior, custody wiring, and restoration flow for this exemplar.</p>
+          <p>Adopters should use the same shape as a guide, then assign their own ownership, retention, escalation, and scale evidence before presenting the pattern as a local operating control.</p>
         </section>
 
         <section id="threat-landscape">
           <h2>Why This Matters Now</h2>
-          <p>Copy Fail, Dirty Frag, and Fragnesia are examples of a larger pressure pattern: exploit research, fuzzing, and vulnerability triage are moving faster. Broad privileged automation turns that speed into fleet risk because one useful kernel path can be exercised across many hosts before a patch is ready.</p>
-          <p><strong>Organizations that adopt broad privileged automation without confinement are building a superhighway: high speed, high privilege, low friction, and an attacker only needs one exploit to get on the road.</strong></p>
+          <p>Privileged automation moves quickly, broadly, and often with elevated access. v3 keeps the useful mitigation posture from the original proof while adding a signed evidence gate so host selection, launch, and audit all have a current proof surface.</p>
         </section>
 
-        <section id="automation-posture">
-          <h2>From Emergency Mitigation To Automation Posture</h2>
-          <p>The first Blastwall use case is response: a risky kernel path appears before the fleet is fully patched, so the automation account gets a named SELinux boundary and the workflow proves that the right hosts have the right deny scopes before jobs run.</p>
-          <p>The more durable use case is proactive. Once privileged automation has a named boundary, operators can treat that boundary like a governed artifact: build it, test it, promote it, watch what breaks, and tighten it through <a href="glossary.html#ci-cd">CI/CD</a>. The question changes from "can we block this CVE path?" to "what should privileged automation ever be allowed to do?"</p>
-          <p>User namespace creation is the clearest example in the current proof. It is often useful in exploit chains and rarely useful for this automation identity path, so Blastwall denies it before the next userns-adjacent CVE becomes urgent.</p>
-          <p>Dirty Frag and Fragnesia show the reactive side of the same model. The current proof carries xfrm, RxRPC, AF_ALG, and user namespace denial evidence so the automation identity cannot reach the named entry points from the confined path.</p>
-        </section>
-
-        <section id="architecture-map">
-          <h2>Architecture Mini-Map</h2>
-          <p>Blastwall works by keeping responsibilities explicit. AAP is the gate and evidence surface, IdM is the authority and record source, <code>eigenstate.ipa</code> is the state translator, and SELinux is the host-local enforcement boundary.</p>
-          <table class="comparison-table">
-            <thead>
-              <tr><th>Part</th><th>Role</th><th>Evidence To Look For</th></tr>
-            </thead>
-            <tbody>
-              <tr><td data-label="Part">SELinux</td><td data-label="Role">Enforces the host-local automation boundary.</td><td data-label="Evidence">The session stays in <code>blastwall_t</code> before and after sudo.</td></tr>
-              <tr><td data-label="Part">IdM</td><td data-label="Role">Records identity, host, HBAC, sudo, SELinux map, and host-marker state.</td><td data-label="Evidence">Preflight reads the expected relationship state before verification.</td></tr>
-              <tr><td data-label="Part"><code>eigenstate.ipa</code></td><td data-label="Role">Turns IdM records into inventory-visible facts.</td><td data-label="Evidence">AAP sees current and stale host groups from IdM-derived facts.</td></tr>
-              <tr><td data-label="Part">AAP</td><td data-label="Role">Acts on facts, launches workflows, and records operator-readable output.</td><td data-label="Evidence">Workflow nodes, job stdout, and launch identity are visible in Controller.</td></tr>
-            </tbody>
-          </table>
-          <figure class="diagram-card" id="idm-aap-flow">
-            <figcaption>
-              <strong>What AAP And IdM Add</strong>
-              <span>IdM provides the relationship state. AAP consumes that state before execution. SELinux enforces after login.</span>
-            </figcaption>
-            <img class="diagram-artifact" src="assets/diagrams/idm-aap-flow.svg" alt="IdM, eigenstate.ipa, AAP, SSH, and SELinux enforcement flow">
-          </figure>
-          <p>For the full explanation, read <a href="architecture.html">Architecture</a>. For the object-by-object identity model, read <a href="idm-control-model.html">IdM Control Model</a>. For the host-local enforcement model, read <a href="selinux-control-model.html">SELinux Control Model</a>. For the operational policy lifecycle, read <a href="day2-operations.html">Day 2 Operations</a>.</p>
-        </section>
-
-        <section id="proof">
-          <h2>Proof Paths</h2>
-          <p>The AAP demo is the path I would show first: it is the operator-facing proof with Controller objects, workflow launch, credential smoke, preflight, and managed-host verification. The Ansible demo is the bootstrap proof: it shows the IdM shape, policy rollout, direct probes, audit evidence, and self-protection mechanics without relying on AAP.</p>
-          <p>The <a href="openshift-spo.html">OpenShift/SPO path</a> is a separate workload proof. It does not force pods into the RHEL login-domain context; it uses SPO and SCC to run selected workloads in standard <code>blastwall</code> or explicit-exception <code>blastwall-nested</code> classes.</p>
-          <p>Both recordings were made in <a href="glossary.html#calabi">Calabi</a>, a nested-KVM lab with a real IdM server, bastion host, mirror registry, Kerberos flow, and managed endpoint. Calabi is the validation environment, not a Blastwall runtime requirement.</p>
-        </section>
-
-        <section id="does-not-claim">
-          <h2>What This Does Not Claim</h2>
-          <ul>
-            <li>It does not replace kernel fixes, exploit-specific BPF LSM controls, seccomp, gVisor, Falco, Tetragon, EDR, or container isolation.</li>
-            <li>It does not prove that host markers are trustworthy by themselves. Markers are useful only after verification writes them and preflight refreshes or rejects stale state.</li>
-            <li>It does not claim that SELinux can inspect the same hook arguments as BPF LSM. The tradeoff is broader denial for a specific automation identity path.</li>
-          </ul>
-        </section>
-
-        <section id="scale">
-          <h2>How It Scales</h2>
-          <p>The policy should not remain emergency local state. A useful deny scope, whether it starts from a live CVE or a proactive posture decision, has an artifact name, a rollout state, a local proof, an IdM-visible marker, and an AAP preflight condition.</p>
-          <figure class="diagram-card diagram-card--focus" id="rollout-flow">
-            <figcaption>
-              <strong>Policy Lifecycle</strong>
-              <span>The rule matters, but so does the path from policy source to artifact, rollout, verification, host marker, and AAP preflight.</span>
-            </figcaption>
-            <div class="stage-flow" role="img" aria-label="Four-stage flow from exploit surface to verified automation preflight state">
-              <ol class="stage-flow__stages">
-                <li class="stage-flow__stage">
-                  <span class="stage-flow__number">1</span>
-                  <h3>Convert the decision into managed policy</h3>
-                  <ol class="stage-flow__steps">
-                    <li>New exploit or posture decision</li>
-                    <li>Update Blastwall policy</li>
-                  </ol>
-                </li>
-                <li class="stage-flow__stage">
-                  <span class="stage-flow__number">2</span>
-                  <h3>Give the policy an artifact lifecycle</h3>
-                  <ol class="stage-flow__steps">
-                    <li>Build/sign policy RPM</li>
-                    <li>Publish through the content pipeline</li>
-                  </ol>
-                </li>
-                <li class="stage-flow__stage">
-                  <span class="stage-flow__number">3</span>
-                  <h3>Roll out and prove enforcement</h3>
-                  <ol class="stage-flow__steps">
-                    <li>AAP or Ansible rollout</li>
-                    <li>Local verification succeeds</li>
-                  </ol>
-                </li>
-                <li class="stage-flow__stage">
-                  <span class="stage-flow__number">4</span>
-                  <h3>Feed verified state back into automation</h3>
-                  <ol class="stage-flow__steps">
-                    <li>Update IdM host marker</li>
-                    <li>Sync <code>eigenstate.ipa</code> inventory</li>
-                    <li>AAP preflight selects current hosts</li>
-                  </ol>
-                </li>
-              </ol>
-            </div>
-          </figure>
+        <section id="operating-loop">
+          <h2>Operating Loop</h2>
+          <p>Useful posture does not end at policy installation. The v3 loop signs current evidence, stores it in KRA-backed vault paths, publishes a locator marker, uses inventory for selection, verifies evidence before launch, and audits scheduled state over time.</p>
           <figure class="diagram-card" id="candidate-flow">
             <figcaption>
-              <strong>Candidate Selection With Multiple Coverages</strong>
-              <span>As coverage expands, AAP can prefer hosts that satisfy the exact deny scopes required by a job and skip or remediate stale hosts.</span>
+              <strong>Candidate Selection With Signed Evidence</strong>
+              <span>A host can look eligible in inventory and still fail closed in preflight if signed evidence is missing, stale, revoked, mismatched, or inconsistent with live state.</span>
             </figcaption>
             <img class="diagram-artifact" src="assets/diagrams/candidate-flow.svg" alt="AAP candidate selection with multiple coverage markers">
           </figure>
         </section>
 
-        <section id="layout">
-          <h2>Repository Layout</h2>
-          <table>
+        <section id="proof">
+          <h2>What This Demonstrates</h2>
+          <table class="comparison-table">
             <thead>
-              <tr><th>Path</th><th>Purpose</th></tr>
+              <tr><th>Control</th><th>v3 Behavior</th><th>Evidence Surface</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>policy/</code></td><td>SELinux reference-policy module and CIL deny rule.</td></tr>
-              <tr><td><code>openshift/spo/</code></td><td>OpenShift Security Profiles Operator profile, SCC, RBAC, examples, and safe validation harness.</td></tr>
-              <tr><td><code>idm/</code></td><td>IdM group, hostgroup, HBAC, sudo, and SELinux user-map object model.</td></tr>
-              <tr><td><code>inventory/</code></td><td><a href="https://gprocunier.github.io/eigenstate-ipa/"><code>eigenstate.ipa.idm</code></a> inventory source for AAP.</td></tr>
-              <tr><td><code>playbooks/</code></td><td>Preflight, deployment, credential smoke, and verification playbooks.</td></tr>
-              <tr><td><code>aap/</code></td><td>Controller configuration-as-code for the AAP workflow.</td></tr>
-              <tr><td><code>poc-calabi/</code></td><td>Calabi lab exercise for replaying the proof path.</td></tr>
+              <tr><td data-label="Control">Signed host evidence</td><td data-label="v3 Behavior">Preflight verifies envelope signature, signer trust, digest binding, index freshness, and live policy hash.</td><td data-label="Evidence Surface"><a href="blastwall-v3/external-review-packet.md">Review packet</a></td></tr>
+              <tr><td data-label="Control">Custody separation</td><td data-label="v3 Behavior">Signer, promotion, verifier, KRA health, and inventory audit surfaces use separated credentials and checks.</td><td data-label="Evidence Surface"><a href="blastwall-v3/operational-guidance.md">Operational guidance</a></td></tr>
+              <tr><td data-label="Control">Fail-closed states</td><td data-label="v3 Behavior">Missing artifacts, revoked attestations, replay, signer mismatch, drift, and binding failures have named outcomes.</td><td data-label="Evidence Surface"><a href="blastwall-v3/failure-state-manifest.yml">Failure manifest</a></td></tr>
+              <tr><td data-label="Control">Scoped breakglass</td><td data-label="v3 Behavior">Breakglass can expose infrastructure visibility problems but cannot bypass security failures.</td><td data-label="Evidence Surface"><a href="blastwall-v3/revocation-and-breakglass.md">Breakglass runbook</a></td></tr>
             </tbody>
           </table>
+        </section>
+
+        <section id="adoption">
+          <h2>Adoption Path</h2>
+          <p>Use this branch as an operating example, not as a claim that every environment is already covered. The implementation and Calabi evidence are ready as a reference exemplar. Local operation should add named owners, signer custody decisions, retention windows, escalation paths, and scale evidence appropriate to the adopter's environment.</p>
         </section>
       </article>
 
       <aside class="side-column" aria-label="Page context">
         <section class="context-block context-block--meta">
           <h2>Project</h2>
-          <p class="context-kicker">Identity-scoped mitigation</p>
-          <p class="context-copy">The enforcement lives on the host. The decision to run starts from IdM policy and AAP preflight state.</p>
+          <p class="context-kicker">Signed evidence gate</p>
+          <p class="context-copy">Inventory selects candidates. Stable-v3 preflight verifies signed evidence before launch.</p>
         </section>
         <section class="toc-block">
           <h2>On This Page</h2>
           <ol class="path-list">
             <li><a href="#start">Start Here</a></li>
             <li><a href="#two-minute-version">2-Minute Version</a></li>
-            <li><a href="#problem">Problem</a></li>
-            <li><a href="#threat-landscape">Why Now</a></li>
-            <li><a href="#automation-posture">Automation Posture</a></li>
-            <li><a href="#architecture-map">Architecture</a></li>
-            <li><a href="#proof">Proof Paths</a></li>
-            <li><a href="#does-not-claim">Does Not Claim</a></li>
-            <li><a href="#scale">Scale</a></li>
-            <li><a href="#layout">Repository</a></li>
+            <li><a href="#marker-proof">Marker And Proof</a></li>
+            <li><a href="#reference-topology">Reference Topology</a></li>
+            <li><a href="#operating-loop">Operating Loop</a></li>
+            <li><a href="#proof">Demonstrates</a></li>
+            <li><a href="#adoption">Adoption Path</a></li>
           </ol>
         </section>
         <section class="source-block">
           <h2>Reference</h2>
-          <p>Use the <a href="glossary.html">Glossary</a> for terms, <a href="reference.html">Reference</a> for exact objects and outputs, and the <a href="https://github.com/gprocunier/blastwall">source repository</a> for policy, playbooks, AAP assets, and lab files.</p>
+          <p>Use the <a href="https://github.com/gprocunier/blastwall/tree/v3/docs/blastwall-v3">v3 documentation packet</a>, <a href="https://github.com/gprocunier/blastwall/blob/v3/README.md">branch README</a>, and <a href="https://github.com/gprocunier/blastwall/tree/v3">source branch</a> for the current signed-evidence implementation.</p>
         </section>
       </aside>
     </main>
 
     <footer class="site-footer">
-      <p>GPL-3.0 licensed proof of concept. Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+      <p>GPL-3.0 licensed proof of concept. Source lives at <a href="https://github.com/gprocunier/blastwall/tree/v3">github.com/gprocunier/blastwall/tree/v3</a>.</p>
     </footer>
   </body>
 </html>
