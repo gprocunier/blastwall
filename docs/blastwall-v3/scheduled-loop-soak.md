@@ -7,7 +7,7 @@ start: 2026-05-19T17:00:00Z
 latest_observed: 2026-05-19T19:40:25Z
 duration_observed: about 2h40m
 environment: Calabi on-prem AAP/OpenShift lab
-branch: blastwall-v3-signed-attestation
+branch: v3
 controller_project_revision_at_query: 14f7f472f70c1eb66f8ece35b194ed4e2da8b137
 ```
 
@@ -47,7 +47,8 @@ expired: none newly observed in scheduled evidence
 ## Decision Impact
 
 The scheduled-loop evidence is sufficient for RC review and for proving the
-schedule wiring works. It is not yet a long-duration operations soak. Stable-v3
-publication remains held until governance owners accept the loop, sign-off is
-recorded, and a longer retention/escalation window is approved. The refreshed
-2026-05-25 service-owned custody evidence covers the Calabi demonstration path.
+schedule wiring works. It is also part of the reference exemplar publication
+packet. Adopters should assign owners, retention expectations, escalation
+paths, and any longer soak window before operating the loop as a local control.
+The refreshed 2026-05-25 service-owned custody evidence covers the Calabi
+demonstration path.

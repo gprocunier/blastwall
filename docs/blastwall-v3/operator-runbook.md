@@ -4,8 +4,7 @@
 
 This runbook gives operators a practical flow for running Blastwall signed
 attestation as a reference-exemplar operating pattern in the Calabi
-demonstration environment. It is not an external production operating program;
-it assumes v3 code is already deployed and focuses on interpretation,
+demonstration environment. It assumes v3 code is already deployed and focuses on interpretation,
 diagnosis, and safe recovery.
 
 Stable-v3 requires `eigenstate.ipa >= 1.18.1`. Inventory selection consumes the

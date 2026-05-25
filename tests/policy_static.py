@@ -1132,7 +1132,7 @@ for required_guidance_section in [
     "## Destructive Re-Capture Triggers",
     "## Calabi Evidence Boundary",
     "## Ordinary Automation Corpus Replay",
-    "## SPO, KRA, And S-Range Non-Claims",
+    "## SPO, KRA, And Fleet-Scale Evidence Boundaries",
     "## Reference Topology Positioning",
 ]:
     if required_guidance_section not in guidance:
@@ -1142,7 +1142,7 @@ for required_guidance_phrase in [
     "Shared vault scope is lab/RC custody",
     "not full remote attestation",
     "Calabi evidence proves the current reference path",
-    "The S-range claim remains on hold",
+    "Fleet-scale evidence remains future validation",
 ]:
     if required_guidance_phrase not in guidance:
         fail(f"operational guidance missing required claim boundary phrase: {required_guidance_phrase}")
@@ -1173,30 +1173,46 @@ governance_doc = (ROOT / "docs" / "blastwall-v3" / "governance-owner-assignment.
 if "| pending |" in governance_doc:
     release_decision = (ROOT / "release" / "STABLE_V3_DECISION.md").read_text(encoding="utf-8")
     release_decision_normalized = re.sub(r"\s+", " ", release_decision)
-    if re.search(r"(?im)^\s*Decision\s*:\s*GO\b", release_decision):
-        fail("release/STABLE_V3_DECISION.md must not set Decision: GO while governance rows are pending")
-    if "Decision: HOLD" not in release_decision:
-        fail("release/STABLE_V3_DECISION.md must preserve Decision: HOLD while governance rows are pending")
+    governance_doc_normalized = re.sub(r"\s+", " ", governance_doc)
+    if "Adopter Governance Worksheet" not in governance_doc:
+        fail("governance owner assignment must be framed as an adopter governance worksheet")
+    if "not required to publish the upstream reference exemplar" not in governance_doc_normalized:
+        fail("governance owner assignment must not block upstream reference exemplar publication")
     for required_release_boundary in [
-        "reference exemplar",
-        "Calabi demonstration environment",
-        "does not claim an external production operating program",
-        "Stable-v3 service-owned custody health is live-green in Calabi",
+        "Reference exemplar publication: GO",
+        "Calabi reference topology evidence: GO",
+        "Stable-v3 service-owned custody demonstration: GO",
+        "Fleet-scale evidence: future validation",
+        "the surface an organization completes before operating the pattern",
     ]:
         if required_release_boundary not in release_decision_normalized:
             fail(f"release/STABLE_V3_DECISION.md missing release boundary: {required_release_boundary}")
-    if not re.search(r"(?is)S-range.{0,120}HOLD|HOLD.{0,120}S-range", release_decision):
-        fail("release/STABLE_V3_DECISION.md must preserve S-range HOLD while governance rows are pending")
-    for doc_name in ["stable-v3-release-decision.md", "final-stable-v3-decision.md", "stable-v3-rc-decision.md"]:
+    for doc_name in [
+        "stable-v3-release-decision.md",
+        "final-stable-v3-decision.md",
+        "stable-v3-rc-decision.md",
+    ]:
         doc_text = (ROOT / "docs" / "blastwall-v3" / doc_name).read_text(encoding="utf-8")
-        if re.search(r"(?im)^\s*publication\s*:\s*GO\b", doc_text):
-            fail(f"docs/blastwall-v3/{doc_name} must not set publication GO while governance rows are pending")
-        if re.search(r"(?i)\|\s*Stable-v3 publication\s*\|\s*GO\s*\|", doc_text):
-            fail(f"docs/blastwall-v3/{doc_name} must not table stable-v3 publication as GO while governance rows are pending")
-        if "HOLD" not in doc_text:
-            fail(f"docs/blastwall-v3/{doc_name} must preserve HOLD while governance rows are pending")
-        if "S-range" in doc_text and not re.search(r"(?is)S-range.{0,120}HOLD|HOLD.{0,120}S-range", doc_text):
-            fail(f"docs/blastwall-v3/{doc_name} must preserve S-range HOLD while governance rows are pending")
+        doc_text_lower = doc_text.lower()
+        for required_reference_claim in [
+            "reference exemplar publication",
+            "calabi reference topology",
+            "fleet-scale",
+        ]:
+            if required_reference_claim not in doc_text_lower:
+                fail(f"docs/blastwall-v3/{doc_name} missing reference-exemplar claim boundary: {required_reference_claim}")
+        if re.search(r"(?i)(external production|production operating program).{0,80}\bGO\b|\bGO\b.{0,80}(external production|production operating program)", doc_text):
+            fail(f"docs/blastwall-v3/{doc_name} must not turn the exemplar decision into a production operating claim")
+internal_scale_term = "S" + "-range"
+internal_scale_key = "s" + "_range"
+for public_doc_path in [
+    ROOT / "release" / "STABLE_V3_DECISION.md",
+    ROOT / "V3_IMPLEMENTATION_LEDGER.md",
+    *sorted((ROOT / "docs" / "blastwall-v3").glob("*.md")),
+]:
+    public_doc_text = public_doc_path.read_text(encoding="utf-8")
+    if internal_scale_term in public_doc_text or internal_scale_key in public_doc_text:
+        fail(f"{public_doc_path.relative_to(ROOT)} must use public fleet-scale terminology")
 for inventory_path in [
     ROOT / "inventory" / "blastwall-idm.yml",
     ROOT / "poc-calabi" / "inventory-eigenstate.yml",

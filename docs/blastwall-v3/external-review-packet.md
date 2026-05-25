@@ -54,9 +54,11 @@ Reference documents:
 
 ## Calabi evidence
 
-Latest target-branch evidence was captured on 2026-05-20 UTC on
-`blastwall-v3-signed-attestation`. The AAP project was synced to
-`f50c1228ddcf4544a38634f05fd87179210c6917` by project update `4221`.
+Latest target-branch evidence was refreshed on 2026-05-25 UTC for the `v3`
+publication branch. The upstream branch head is
+`f6414bd246054693c178e86e76fb2192aed4fa72`; the Controller-visible
+service-custody refresh observed commit
+`93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3` by project update `4871`.
 
 Calabi is the current reference topology evidence path. It proves this
 workstation to `virt-01` to bastion to IdM/AAP/KRA path; it does not prove
@@ -65,11 +67,12 @@ generations.
 
 - `Calabi path`: workstation to `virt-01` (`172.18.0.224`) to bastion
   (`172.16.0.30`).
-- `AAP project branch`: `blastwall-v3-signed-attestation`.
+- `AAP project branch`: `v3`.
 - `KRA primary`: `idm-01.workshop.lan`.
 - `KRA server list`: `idm-01.workshop.lan`.
-- `KRA scope/owner`: `shared` / `blastwall-attestation` for Calabi lab/RC
-  custody. Stable-v3 rejects shared vault scope.
+- `KRA scope/owner`: service-owned custody for stable-v3; shared
+  `blastwall-attestation` custody remains lab/RC evidence. Stable-v3 rejects
+  shared vault scope.
 - `Signer KID`: `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
 - `Policy NEVRA`: `blastwall-selinux-0.6.1-0.rc1`.
 - `Policy hash`:
@@ -96,7 +99,7 @@ Healthy-path evidence remains on record:
   `AF_RXRPC`, and Fragnesia `AF_ALG` entry points with `EPERM`/`EACCES`
   evidence.
 
-Live negative checks currently recorded:
+Live fail-closed checks currently recorded:
 
 - Drifted current policy hash: AAP preflight jobs `2827` and `3478` failed
   with `FAIL_DRIFTED_POLICY`.
@@ -159,9 +162,10 @@ exercised:
   jobs `3778`, `3799`, and `3804` failed closed on the intentional
   missing-artifact fixture while the valid host remained clean.
 
-Remaining hold: source and lab evidence are ready for external review, but
-stable-v3 publication still needs named governance owners and sign-off. The
-S-range claim remains held until broader scale evidence is captured.
+Review posture: source and Calabi evidence are ready for reference exemplar
+publication. `docs/blastwall-v3/governance-owner-assignment.md` is the adopter
+worksheet for organizations that operate the pattern locally, and fleet-scale
+claims should wait for broader scale evidence.
 
 ## Failure-state map
 

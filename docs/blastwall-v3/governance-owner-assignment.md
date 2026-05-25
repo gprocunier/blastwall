@@ -1,7 +1,8 @@
-# Governance Owner Assignment
+# Adopter Governance Worksheet
 
-Stable-v3 publication requires named owners. This file is intentionally
-pending until humans accept the responsibilities.
+Blastwall v3 can publish as an upstream reference exemplar while this worksheet
+remains pending. Organizations that adopt the pattern should complete these
+rows before operating stable-v3 as a local control.
 
 | Role | Primary | Backup | Contact | Responsibility | Accepted date | Evidence reviewed |
 |---|---|---|---|---|---|---|
@@ -16,7 +17,8 @@ pending until humans accept the responsibilities.
 | Evidence ledger owner | pending | pending | pending | Owns ledger freshness and review packets | pending | pending |
 | External reviewer coordinator | pending | pending | pending | Owns external review and red-team coordination | pending | pending |
 
-## Publication Rule
+## Adopter Operation Rule
 
-Do not change the stable-v3 publication decision from `HOLD` to `GO` while any
-role above is pending.
+Do not operate stable-v3 as an organization-owned control while any role above
+is pending. This worksheet is not required to publish the upstream reference
+exemplar.

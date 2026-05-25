@@ -1587,7 +1587,7 @@ breakglass works only for attestation infrastructure failure
 
 ## 20. Governance and Stable-v3 Readiness
 
-Stable-v3 must not be claimed until the following are true:
+Before operating stable-v3 as a local control, adopters should confirm:
 
 ```text
 1. Boundary owner is named.

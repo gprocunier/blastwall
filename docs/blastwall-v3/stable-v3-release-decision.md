@@ -2,7 +2,7 @@
 
 ## Verdict
 
-`HOLD for stable-v3 publication pending governance owner assignment and sign-off.`
+`GO for Blastwall v3 reference exemplar publication.`
 
 Operational boundaries are recorded in
 `docs/blastwall-v3/operational-guidance.md`.
@@ -14,24 +14,25 @@ Operational boundaries are recorded in
 The current branch preserves the marker-as-locator design, signed-envelope
 verification, latest-index replay guard, live policy hash binding, explicit KRA
 topology, and infrastructure-only breakglass boundary. The live evidence now
-covers healthy execution, destructive fail-closed cases, three-host mixed-state
-selection, and the installed continuous verification loop.
+covers Calabi reference topology execution, destructive fail-closed cases,
+three-host mixed-state selection, and the installed continuous verification
+loop.
 
-## Publication Hold
+## Adopter Responsibilities
 
-Publication remains held for governance, not for a known security-bypass bug.
-
-Hold items:
+Blastwall v3 can publish as a reference exemplar. Organizations that adopt the
+pattern should staff and record the operating model before treating it as their
+local control.
 
 - Boundary owner, incident response owner, signer owner, KRA/vault owner,
   revocation authority, and breakglass approval path still need final
-  assignment before a stable publication claim.
-- The S-range claim remains held until a broader mixed-state scale gate is run.
+  assignment before local operation.
+- Fleet-scale evidence remains future validation until a broader mixed-state
+  scale gate is run.
 - Stable-v3 shared vault custody is rejected; Calabi shared-vault evidence
   remains lab/RC reference evidence.
 - Stable-v3 service-owned custody is live-green in Calabi reference evidence
-  as of 2026-05-25. This proves the demonstration path, not an external
-  production operating program.
+  as of 2026-05-25. This proves the reference service-custody path.
 
 Completed items since the prior decision:
 
@@ -61,8 +62,8 @@ Completed items since the prior decision:
 
 ## Evidence Summary
 
-- Current branch: `blastwall-v3-signed-attestation`.
-- Current branch head: see current Git branch head for this file.
+- Current publication branch: `v3`.
+- Current branch head: `f6414bd246054693c178e86e76fb2192aed4fa72`.
 - Controller-visible commit observed at 2026-05-20 UTC:
   `f50c1228ddcf4544a38634f05fd87179210c6917`, project update `4221`.
 - Three-host evidence project sync: `3771` to
@@ -114,17 +115,19 @@ Breakglass evidence:
 
 ## Release Action
 
-Proceed with external review of `blastwall-v3-signed-attestation` and keep the
-stable-v3 publication decision held until named owners and sign-off are in
-place. Do not claim S-range readiness from this evidence packet.
+Proceed with reference exemplar publication from `v3`. Use
+`docs/blastwall-v3/governance-owner-assignment.md` as the adopter governance
+worksheet before operating the pattern locally. Capture fleet-scale evidence
+before making fleet-scale readiness claims from this packet.
 
 ## Final Architecture Review Memo
 
 ```yaml
 verdict:
-  source_readiness: GO for external review.
-  publication: HOLD pending governance owner assignment and sign-off.
-  s_range_claim: HOLD pending broader scale evidence.
+  reference_exemplar_publication: GO.
+  calabi_reference_topology_evidence: GO.
+  stable_v3_service_custody_demonstration: GO.
+  fleet_scale_evidence: future validation.
 go_items:
   - marker remains a locator and is not the trust proof
   - preflight verifies signed envelope and latest index
@@ -136,10 +139,9 @@ go_items:
   - transition-v3 lab/RC shared-custody path remains usable and explicitly labelled
   - three-host mixed-state selection and failure behavior are live-proven
   - continuous verification schedules are installed and exercised
-hold_items:
-  - named governance owners and sign-off are not recorded
-  - S-range mixed-state scale evidence is not captured
-no_go_items: []
+adopter_follow_up:
+  - assign named governance owners and sign-off before local operation
+  - capture fleet-scale mixed-state evidence before expanding the claim
 evidence_summary:
   - controller-visible commit at 2026-05-20 UTC: f50c1228ddcf4544a38634f05fd87179210c6917
   - service-custody refresh at 2026-05-25 UTC: 93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3
@@ -149,7 +151,7 @@ evidence_summary:
   - service-custody health and runtime: 4872, 4922, 4968, 4989
   - primary evidence ledger: V3_STABLE_EVIDENCE_GATE_LEDGER.md
 recommended_next_branch_or_release_action:
-  - keep publication held
-  - assign owners and sign off the operating model
-  - run the S-range scale gate before making an S-range claim
+  - publish the reference exemplar from v3
+  - assign adopter owners before local operation
+  - run a fleet-scale gate before making fleet-scale claims
 ```

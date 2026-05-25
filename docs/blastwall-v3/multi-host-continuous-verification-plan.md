@@ -3,13 +3,13 @@
 ## Goal
 
 Define the next gate after the destructive negative pass: repeated proof in
-mixed-host and S-range scenarios without overstating the current two-host
-Calabi fixture evidence.
+mixed-host and fleet-scale scenarios while preserving the Calabi reference
+topology boundary.
 
-## Candidate scope vs S-range scope
+## Candidate Scope vs Fleet-Scale Scope
 
 - **stable-v3 candidate**: one-to-few host proofs for release-readiness, with explicit positive and negative failure-state checks.
-- **S-range gate**: mixed-host confidence check for repeatability across lifecycle transitions, including stale/revoked/recovered states and profile mix.
+- **fleet-scale gate**: mixed-host confidence check for repeatability across lifecycle transitions, including stale/revoked/recovered states and profile mix.
 
 ## Multi-host candidate gate (minimum)
 
@@ -39,7 +39,7 @@ Current Calabi fixture status:
   closed when this host was included, and strict inventory audit job `3772`
   reported `FAIL_ATTESTATION_NOT_VISIBLE` with `vault_error_type=not_found`.
 
-## S-range planning
+## Fleet-Scale Planning
 
 - Scale gate to 10+ hosts.
 - Include all states: current, stale, revoked, rollback, dry-run.
@@ -50,7 +50,7 @@ Current Calabi fixture status:
 ## Continuous verification schedule
 
 The first stable-v3 operating loop is installed as AAP schedules on the
-`blastwall-v3-signed-attestation` branch:
+`v3` branch:
 
 - Schedule `6`: `Blastwall stable-v3 KRA health hourly`.
 - Schedule `7`: `Blastwall stable-v3 inventory audit hourly`.
@@ -90,7 +90,7 @@ Continue centralizing evidence snapshots with:
 - selected/current/stale hosts,
 - attestation refs and digests.
 
-## Evidence required before stable-v3 go decision
+## Evidence Required Before Expanding Beyond The Exemplar
 
 - Live positive evidence already on record:
   - Latest Controller-visible Calabi stable-v3 policy pipeline `2843`
@@ -118,12 +118,12 @@ Continue centralizing evidence snapshots with:
     candidate preflight `4918`, policy pipeline `4922`, runtime workflow
     `4968`, and inventory audit `4989`.
 - Missing evidence to complete broader claims:
-  - S-range mixed-state gate at 10+ hosts
+  - fleet-scale mixed-state gate at 10+ hosts
   - named owners, retention, and escalation paths for the schedule
   - longer 24-hour or 72-hour soak window after ownership is assigned
 
 ## Decision posture
 
-Until those items complete, the documentation-led decision is
-`HOLD for stable-v3 publication pending governance owner assignment and
-sign-off.`
+The documentation-led decision is `GO` for reference exemplar publication.
+Adopters should complete the missing broader-claim evidence before expanding
+the operating claim beyond the Calabi reference topology.

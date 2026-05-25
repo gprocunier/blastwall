@@ -1,6 +1,6 @@
 # Stable-v3 Readiness Checklist
 
-Use this checklist before claiming stable-v3.
+Use this checklist before operating stable-v3 as a local control.
 
 Read `docs/blastwall-v3/operational-guidance.md` before using this checklist.
 It defines the stable-v3 operating boundary, custody expectations, destructive
@@ -138,16 +138,16 @@ Current Calabi RC evidence:
   verified the signed envelope plus latest index.
 - Managed-host verification job `2861` passed with evidence digest
   `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
-- Live negative preflight jobs captured policy drift (`2827`,
+- Live fail-closed preflight jobs captured policy drift (`2827`,
   `FAIL_DRIFTED_POLICY`), untrusted signer (`2830`, `FAIL_SIGNER_UNTRUSTED`),
   and unresolved configured KRA server (`2835`, fail-closed DNS resolution).
-- Current negative-gate branch evidence also covers missing envelope (`3421`),
-  missing index (`3439`), digest mismatch (`3457`), signature tamper (`3505`),
-  replay (`3531`), expiry (`3557`), revoked latest index (`3579`), profile
-  mismatch (`3623`), host binding mismatch (`3649`), scoped breakglass
-  allowance (`3667`), and breakglass rejection for policy drift (`3682`),
-  untrusted signer (`3686`), signature tamper (`3509`), replay (`3535`), and
-  profile mismatch (`3627`).
+- Controlled failure-state branch evidence also covers missing envelope
+  (`3421`), missing index (`3439`), digest mismatch (`3457`), signature tamper
+  (`3505`), replay (`3531`), expiry (`3557`), revoked latest index (`3579`),
+  profile mismatch (`3623`), host binding mismatch (`3649`), scoped
+  breakglass allowance (`3667`), and breakglass rejection for policy drift
+  (`3682`), untrusted signer (`3686`), signature tamper (`3509`), replay
+  (`3535`), and profile mismatch (`3627`).
 - Post-matrix inventory sync `3690` restored `mirror-registry.workshop.lan` to
   the active v3 marker and `stale-blastwall-01.workshop.lan` to its original
   stale fixture marker; golden preflight job `3693` passed on the current
@@ -168,11 +168,13 @@ Current Calabi RC evidence:
 - Strict inventory audit job `3772` authenticated to FreeIPA, verified the
   valid mirror host, and failed closed on the broken current marker with
   `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.
-- Remaining publication hold: governance owners and sign-off must be assigned.
-  The S-range claim remains held pending broader scale evidence.
+- Adopter readiness items: governance owners and sign-off should be assigned
+  before local operation. Fleet-scale claims require broader mixed-state scale
+  evidence.
 
-## Go/No-Go
+## Adopter Decision
 
-- GO only if all checklist items above are complete, evidence artifacts are
-  attached, and governance owners are named.
-- No-Go if any owner is missing, any infra-only exception is undocumented, or any security failure class is bypassed.
+- GO for local operation only if all checklist items above are complete,
+  evidence artifacts are attached, and governance owners are named.
+- Defer local operation if any owner is missing, any infra-only exception is
+  undocumented, or any security failure class is bypassed.

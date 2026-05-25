@@ -2,10 +2,10 @@
 
 ## Purpose
 
-Collect negative evidence for Blastwall v3 stable-v3 policy gates on Calabi.
+Record fail-closed evidence for Blastwall v3 stable-v3 policy gates on Calabi.
 This packet contains the live destructive matrix captured through the
-negative-gate branch plus the later target-branch mixed-state and continuous
-verification evidence.
+negative-gate branch plus the later target-branch mixed-state, service-custody,
+and continuous verification evidence.
 
 Calabi is reference-topology evidence. It proves this lab path and should not
 be read as broad portability proof for arbitrary RHEL, OpenShift, IdM, AAP, or
@@ -13,11 +13,11 @@ KRA generations.
 
 ## Scope
 
-- Baseline branch: `blastwall-v3-signed-attestation`
+- Baseline branch: `v3`
 - Negative-gate branch: `blastwall-v3-negative-gate-calabi`
 - Goal: prove fail-closed behavior and infra-only breakglass constraints under live negative conditions.
-- Claim boundary: reference topology only; S-range and broad portability claims
-  remain held.
+- Claim boundary: Calabi reference topology. Fleet-scale and broad portability
+  claims require separate evidence.
 
 ## Required case set
 
@@ -68,7 +68,7 @@ Each case below must be captured against a controlled/disposable Calabi host:
 
 Captured on 2026-05-20 UTC and refreshed on 2026-05-25 UTC:
 
-- Branch: `blastwall-v3-signed-attestation`.
+- Branch: `v3`.
 - Controller project sync `4221`, successful, observed commit
   `f50c1228ddcf4544a38634f05fd87179210c6917`.
 - Controller project sync `4871`, successful, observed commit
@@ -117,15 +117,15 @@ Final destructive recapture on the same Controller-visible source:
   marker.
 
 This evidence remains Calabi reference-topology evidence. It proves the
-reference service-custody path in the demonstration environment and does not
-claim an external production operating program. Stable-v3 publication remains
-held for governance owners and sign-off; the S-range claim remains held.
+reference service-custody path in the demonstration environment. The reference
+exemplar is publishable; adopters should complete local governance and
+fleet-scale evidence before expanding the claim.
 
 ## Earlier current-branch evidence
 
 Positive current-branch gate on 2026-05-18 UTC:
 
-- Branch: `blastwall-v3-signed-attestation`.
+- Branch: `v3`.
 - Commit: `56f7c451a281bda5f5a1dbd1a8fac12d00097410`.
 - Controller project sync: `2834`, successful, project revision
   `56f7c451a281bda5f5a1dbd1a8fac12d00097410`.
@@ -285,8 +285,7 @@ Current negative-gate artifact bindings:
 
 ## Three-host mixed-state gate
 
-Captured on 2026-05-19 UTC on the target branch
-`blastwall-v3-signed-attestation`.
+Captured on 2026-05-19 UTC on the target branch `v3`.
 
 - Project update `3771` synced the Controller project to
   `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
@@ -354,12 +353,12 @@ operator_summary:
 attachments:
 ```
 
-## Hold note
+## Evidence Note
 
 The destructive negative matrix now covers artifact visibility, replay,
 expiry, revoked latest index, signature tamper, signer trust, policy drift,
 profile mismatch, host binding, and breakglass boundaries. The target branch
 also has three-host mixed-state evidence, an installed continuous verification
-loop, and refreshed service-owned custody evidence. Remaining publication hold
-is governance approval, named owners, and sign-off; the S-range claim remains
-held until broader scale evidence is captured.
+loop, and refreshed service-owned custody evidence. The packet supports
+reference exemplar publication; adopter governance and fleet-scale evidence
+belong to organizations that operate or expand the pattern.

@@ -36,19 +36,23 @@ This document records how Blastwall v3 depends on `eigenstate.ipa 1.18.1` and wh
 - The latest Controller-visible healthy Calabi policy pipeline recorded for this
   branch is workflow `2843`, successful, with OpenShift/SPO apply-validation job
   `2857` and post-promotion preflight job `2876`.
-- Partial live negative evidence is recorded for drifted policy hash, untrusted
-  signer allowlist, and unresolved configured KRA server.
+- Live fail-closed evidence is recorded for drifted policy hash, untrusted
+  signer allowlist, unresolved configured KRA server, and the completed
+  destructive failure-state matrix.
 - `V3_IMPLEMENTATION_LEDGER.md` records earlier healthy-path evidence and
   remains historical context for the v3 signed-attestation implementation.
 
-## Open execution items tied to this dependency set
+## Remaining adoption items tied to this dependency set
 
-- `docs/blastwall-v3/calabi-negative-evidence.md` must be completed with live destructive negative cases before final stable-v3 release claim.
-- `docs/blastwall-v3/multi-host-continuous-verification-plan.md` must define S-range and continuous verification evidence cadence before an external `GO_STABLE_V3_CANDIDATE`.
+- `docs/blastwall-v3/calabi-negative-evidence.md` records the completed live
+  destructive matrix and the final digest/revocation recaptures.
+- `docs/blastwall-v3/multi-host-continuous-verification-plan.md` defines the
+  continuous verification loop and the fleet-scale evidence cadence adopters
+  should use before expanding beyond the reference exemplar.
 
 ## Release claim boundary
 
-At present, the repo supports a `HOLD_PARTIAL_LIVE_EVIDENCE` posture for
-stable-v3 finalization: dependency alignment, positive execution evidence, SPO
-validation, and selected negative cases exist, but the full destructive live
-negative matrix is not yet completed in this package.
+At present, the repo supports `GO_REFERENCE_EXEMPLAR`: dependency alignment,
+positive execution evidence, SPO validation, destructive fail-closed evidence,
+service-owned custody, and continuous verification wiring are recorded for the
+Calabi reference topology.

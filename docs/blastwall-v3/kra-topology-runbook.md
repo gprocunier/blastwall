@@ -34,7 +34,7 @@ Use a dedicated service identity for vault artifact writes/reads:
 
 Stable-v3 rejects shared vault scope. If Calabi or another lab still uses
 shared vault custody, label that evidence as transition/RC evidence and keep it
-out of stable-v3 publication claims.
+separate from stable-v3 service-custody claims.
 
 ## Topology modes
 

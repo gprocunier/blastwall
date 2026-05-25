@@ -1,21 +1,24 @@
-# Stable-v3 RC Decision
+# Stable-v3 Reference Exemplar Decision
 
 Date: 2026-05-19 UTC
-Branch: `blastwall-v3-signed-attestation`
+Publication branch: `v3`
 
 Operating boundary: `docs/blastwall-v3/operational-guidance.md`.
 
 ## Decision
 
 ```text
-stable-v3 engineering RC:
+reference exemplar publication:
   GO
 
-stable-v3 publication:
-  HOLD
+Calabi reference topology evidence:
+  GO
 
-S-range:
-  HOLD
+stable-v3 service-owned custody demonstration:
+  GO
+
+fleet-scale evidence:
+  future validation
 ```
 
 ## Evidence Basis
@@ -35,7 +38,7 @@ The RC evidence package preserves the v3 architecture:
 - Healthy signed-attestation policy pipelines and runtime verification are
   recorded in AAP, including workflow `2843`, runtime workflow `3736`, and
   corrected transition-v3 lab/RC workflow `4102`.
-- Destructive negative evidence covers missing envelope, missing index, replay,
+- Destructive fail-closed evidence covers missing envelope, missing index, replay,
   expiry, revoked latest index, policy drift, signer trust, signature tamper,
   profile mismatch, host binding mismatch, and breakglass rejection.
 - Three-host mixed-state evidence covers a current valid host, a stale legacy
@@ -52,27 +55,27 @@ The RC evidence package preserves the v3 architecture:
   environment after KRA health `4872`, policy pipeline `4922`, runtime
   workflow `4968`, and inventory audit `4989`.
 
-## Remaining Holds
+## Adopter Follow-Up
 
-- Stable-v3 publication remains held until named owners and sign-off are
-  recorded.
+- Named owners and sign-off should be recorded before local operation.
 - The scheduled-loop soak has initial and hourly evidence, but a longer
-  24-hour or 72-hour soak is still an operating-readiness item.
-- S-range remains held until a 10+ host mixed-state gate, external red-team
-  review, and ownership/scale evidence are complete.
+  24-hour or 72-hour soak is still an adopter operating-readiness item.
+- Fleet-scale readiness should wait for a 10+ host mixed-state gate,
+  external review, and local ownership evidence.
 
-## Governance Owner Status
+## Adopter Governance Worksheet
 
-`docs/blastwall-v3/governance-owner-assignment.md` is the required assignment
-surface. All owner rows remain pending until a human owner accepts the role.
+`docs/blastwall-v3/governance-owner-assignment.md` is the adopter assignment
+surface. Pending rows mean the exemplar has not been staffed for local
+operation; they do not block publishing the upstream reference exemplar.
 
-## Explicit Non-Claims
+## Claim Boundary
 
 ```text
-This decision does not claim 10+ host S-range fleet evidence.
-This decision does not claim independent external red-team completion.
-This decision does not claim final publication approval while governance owners are pending.
-This decision does not claim broad portability beyond the Calabi reference topology.
+The current decision covers the Calabi reference topology and the signed
+evidence gate behavior recorded in the ledgers. Fleet-scale readiness,
+external red-team completion, and broad portability require separate evidence
+before adopters expand the claim.
 ```
 
 ## Sign-Off

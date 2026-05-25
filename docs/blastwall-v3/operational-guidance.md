@@ -4,9 +4,10 @@
 
 This guidance defines the operating boundary for stable-v3 claims. Stable-v3
 is a signed evidence gate for a defined RHEL, IdM, AAP, KRA, and optional
-OpenShift/SPO reference topology. It is not full remote attestation, not a
-general fleet portability claim, and not a publication decision while
-governance owners remain pending.
+OpenShift/SPO reference topology. It is a reference exemplar for signed
+evidence gate operation; it is not full remote attestation. Adopters should
+collect local fleet-scale and portability evidence before expanding the claim
+beyond the Calabi reference topology.
 
 Use this document with:
 
@@ -33,8 +34,8 @@ Stable operation requires:
 - a documented rotation and revocation path.
 
 Transition or RC workflows may still use shared vault custody when they label
-it as lab/RC evidence and do not present the result as stable-v3 publication
-readiness.
+it as lab/RC evidence and do not present the result as stable-v3 custody
+evidence.
 
 ## Signer Separation And Lifecycle
 
@@ -99,7 +100,7 @@ When using Calabi evidence:
 
 - call it reference-topology evidence;
 - keep shared-vault Calabi custody labelled as lab/RC custody;
-- do not infer S-range readiness from Calabi-only runs;
+- treat fleet-scale evidence as future validation unless separately captured;
 - preserve job IDs, artifact hashes, branch commits, and restore proofs;
 - separate observed runtime behavior from future portability goals.
 
@@ -113,29 +114,27 @@ and IdM workflows still pass.
 If ordinary automation replay expands required SELinux allowances, treat that
 as a separate policy-scope change and rerun the relevant evidence packet.
 
-## SPO, KRA, And S-Range Non-Claims
+## SPO, KRA, And Fleet-Scale Evidence Boundaries
 
-Current OpenShift/SPO evidence is branch evidence for the validated path. It is
-not a broad OpenShift generation claim and not cluster-independent runtime
-attestation.
+Current OpenShift/SPO evidence covers the validated path. Broader OpenShift
+generation coverage or cluster-independent runtime attestation should be backed
+by separate evidence before adoption teams expand the claim.
 
 Current KRA evidence proves explicit primary-path behavior in the reference
-topology. It is not a multi-replica failover or replication-lag claim until a
-separate packet proves those cases.
+topology. Multi-replica failover or replication-lag claims should be backed by
+a separate packet.
 
-The S-range claim remains on hold until broader mixed-state scale evidence is
-captured and reviewed.
+Fleet-scale evidence remains future validation until broader mixed-state scale
+evidence is captured and reviewed.
 
 ## Reference Topology Positioning
 
 The stable-v3 claim should be stated narrowly:
 
 Blastwall v3 is a signed evidence gate for a defined RHEL/IdM/AAP/KRA reference
-topology, validated in Calabi, with publication held until governance owners
-accept the operating model and sign-off is recorded. Stable-v3 service-owned
-custody health is live-green in the Calabi demonstration environment, but that
-does not claim an external production operating program.
+topology, validated in Calabi. Stable-v3 service-owned custody health is
+live-green in the Calabi demonstration environment.
 
-Do not present stable-v3 as enterprise-ready publication, S-range proof, broad
-RHEL/OpenShift portability, or controller-independent attestation without new
-evidence and an updated release decision.
+Before expanding beyond that reference topology, collect the local
+fleet-scale, portability, custody, and review evidence needed for the intended
+operating environment.

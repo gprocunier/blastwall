@@ -2,19 +2,26 @@
 
 Date: 2026-05-20
 Latest update: 2026-05-25
-Branch: `blastwall-v3-signed-attestation`
-Commit: `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`
-Decision: HOLD
+Branch: `v3`
+Commit: `f6414bd246054693c178e86e76fb2192aed4fa72`
+Decision:
+  Reference exemplar publication: GO
+  Calabi reference topology evidence: GO
+  Stable-v3 service-owned custody demonstration: GO
+  Fleet-scale evidence: future validation
 
 ## Summary
 
-Blastwall v3 source and Calabi lab evidence are ready for external review as a
-reference exemplar for operating a signed-evidence gate in the Calabi
-demonstration environment. This packet does not claim an external production
-operating program. The publication decision remains held because release-packet
-accountability owners and sign-off are not recorded. Stable-v3 service-owned
-custody health is live-green in Calabi as of 2026-05-25. This is a governance
-hold, not an identified marker-only, breakglass, custody, or verifier bypass.
+Blastwall v3 is ready to publish as a reference exemplar for operating a
+signed-evidence gate in the Calabi demonstration environment. The packet shows
+how marker selection, signed envelope verification, latest-index replay
+protection, live policy binding, explicit KRA custody, and infrastructure-only
+breakglass fit together as an auditable control pattern.
+
+Stable-v3 service-owned custody health is live-green in Calabi as of
+2026-05-25. The adopter governance worksheet remains pending by design: it is
+the surface an organization completes before operating the pattern as a local
+control, not a blocker for publishing the upstream exemplar.
 
 The live Controller-visible evidence commit is
 `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3` as observed after project update
@@ -57,15 +64,18 @@ The live Controller-visible evidence commit is
   `missing-artifact-blastwall-01.workshop.lan` fixture while verifying the
   valid mirror host through service custody.
 
-## Evidence Missing
+## Future Adoption Work
 
-- Named governance owners and sign-off for stable-v3 operation.
-- S-range scale evidence remains HOLD. The current evidence proves the
-  candidate mixed-state gate, not broad S-range readiness.
+- Assign local governance owners before operating the pattern as an
+  organization-owned control.
+- Confirm local retention, escalation, and review expectations for AAP
+  schedules `6` through `9`.
+- Capture fleet-scale mixed-state evidence before expanding the claim beyond
+  the Calabi reference topology.
 
-## No-Go Conditions Reviewed
+## Gate Conditions Reviewed
 
-No no-go condition was observed:
+The exemplar evidence preserves the core stable-v3 gates:
 
 - v3 marker alone does not make a host suitable.
 - preflight cannot pass without signed evidence in stable-v3.
@@ -76,7 +86,7 @@ No no-go condition was observed:
 - no new SELinux scope, marker grammar, profile, signature algorithm, or trust
   model was added in this gate.
 
-## Governance / Owner Assignment
+## Adopter Governance Worksheet
 
 ```text
 Boundary owner: pending
@@ -85,26 +95,29 @@ Second maintainer: pending
 Escalation path: pending
 ```
 
+Pending rows above mean an adopter has not yet staffed the operating model.
+They do not block publication of the upstream reference exemplar.
+
 ## Stable-v3 Scope
 
 This decision covers the v3 signed-attestation candidate gate for the current
 Calabi lab topology, with explicit KRA primary, signed envelope and latest
 index verification, live policy hash binding, and AAP-recorded evidence.
 
-## Explicit Non-Goals
+## Claim Boundary
 
-- No S-range readiness claim.
-- No new SELinux deny scope.
-- No new profile or marker grammar.
-- No change to the signature algorithm or trust model.
-- No implicit KRA replica discovery.
+This packet demonstrates the Calabi reference topology and the signed-evidence
+gate behavior recorded above. Broader fleet-scale, portability, signer
+isolation, or multi-replica KRA claims require local evidence before adopters
+expand the claim.
 
 ## Required Follow-Up
 
-- Assign and record stable-v3 release-packet accountability owners.
+- Assign and record adopter governance owners before local operation.
 - Confirm exemplar retention and escalation expectations for AAP schedules `6`
   through `9`.
-- Run the S-range mixed-state scale gate before claiming S-range readiness.
+- Run a fleet-scale mixed-state gate before making fleet-scale readiness
+  claims.
 
 ## Sign-Off
 

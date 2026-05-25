@@ -4,14 +4,15 @@
 
 - `V3_STABLE_EVIDENCE_GATE_LEDGER.md`: current execution ledger for the
   stable-evidence gate.
-- `V3_NEGATIVE_GATE_LEDGER.md`: destructive negative gate execution ledger with
+- `V3_NEGATIVE_GATE_LEDGER.md`: destructive fail-closed gate ledger with
   job IDs, restore proofs, and residual risks.
 - `docs/blastwall-v3/calabi-negative-evidence.md`: reviewer-facing destructive
   and mixed-state evidence packet.
 - `docs/blastwall-v3/multi-host-continuous-verification-plan.md`: mixed-state
   and continuous verification operating plan.
-- `docs/blastwall-v3/stable-v3-release-decision.md`: current release posture.
-- `docs/blastwall-v3/stable-v3-rc-decision.md`: RC-level GO/HOLD decision.
+- `docs/blastwall-v3/stable-v3-release-decision.md`: reference exemplar
+  release posture.
+- `docs/blastwall-v3/stable-v3-rc-decision.md`: reference exemplar decision.
 - `docs/blastwall-v3/operational-guidance.md`: stable-v3 operating boundary,
   custody expectations, breakglass audit rules, and claim limits.
 - `docs/blastwall-v3/failure-state-manifest.yml`: machine-readable expected
@@ -19,13 +20,13 @@
 - `docs/blastwall-v3/evidence-consistency-matrix.md`: live/source
   failure-state reconciliation.
 - `docs/blastwall-v3/scheduled-loop-soak.md`: scheduled-loop evidence.
-- `docs/blastwall-v3/governance-owner-assignment.md`: required owner
-  assignment surface.
+- `docs/blastwall-v3/governance-owner-assignment.md`: adopter governance
+  worksheet.
 
 ## Controller Evidence
 
 - Project: `Blastwall`, ID `8`.
-- Branch: `blastwall-v3-signed-attestation`.
+- Branch: `v3`.
 - Boundary: Calabi evidence is reference-topology evidence, not broad
   portability proof.
 - Current synced commit observed at 2026-05-25 UTC:

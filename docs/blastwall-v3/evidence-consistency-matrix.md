@@ -1,7 +1,7 @@
 # Stable-v3 Evidence Consistency Matrix
 
 Date: 2026-05-20 UTC
-Branch: `blastwall-v3-signed-attestation`
+Branch: `v3`
 
 This matrix reconciles the live Calabi evidence with the current source
 failure-state contract. Historical live jobs remain named as observed; source
@@ -47,5 +47,6 @@ Targeted regression coverage:
 
 No stable-v3 security bypass is open from the historical state-surface gaps.
 Both gaps were already fail-closed live, and the final recapture now shows the
-current operator states. Publication still remains held for governance and
-stable-v3 custody readiness rather than for these failure-state mappings.
+current operator states. This supports reference exemplar publication; adopter
+governance and any expanded custody or fleet claims belong to local adoption
+evidence.
