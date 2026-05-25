@@ -130,7 +130,7 @@
         kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
         verify: "{{ ipa_ca }}"
         require_direct_kra: true
-        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        shared: "{{ true if blastwall_attestation_vault_scope == 'shared' else omit }}"
         service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
         username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
         canary_vault: "{{ blastwall_attestation_health_canary if blastwall_attestation_health_canary | length > 0 else omit }}"

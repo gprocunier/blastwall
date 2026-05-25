@@ -634,7 +634,7 @@
         canary_max_age_seconds: >-
           {{ blastwall_attestation_canary_max_age_seconds
              if blastwall_attestation_canary_max_age_seconds | string | length > 0 else omit }}
-        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        shared: "{{ true if blastwall_attestation_vault_scope == 'shared' else omit }}"
         service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
         username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
       register: blastwall_vault_health
@@ -883,7 +883,7 @@
         ipaadmin_password: "{{ ipa_password }}"
         kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
         verify: "{{ ipa_ca }}"
-        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        shared: "{{ true if blastwall_attestation_vault_scope == 'shared' else omit }}"
         service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
         username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
         expected_sha256: "{{ (item.stdout | from_json).attestation_sha256 }}"
@@ -942,7 +942,7 @@
         ipaadmin_password: "{{ ipa_password }}"
         kerberos_keytab: "{{ ipa_keytab if ipa_keytab | length > 0 else omit }}"
         verify: "{{ ipa_ca }}"
-        shared: "{{ blastwall_attestation_vault_scope == 'shared' }}"
+        shared: "{{ true if blastwall_attestation_vault_scope == 'shared' else omit }}"
         service: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'service' else omit }}"
         username: "{{ blastwall_attestation_vault_owner if blastwall_attestation_vault_scope == 'user' else omit }}"
         include_payload: true
