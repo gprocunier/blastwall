@@ -32,10 +32,13 @@ make about an interactive privileged shell.
 
 The GitHub Pages site is the best entry point:
 [`gprocunier.github.io/blastwall`](https://gprocunier.github.io/blastwall/).
+The current v3 signed-evidence branch is documented separately at
+[`github.com/gprocunier/blastwall/tree/v3`](https://github.com/gprocunier/blastwall/tree/v3).
 
 | Need | Start With |
 | --- | --- |
 | Understand the 2-minute model | [`Architecture`](https://gprocunier.github.io/blastwall/architecture.html) |
+| Review the current v3 signed-evidence branch | [`v3 Branch README`](https://github.com/gprocunier/blastwall/blob/v3/README.md) |
 | Understand where policy comes from and how it is maintained | [`Day 2 Operations`](https://gprocunier.github.io/blastwall/day2-operations.html) |
 | Understand the OpenShift workload path | [`OpenShift/SPO`](https://gprocunier.github.io/blastwall/openshift-spo.html) |
 | Watch the operator-facing proof | [`AAP Demo`](https://gprocunier.github.io/blastwall/aap-demo.html) |
