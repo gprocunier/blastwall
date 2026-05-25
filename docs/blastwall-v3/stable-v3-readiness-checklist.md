@@ -106,9 +106,15 @@ Current Calabi RC evidence:
   Controller project sync `4221` to
   `f50c1228ddcf4544a38634f05fd87179210c6917`.
 - Stable-v3 shared-custody guard job `3918` failed closed with
-  `stable-v3 rejects shared vault scope`; stable-v3 non-shared custody probes
-  `3914`, `3987`, and `3991` failed in the live vault-health path and remain
-  publication/custody blockers.
+  `stable-v3 rejects shared vault scope`. Earlier non-shared custody probes
+  `3914`, `3987`, and `3991` failed before the non-shared argument
+  remediation and are superseded by service-owned KRA health job `4872`,
+  which passed with the canary present.
+- Stable-v3 service-custody refresh on 2026-05-25 used Controller project
+  sync `4871` to commit `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`.
+  Shared-custody rejection `4876` failed closed. Policy pipeline workflow
+  `4922`, candidate preflight `4918`, runtime workflow `4968`, and
+  schedule-equivalent inventory audit `4989` exercised the service-owned path.
 - Transition-v3 lab/RC shared-custody health job `3922` passed. Corrected
   transition-v3 lab/RC policy pipeline workflow `4046`, standalone signed
   preflight job `4082`, and runtime workflow `4102` passed. Strict inventory
@@ -162,9 +168,8 @@ Current Calabi RC evidence:
 - Strict inventory audit job `3772` authenticated to FreeIPA, verified the
   valid mirror host, and failed closed on the broken current marker with
   `FAIL_ATTESTATION_NOT_VISIBLE` and `vault_error_type=not_found`.
-- Remaining publication hold: governance owners/sign-off must be assigned and
-  stable-v3 service-owned or named-user custody health must be live-green. The
-  S-range claim remains held pending broader scale evidence.
+- Remaining publication hold: governance owners and sign-off must be assigned.
+  The S-range claim remains held pending broader scale evidence.
 
 ## Go/No-Go
 

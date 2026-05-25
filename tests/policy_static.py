@@ -733,6 +733,11 @@ if "blastwall_fail_on_stale_policy" in marker_check_block:
     fail("preflight marker validation is still gated by blastwall_fail_on_stale_policy")
 if "blastwall_validate_selected_markers | bool" not in marker_check_block:
     fail("preflight marker validation is not gated by the explicit validation control")
+runtime_workflow_node_block = aap_config.partition("Ensure workflow job nodes exist")[2].partition(
+    "Remove stale bootstrap workflow nodes"
+)[0]
+if "'blastwall_preflight_target_group_override': blastwall_aap_verify_target_group" not in runtime_workflow_node_block:
+    fail("AAP runtime workflow preflight must target the configured verification group")
 if "'blastwall_preflight_target_group_override': blastwall_aap_post_promotion_preflight_target_group" not in aap_config:
     fail("AAP policy pipeline post-promotion preflight cannot override the target group")
 policy_pipeline_preflight_block = aap_config.partition("identifier: post_promotion_preflight")[2].partition("when: item.identifier")[0]
@@ -1166,6 +1171,22 @@ for doc_name in [
         fail(f"docs/blastwall-v3/{doc_name} must link failure-state manifest")
 governance_doc = (ROOT / "docs" / "blastwall-v3" / "governance-owner-assignment.md").read_text(encoding="utf-8")
 if "| pending |" in governance_doc:
+    release_decision = (ROOT / "release" / "STABLE_V3_DECISION.md").read_text(encoding="utf-8")
+    release_decision_normalized = re.sub(r"\s+", " ", release_decision)
+    if re.search(r"(?im)^\s*Decision\s*:\s*GO\b", release_decision):
+        fail("release/STABLE_V3_DECISION.md must not set Decision: GO while governance rows are pending")
+    if "Decision: HOLD" not in release_decision:
+        fail("release/STABLE_V3_DECISION.md must preserve Decision: HOLD while governance rows are pending")
+    for required_release_boundary in [
+        "reference exemplar",
+        "Calabi demonstration environment",
+        "does not claim an external production operating program",
+        "Stable-v3 service-owned custody health is live-green in Calabi",
+    ]:
+        if required_release_boundary not in release_decision_normalized:
+            fail(f"release/STABLE_V3_DECISION.md missing release boundary: {required_release_boundary}")
+    if not re.search(r"(?is)S-range.{0,120}HOLD|HOLD.{0,120}S-range", release_decision):
+        fail("release/STABLE_V3_DECISION.md must preserve S-range HOLD while governance rows are pending")
     for doc_name in ["stable-v3-release-decision.md", "final-stable-v3-decision.md", "stable-v3-rc-decision.md"]:
         doc_text = (ROOT / "docs" / "blastwall-v3" / doc_name).read_text(encoding="utf-8")
         if re.search(r"(?im)^\s*publication\s*:\s*GO\b", doc_text):
@@ -1377,6 +1398,16 @@ for playbook_name, playbook_text, required_shared_guard in [
 ]:
     if required_shared_guard not in playbook_text:
         fail(f"{playbook_name} must reject shared vault custody for stable-v3")
+for playbook_name, playbook_text in [
+    ("sign-attestation.yml", v3_sign),
+    ("preflight.yml", v3_preflight),
+    ("attestation-vault-health.yml", v3_health),
+    ("negative-gate-attestation-artifacts.yml", v3_negative_artifact_harness),
+]:
+    if 'shared: "{{ blastwall_attestation_vault_scope == \'shared\' }}"' in playbook_text:
+        fail(f"{playbook_name} must omit false shared= parameters for non-shared vault custody")
+    if 'shared: "{{ true if blastwall_attestation_vault_scope == \'shared\' else omit }}"' not in playbook_text:
+        fail(f"{playbook_name} must pass shared only for shared vault custody")
 if "--attestation-mode" not in v3_sign or "--attestation-mode" not in v3_promote:
     fail("stable-v3 signing/promotion helpers must pass attestation mode into custody validation")
 if "--attestation-mode" not in v3_audit or "FAIL_STABLE_V3_SHARED_CUSTODY" not in audit_tool_text:

@@ -114,14 +114,16 @@ Continue centralizing evidence snapshots with:
   - Digest mismatch and revoked-marker recaptures failed closed as
     `FAIL_ATTESTATION_INTEGRITY` in job `4233` and
     `FAIL_REVOKED_ATTESTATION` in job `4255`.
+  - Stable-v3 service-owned custody refresh passed KRA health `4872`,
+    candidate preflight `4918`, policy pipeline `4922`, runtime workflow
+    `4968`, and inventory audit `4989`.
 - Missing evidence to complete broader claims:
   - S-range mixed-state gate at 10+ hosts
-  - live-green stable-v3 service-owned or named-user custody health
   - named owners, retention, and escalation paths for the schedule
   - longer 24-hour or 72-hour soak window after ownership is assigned
 
 ## Decision posture
 
 Until those items complete, the documentation-led decision is
-`HOLD for stable-v3 publication pending governance owner assignment, custody
-health, and sign-off.`
+`HOLD for stable-v3 publication pending governance owner assignment and
+sign-off.`

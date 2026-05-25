@@ -864,7 +864,16 @@
           template: Blastwall credential smoke
         - identifier: preflight
           template: Blastwall preflight
-          extra_data: "{{ blastwall_aap_profile_extra_vars }}"
+          extra_data: >-
+            {{
+              blastwall_aap_profile_extra_vars |
+              combine({
+                'BLASTWALL_TARGET_IDENTITY': blastwall_aap_identity,
+                'blastwall_target_identity': blastwall_aap_identity,
+                'BLASTWALL_PREFLIGHT_TARGET_GROUP': blastwall_aap_verify_target_group,
+                'blastwall_preflight_target_group_override': blastwall_aap_verify_target_group
+              })
+            }}
         - identifier: verify_managed_host
           template: Blastwall verify managed host
           limit: "{{ blastwall_aap_verify_target_group }}"

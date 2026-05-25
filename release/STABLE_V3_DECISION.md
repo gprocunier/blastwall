@@ -1,21 +1,24 @@
 # Stable-v3 Release Decision
 
 Date: 2026-05-20
+Latest update: 2026-05-25
 Branch: `blastwall-v3-signed-attestation`
-Commit: see current branch head
+Commit: `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`
 Decision: HOLD
 
 ## Summary
 
-Blastwall v3 source and Calabi lab evidence are ready for external review. The
-publication decision remains held because governance owners and sign-off are
-not recorded and stable-v3 service-owned or named-user custody health is not
-live-green in Calabi. This is a governance/custody hold, not an identified
-marker-only, breakglass, or verifier bypass.
+Blastwall v3 source and Calabi lab evidence are ready for external review as a
+reference exemplar for operating a signed-evidence gate in the Calabi
+demonstration environment. This packet does not claim an external production
+operating program. The publication decision remains held because release-packet
+accountability owners and sign-off are not recorded. Stable-v3 service-owned
+custody health is live-green in Calabi as of 2026-05-25. This is a governance
+hold, not an identified marker-only, breakglass, custody, or verifier bypass.
 
 The live Controller-visible evidence commit is
-`f50c1228ddcf4544a38634f05fd87179210c6917` as observed after project update
-`4221` on 2026-05-20 UTC.
+`93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3` as observed after project update
+`4871` on 2026-05-25 UTC.
 
 ## Evidence Accepted
 
@@ -45,14 +48,20 @@ The live Controller-visible evidence commit is
   inventory update `4270` passed.
 - Stable-v3 shared vault custody was rejected in job `3918`; transition-v3
   lab/RC shared custody remains usable and explicitly labelled.
+- Stable-v3 service-owned custody is live-green in Calabi after the non-shared
+  vault argument fix: KRA health `4872` passed with canary present, shared
+  custody rejection `4876` failed closed, policy pipeline `4922` passed with
+  signer `4940`, promotion `4944`, and preflight `4951`, and runtime workflow
+  `4968` passed with preflight `4977` and managed-host verification `4981`.
+- Attestation inventory audit `4989` failed closed on the intentional
+  `missing-artifact-blastwall-01.workshop.lan` fixture while verifying the
+  valid mirror host through service custody.
 
 ## Evidence Missing
 
 - Named governance owners and sign-off for stable-v3 operation.
-- Live-green stable-v3 service-owned or named-user custody health. Calabi jobs
-  `3914`, `3987`, and `3991` failed in the vault-health path.
-- S-range scale evidence. The current evidence proves the candidate
-  mixed-state gate, not broad S-range readiness.
+- S-range scale evidence remains HOLD. The current evidence proves the
+  candidate mixed-state gate, not broad S-range readiness.
 
 ## No-Go Conditions Reviewed
 
@@ -92,9 +101,9 @@ index verification, live policy hash binding, and AAP-recorded evidence.
 
 ## Required Follow-Up
 
-- Assign and record stable-v3 governance owners.
-- Confirm retention and escalation for AAP schedules `6` through `9`.
-- Resolve stable-v3 service-owned or named-user custody health in Calabi.
+- Assign and record stable-v3 release-packet accountability owners.
+- Confirm exemplar retention and escalation expectations for AAP schedules `6`
+  through `9`.
 - Run the S-range mixed-state scale gate before claiming S-range readiness.
 
 ## Sign-Off

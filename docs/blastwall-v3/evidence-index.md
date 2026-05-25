@@ -28,7 +28,9 @@
 - Branch: `blastwall-v3-signed-attestation`.
 - Boundary: Calabi evidence is reference-topology evidence, not broad
   portability proof.
-- Current synced commit observed at 2026-05-20 UTC:
+- Current synced commit observed at 2026-05-25 UTC:
+  `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`, project update `4871`.
+- Previous normalized failure-state capture commit observed at 2026-05-20 UTC:
   `f50c1228ddcf4544a38634f05fd87179210c6917`, project update `4221`.
 - Earlier three-host evidence project update: `3771` to
   `9e9e5e8ac555a4492ca9580e6c513b6763bdbe8b`.
@@ -58,6 +60,13 @@
 - Scheduled runtime workflow: `3781`, successful.
 - Stable-v3 shared-custody guard: `3918`, failed closed with
   `stable-v3 rejects shared vault scope`.
+- Stable-v3 service-custody guard after remediation: KRA health `4872`
+  passed with canary present; shared-custody rejection `4876` failed closed.
+- Stable-v3 service-custody policy pipeline: workflow `4922`, successful,
+  including build `4927`, install `4932`, managed-host verification `4936`,
+  sign `4940`, promotion `4944`, and post-promotion preflight `4951`.
+- Stable-v3 service-custody runtime verification: workflow `4968`,
+  successful, including preflight `4977` and managed-host verification `4981`.
 - Transition-v3 lab/RC shared-custody health: `3922`, successful.
 - Corrected transition-v3 lab/RC policy pipeline: workflow `4046`, successful,
   including sign `4064`, promotion `4068`, and post-promotion preflight `4075`.
@@ -75,9 +84,9 @@
   `missing-kra.workshop.lan`.
 - Canary health after schedules: `3731`, `3776`, `3797`, and `3802`,
   successful with canary present.
-- Stable-v3 non-shared custody probes: `3914`, `3987`, and `3991`, failed in
-  the live vault-health path. Treat these as custody-readiness blockers, not
-  as stable-v3 security bypasses.
+- Earlier stable-v3 non-shared custody probes: `3914`, `3987`, and `3991`,
+  failed in the live vault-health path before the AAP argument-shape
+  remediation. They are superseded by service-custody KRA health `4872`.
 
 ## Artifact Visibility
 
@@ -134,6 +143,10 @@
 - Strict inventory audit `3772`: verified the valid host and failed closed for
   `missing-artifact-blastwall-01.workshop.lan` with
   `FAIL_ATTESTATION_NOT_VISIBLE`, `vault_error_type=not_found`.
+- Service-custody attestation audit `4989`: verified
+  `mirror-registry.workshop.lan` through service custody and failed closed on
+  the intentional `missing-artifact-blastwall-01.workshop.lan` fixture with
+  `marker has expired`.
 
 ## Continuous Verification
 
@@ -142,7 +155,8 @@
 - Schedule `8`: `Blastwall stable-v3 candidate preflight daily`, enabled.
 - Schedule `9`: `Blastwall stable-v3 runtime verification daily`, enabled.
 - Exercised checks: `3731`, `3735`, `3736`, `3772`, `3776`, `3778`,
-  `3780`, `3781`, `3797`, `3799`, `3802`, `3804`.
+  `3780`, `3781`, `3797`, `3799`, `3802`, `3804`, plus the 2026-05-25
+  service-custody refresh `4872`, `4876`, `4918`, `4922`, `4968`, and `4989`.
 
 ## Current Artifact Bindings
 
@@ -154,10 +168,12 @@
 - Probe report hash:
   `16dc41143e934a4a1cad5c138867a8dfe0e9dec8fa12ff7dda6456302a190625`.
 - Current golden attestation ref:
-  `shared/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779161194.json`.
-- Custody note: current Calabi golden evidence used shared lab/RC vault
-  custody. Stable-v3 rejects shared vault scope.
+  `service/blastwall-attestation/blastwall-attestations/mirror-registry.workshop.lan/base/1779671333.json`.
+- Custody note: current Calabi stable-v3 evidence uses service-owned vault
+  custody. Stable-v3 rejects shared vault scope; transition-v3 may still use
+  explicitly labelled lab/RC shared custody.
 - Current golden attestation hash:
-  `8d7f4a9844d7bceee2e0114ae55f66aa507e541676aad98ad3667c09701c3b11`.
+  `91fe290862f5b23e32a26a747fa56f03d1e8dcdd8103c96a773ca9a160b31604`.
 - Signer KID:
   `8e62ab6d10d1a1a6b4261c4ee3fe79f76545c6d6`.
+- Generation: `1779671333`.

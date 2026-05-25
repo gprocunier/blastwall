@@ -48,13 +48,14 @@ The RC evidence package preserves the v3 architecture:
   `f50c1228ddcf4544a38634f05fd87179210c6917`.
 - Stable-v3 rejects shared vault custody in job `3918`. Transition-v3 lab/RC
   shared custody remains explicit and usable.
+- Stable-v3 service-owned custody is live-green in the Calabi demonstration
+  environment after KRA health `4872`, policy pipeline `4922`, runtime
+  workflow `4968`, and inventory audit `4989`.
 
 ## Remaining Holds
 
 - Stable-v3 publication remains held until named owners and sign-off are
   recorded.
-- Stable-v3 service-owned or named-user custody is not live-green in Calabi;
-  jobs `3914`, `3987`, and `3991` failed in the vault-health path.
 - The scheduled-loop soak has initial and hourly evidence, but a longer
   24-hour or 72-hour soak is still an operating-readiness item.
 - S-range remains held until a 10+ host mixed-state gate, external red-team

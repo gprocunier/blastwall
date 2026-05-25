@@ -48,6 +48,6 @@ expired: none newly observed in scheduled evidence
 
 The scheduled-loop evidence is sufficient for RC review and for proving the
 schedule wiring works. It is not yet a long-duration operations soak. Stable-v3
-publication remains held until governance owners accept the loop, stable-v3
-non-shared custody health is live-green, and a longer retention/escalation
-window is approved.
+publication remains held until governance owners accept the loop, sign-off is
+recorded, and a longer retention/escalation window is approved. The refreshed
+2026-05-25 service-owned custody evidence covers the Calabi demonstration path.

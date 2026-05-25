@@ -132,7 +132,9 @@ The stable-v3 claim should be stated narrowly:
 
 Blastwall v3 is a signed evidence gate for a defined RHEL/IdM/AAP/KRA reference
 topology, validated in Calabi, with publication held until governance owners
-accept the operating model and stable-v3 custody health is live-green.
+accept the operating model and sign-off is recorded. Stable-v3 service-owned
+custody health is live-green in the Calabi demonstration environment, but that
+does not claim an external production operating program.
 
 Do not present stable-v3 as enterprise-ready publication, S-range proof, broad
 RHEL/OpenShift portability, or controller-independent attestation without new

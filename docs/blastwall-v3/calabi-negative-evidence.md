@@ -66,16 +66,21 @@ Each case below must be captured against a controlled/disposable Calabi host:
 
 ## Current live evidence after pre-mortem remediation
 
-Captured on 2026-05-20 UTC:
+Captured on 2026-05-20 UTC and refreshed on 2026-05-25 UTC:
 
 - Branch: `blastwall-v3-signed-attestation`.
-- Commit: `f50c1228ddcf4544a38634f05fd87179210c6917`.
-- Controller project sync: `4221`, successful.
+- Controller project sync `4221`, successful, observed commit
+  `f50c1228ddcf4544a38634f05fd87179210c6917`.
+- Controller project sync `4871`, successful, observed commit
+  `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`.
 - Stable-v3 shared-custody guard: job `3918` failed closed with
   `stable-v3 rejects shared vault scope`.
-- Stable-v3 non-shared custody probes: jobs `3914`, `3987`, and `3991` failed
-  in the Controller vault-health path. These are publication/custody blockers,
-  not stable-v3 security bypasses.
+- Earlier stable-v3 non-shared custody probes `3914`, `3987`, and `3991`
+  failed in the Controller vault-health path before the non-shared argument
+  remediation. They are superseded by service-owned KRA health job `4872`,
+  which passed with the canary present.
+- Stable-v3 shared-custody rejection `4876` failed closed after the service
+  custody remediation.
 - Transition-v3 lab/RC shared-custody health: job `3922`, successful and
   labelled as lab/RC custody.
 - Corrected transition-v3 policy pipeline: workflow `4046`, successful, with
@@ -87,6 +92,15 @@ Captured on 2026-05-20 UTC:
   Controller project update timeout in workflow `4086`.
 - Strict inventory audit: job `4098` failed closed on the intentional
   missing-artifact fixture after verifying the valid mirror host.
+- Stable-v3 service-custody policy pipeline: workflow `4922`, successful,
+  including render `4931`, build `4927`, install `4932`, verify `4936`, sign
+  `4940`, promote `4944`, and final preflight `4951`.
+- Stable-v3 service-custody runtime verification: workflow `4968`,
+  successful, including runtime preflight `4977` and managed-host verification
+  `4981`.
+- Service-custody inventory audit: job `4989` verified
+  `mirror-registry.workshop.lan` through service custody and failed closed on
+  the intentional broken fixture.
 
 Final destructive recapture on the same Controller-visible source:
 
@@ -102,9 +116,10 @@ Final destructive recapture on the same Controller-visible source:
   `stale-blastwall-01.workshop.lan` restored to its original single reference
   marker.
 
-This evidence remains Calabi reference-topology evidence. Because the current
-positive path uses transition-v3 lab/RC shared custody, it does not remove the
-stable-v3 publication hold for service-owned or named-user custody.
+This evidence remains Calabi reference-topology evidence. It proves the
+reference service-custody path in the demonstration environment and does not
+claim an external production operating program. Stable-v3 publication remains
+held for governance owners and sign-off; the S-range claim remains held.
 
 ## Earlier current-branch evidence
 
@@ -344,7 +359,7 @@ attachments:
 The destructive negative matrix now covers artifact visibility, replay,
 expiry, revoked latest index, signature tamper, signer trust, policy drift,
 profile mismatch, host binding, and breakglass boundaries. The target branch
-also has three-host mixed-state evidence and an installed continuous
-verification loop. Remaining publication hold is governance approval and named
-owners plus live-green stable-v3 service-owned or named-user custody health;
-the S-range claim remains held until broader scale evidence is captured.
+also has three-host mixed-state evidence, an installed continuous verification
+loop, and refreshed service-owned custody evidence. Remaining publication hold
+is governance approval, named owners, and sign-off; the S-range claim remains
+held until broader scale evidence is captured.

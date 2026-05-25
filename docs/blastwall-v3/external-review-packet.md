@@ -108,8 +108,10 @@ Live negative checks currently recorded:
   `FAIL_CANARY_MISSING`, and bad-primary job `3702` failed closed.
 - Stable-v3 shared-custody guard: job `3918` failed closed with
   `stable-v3 rejects shared vault scope`.
-- Stable-v3 non-shared custody probes: jobs `3914`, `3987`, and `3991` failed
-  in the live vault-health path and remain publication/custody blockers.
+- Earlier stable-v3 non-shared custody probes `3914`, `3987`, and `3991`
+  failed before the non-shared argument remediation. They are superseded by
+  service-owned KRA health `4872`, shared rejection `4876`, policy pipeline
+  `4922`, runtime workflow `4968`, and inventory audit `4989`.
 - Transition-v3 lab/RC shared-custody path: health job `3922`, policy pipeline
   workflow `4046`, standalone signed preflight `4082`, and runtime workflow
   `4102` passed. Strict audit `4098` failed closed on the intentional
@@ -158,9 +160,8 @@ exercised:
   missing-artifact fixture while the valid host remained clean.
 
 Remaining hold: source and lab evidence are ready for external review, but
-stable-v3 publication still needs named governance owners, sign-off, and a
-live-green service-owned or named-user custody path. The S-range claim remains
-held until broader scale evidence is captured.
+stable-v3 publication still needs named governance owners and sign-off. The
+S-range claim remains held until broader scale evidence is captured.
 
 ## Failure-state map
 

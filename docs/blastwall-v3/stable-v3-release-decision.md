@@ -2,7 +2,7 @@
 
 ## Verdict
 
-`HOLD for stable-v3 publication pending governance owner assignment, stable-v3 custody health, and sign-off.`
+`HOLD for stable-v3 publication pending governance owner assignment and sign-off.`
 
 Operational boundaries are recorded in
 `docs/blastwall-v3/operational-guidance.md`.
@@ -29,9 +29,9 @@ Hold items:
 - The S-range claim remains held until a broader mixed-state scale gate is run.
 - Stable-v3 shared vault custody is rejected; Calabi shared-vault evidence
   remains lab/RC reference evidence.
-- Stable-v3 service-owned or named-user custody is not live-green yet in
-  Calabi. Jobs `3914`, `3987`, and `3991` failed in the vault-health path and
-  must be resolved before publication.
+- Stable-v3 service-owned custody is live-green in Calabi reference evidence
+  as of 2026-05-25. This proves the demonstration path, not an external
+  production operating program.
 
 Completed items since the prior decision:
 
@@ -52,6 +52,12 @@ Completed items since the prior decision:
   commit `f50c1228ddcf4544a38634f05fd87179210c6917`: preflight `4233`
   failed as `FAIL_ATTESTATION_INTEGRITY`, and preflight `4255` failed as
   `FAIL_REVOKED_ATTESTATION`.
+- Stable-v3 service-owned custody was refreshed on commit
+  `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`: KRA health `4872` passed,
+  shared-custody rejection `4876` failed closed, candidate preflight `4918`
+  passed, policy pipeline workflow `4922` passed, runtime workflow `4968`
+  passed, and inventory audit `4989` verified the valid host while failing
+  closed on the intentional broken fixture.
 
 ## Evidence Summary
 
@@ -73,8 +79,10 @@ Completed items since the prior decision:
   runtime workflow `3736`, strict inventory audit `3772`, scheduled KRA health
   `3776`/`3797`/`3802`, scheduled preflight `3780`, scheduled runtime `3781`,
   and scheduled audits `3778`/`3799`/`3804`.
-- Stable shared custody rejection: `3918`.
-- Stable non-shared custody blockers: `3914`, `3987`, `3991`.
+- Stable shared custody rejection: `3918` and `4876`.
+- Stable service-owned custody refresh: KRA health `4872`, candidate preflight
+  `4918`, policy pipeline `4922`, runtime workflow `4968`, and inventory audit
+  `4989`.
 - Corrected transition-v3 lab/RC path: KRA health `3922`, policy pipeline
   `4046`, standalone preflight `4082`, runtime workflow `4102`, and strict
   audit `4098` expected fixture fail-closed.
@@ -115,7 +123,7 @@ place. Do not claim S-range readiness from this evidence packet.
 ```yaml
 verdict:
   source_readiness: GO for external review.
-  publication: HOLD pending governance owner assignment, custody health, and sign-off.
+  publication: HOLD pending governance owner assignment and sign-off.
   s_range_claim: HOLD pending broader scale evidence.
 go_items:
   - marker remains a locator and is not the trust proof
@@ -131,17 +139,17 @@ go_items:
 hold_items:
   - named governance owners and sign-off are not recorded
   - S-range mixed-state scale evidence is not captured
-  - stable-v3 service-owned or named-user custody is not live-green in Calabi
 no_go_items: []
 evidence_summary:
   - controller-visible commit at 2026-05-20 UTC: f50c1228ddcf4544a38634f05fd87179210c6917
+  - service-custody refresh at 2026-05-25 UTC: 93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3
   - strict inventory audit: 3772
   - scheduled loop latest jobs: 3802 and 3804
   - final destructive recapture: 4233 and 4255
+  - service-custody health and runtime: 4872, 4922, 4968, 4989
   - primary evidence ledger: V3_STABLE_EVIDENCE_GATE_LEDGER.md
 recommended_next_branch_or_release_action:
   - keep publication held
   - assign owners and sign off the operating model
-  - resolve stable-v3 service-owned or named-user custody health in Calabi
   - run the S-range scale gate before making an S-range claim
 ```
