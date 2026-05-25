@@ -2,8 +2,11 @@
 
 Date: 2026-05-20
 Latest update: 2026-05-25
-Branch: `v3`
-Commit: `f6414bd246054693c178e86e76fb2192aed4fa72`
+Publication branch: `v3`
+Controller-visible evidence commit: `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3`
+Latest publication-polish commit before this metadata refresh:
+  `b87dc6e0edb536c3a919a881d616060c6a20f354`
+Former implementation branch: `blastwall-v3-signed-attestation`
 Decision:
   Reference exemplar publication: GO
   Calabi reference topology evidence: GO
@@ -23,9 +26,10 @@ Stable-v3 service-owned custody health is live-green in Calabi as of
 the surface an organization completes before operating the pattern as a local
 control, not a blocker for publishing the upstream exemplar.
 
-The live Controller-visible evidence commit is
-`93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3` as observed after project update
-`4871` on 2026-05-25 UTC.
+The Controller-visible evidence commit above was observed after project update
+`4871` on 2026-05-25 UTC. The publication branch is intentionally not
+self-pinned to the current file's own commit; use `origin/v3` for the current
+publication HEAD.
 
 ## Evidence Accepted
 

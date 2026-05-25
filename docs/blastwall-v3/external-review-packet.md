@@ -55,8 +55,10 @@ Reference documents:
 ## Calabi evidence
 
 Latest target-branch evidence was refreshed on 2026-05-25 UTC for the `v3`
-publication branch. The upstream branch head is
-`f6414bd246054693c178e86e76fb2192aed4fa72`; the Controller-visible
+publication branch. Use `origin/v3` for the current upstream branch head; this
+review packet does not self-pin the branch commit. The latest
+publication-polish commit before the metadata refresh is
+`b87dc6e0edb536c3a919a881d616060c6a20f354`. The Controller-visible
 service-custody refresh observed commit
 `93fab21cd548c4ff7ca2d2addb21ecc1ad5c2cc3` by project update `4871`.
 

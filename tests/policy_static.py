@@ -1184,9 +1184,16 @@ if "| pending |" in governance_doc:
         "Stable-v3 service-owned custody demonstration: GO",
         "Fleet-scale evidence: future validation",
         "the surface an organization completes before operating the pattern",
+        "Publication branch: `v3`",
+        "Controller-visible evidence commit:",
+        "Latest publication-polish commit before this metadata refresh:",
+        "Former implementation branch: `blastwall-v3-signed-attestation`",
+        "intentionally not self-pinned",
     ]:
         if required_release_boundary not in release_decision_normalized:
             fail(f"release/STABLE_V3_DECISION.md missing release boundary: {required_release_boundary}")
+    if re.search(r"(?m)^Commit:\s*`[0-9a-f]{40}`\s*$", release_decision):
+        fail("release/STABLE_V3_DECISION.md must not use an ambiguous self-staling Commit field")
     for doc_name in [
         "stable-v3-release-decision.md",
         "final-stable-v3-decision.md",

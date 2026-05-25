@@ -63,7 +63,10 @@ Completed items since the prior decision:
 ## Evidence Summary
 
 - Current publication branch: `v3`.
-- Current branch head: `f6414bd246054693c178e86e76fb2192aed4fa72`.
+- Current branch head: use `origin/v3`; this decision does not self-pin the
+  branch commit.
+- Latest publication-polish commit before the metadata refresh:
+  `b87dc6e0edb536c3a919a881d616060c6a20f354`.
 - Controller-visible commit observed at 2026-05-20 UTC:
   `f50c1228ddcf4544a38634f05fd87179210c6917`, project update `4221`.
 - Three-host evidence project sync: `3771` to

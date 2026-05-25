@@ -4,7 +4,8 @@
 - branch: v3
 - former implementation branch: blastwall-v3-signed-attestation, promoted into v3
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- final-nits intake commit: `b6c0a21ee17f4fc9087351d1d17adbe8cd8ed06a`
+- reference-exemplar framing commit: `b6c0a21ee17f4fc9087351d1d17adbe8cd8ed06a`
+- branch-reference polish commit: `b87dc6e0edb536c3a919a881d616060c6a20f354`
 - implementation gate commit: `02c4d7490bfa7671802a71d3079846c27bd92b11`
 
 ## Phase Status
