@@ -452,13 +452,13 @@ if not project_url_env_pattern.search(calabi_config):
     )
 project_branch_env_pattern = re.compile(
     r"BLASTWALL_PROJECT_BRANCH:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_PROJECT_BRANCH['\"]\s*\)\s*\|\s*default\("
-    r"\s*['\"]blastwall-v3-signed-attestation['\"]\s*,\s*true\s*\)\s*\}\}",
+    r"\s*['\"]v3['\"]\s*,\s*true\s*\)\s*\}\}",
     re.MULTILINE,
 )
 if not project_branch_env_pattern.search(calabi_config):
     fail(
         "Calabi AAP configuration does not default BLASTWALL_PROJECT_BRANCH to "
-        "blastwall-v3-signed-attestation via env override"
+        "v3 via env override"
     )
 candidate_group_pattern = re.compile(
     r"BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP:\s*>\-[^\n]*\n\s*\{\{\s*lookup\(\s*['\"]env['\"]\s*,\s*['\"]BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP['\"]\s*\)\s*"

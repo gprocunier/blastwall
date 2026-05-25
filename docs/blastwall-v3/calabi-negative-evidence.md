@@ -4,8 +4,8 @@
 
 Record fail-closed evidence for Blastwall v3 stable-v3 policy gates on Calabi.
 This packet contains the live destructive matrix captured through the
-negative-gate branch plus the later target-branch mixed-state, service-custody,
-and continuous verification evidence.
+historical negative-gate evidence branch plus the later `v3` mixed-state,
+service-custody, and continuous verification evidence.
 
 Calabi is reference-topology evidence. It proves this lab path and should not
 be read as broad portability proof for arbitrary RHEL, OpenShift, IdM, AAP, or
@@ -14,7 +14,7 @@ KRA generations.
 ## Scope
 
 - Baseline branch: `v3`
-- Negative-gate branch: `blastwall-v3-negative-gate-calabi`
+- Historical destructive-evidence branch: `blastwall-v3-negative-gate-calabi`
 - Goal: prove fail-closed behavior and infra-only breakglass constraints under live negative conditions.
 - Claim boundary: Calabi reference topology. Fleet-scale and broad portability
   claims require separate evidence.
@@ -171,9 +171,10 @@ Non-mutating negative checks captured on 2026-05-18 UTC:
   expected at `Resolve configured stable-v3 KRA vault servers` with
   `getent hosts missing-kra.workshop.lan` returning `rc=2`.
 
-Current-branch non-mutating negative checks captured on 2026-05-19 UTC:
+Non-mutating negative checks captured on the historical evidence branch on
+2026-05-19 UTC:
 
-- Branch: `blastwall-v3-negative-gate-calabi`.
+- Historical evidence branch: `blastwall-v3-negative-gate-calabi`.
 - Commit: `c5241c21293c3fe372d3ab5ba3bb4d1f03192c9c`.
 - Drifted current policy hash: AAP preflight job `3478` failed as expected
   with `FAIL_DRIFTED_POLICY`; verifier message was
@@ -184,7 +185,7 @@ Current-branch non-mutating negative checks captured on 2026-05-19 UTC:
 
 Controlled destructive checks captured on 2026-05-19 UTC:
 
-- Branch: `blastwall-v3-negative-gate-calabi`.
+- Historical evidence branch: `blastwall-v3-negative-gate-calabi`.
 - Commit: `06e7831204858495085492d4803c8d929108ef30`.
 - Controller project sync: `3388`, successful.
 - Negative-test host: `stale-blastwall-01.workshop.lan`.

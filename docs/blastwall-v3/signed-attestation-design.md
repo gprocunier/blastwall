@@ -110,7 +110,7 @@ Because Blastwall v2 is not yet published as stable, there are two possible impl
 1. refactor the current v2 feature branch directly; or
 2. create a new v3 feature branch based on the latest remediated v2 branch.
 
-The recommended strategy is:
+The historical implementation strategy was:
 
 ```text
 Create a new feature branch from the latest remediated v2 branch:
@@ -119,6 +119,9 @@ Create a new feature branch from the latest remediated v2 branch:
 or, if preserving phase naming:
   blastwall-v2-phase-09-v3-attestation
 ```
+
+That implementation branch has since been promoted into the publication branch
+`v3`.
 
 ### 3.2 Rationale
 

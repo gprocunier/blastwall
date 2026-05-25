@@ -2,9 +2,9 @@
 
 ## Branch
 - branch: v3
-- implementation branch: blastwall-v3-signed-attestation
+- former implementation branch: blastwall-v3-signed-attestation, promoted into v3
 - base commit: 6d233cacd5252c1c1487ecec48340c2a2d1dd296
-- current commit: working tree after `14f7f472f70c1eb66f8ece35b194ed4e2da8b137`
+- final-nits intake commit: `b6c0a21ee17f4fc9087351d1d17adbe8cd8ed06a`
 - implementation gate commit: `02c4d7490bfa7671802a71d3079846c27bd92b11`
 
 ## Phase Status
@@ -59,7 +59,8 @@
   (`172.16.0.30`); bastion checkout
   `/opt/openshift/aws-metal-openshift-demo/blastwall`.
 - OpenShift access: `oc whoami` returned `system:admin`; cluster reported 6 nodes.
-- AAP project branch: `blastwall-v3-signed-attestation`.
+- Initial implementation-gate AAP project branch:
+  `blastwall-v3-signed-attestation`; current publication branch: `v3`.
 - Implementation gate source revision:
   `02c4d7490bfa7671802a71d3079846c27bd92b11`.
 - Signer certificate: subject `O=WORKSHOP.LAN, CN=idm-01.workshop.lan`;
