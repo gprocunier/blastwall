@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="limitation-flow Red Hat styled diagram" width="1300" height="820" viewBox="0 0 1300 820">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .group rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.5; filter: url(#shadow); }
+      .group-title { fill: #151515; font: 700 24px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .decision { stroke-width: 1.45; }
+      .title { fill: #151515; font: 700 18px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 14px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .compact-title { font-size: 13.5px; }
+      .compact-subtitle { font-size: 10.5px; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .connector.dashed { stroke-dasharray: 8 8; }
+      .edge-label-chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .edge-label-chip text { fill: #be0000; font: 600 13px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1300" height="820"/>
+  <rect class="grain" width="1300" height="820"/>
+
+  <g class="edges"><path class="connector" d="M 650 150 V 430" marker-end="url(#arrow)"/>
+<path class="connector" d="M 650 520 V 570" marker-end="url(#arrow)"/>
+<path class="connector" d="M 650 660 V 710" marker-end="url(#arrow)"/>
+<path class="connector" d="M 230 150 V 250" marker-end="url(#arrow)"/>
+<path class="connector" d="M 1070 150 V 250" marker-end="url(#arrow)"/>
+<path class="connector" d="M 380 295 H 470 V 475 H 500" marker-end="url(#arrow)"/>
+<path class="connector" d="M 920 295 H 830 V 475 H 800" marker-end="url(#arrow)"/></g>
+
+      <g class="node">
+        <rect class="card" x="500" y="60" width="300" height="90" rx="8"/>
+        <svg x="522" y="84" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 7.75c.69 0 1.25.56 1.25 1.25v7a1.25 1.25 0 0 1-2.5 0V9c0-.69.56-1.25 1.25-1.25Zm13-3.19V18c0 7.168-5.832 13-13 13S3 25.168 3 18V4.56a1 1 0 0 1 .791-.978l12-2.56c.139-.029.279-.029.418 0l12 2.56A1 1 0 0 1 29 4.56Zm-2 .809L16 3.022 5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369ZM16 20.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 16 20.25Z"/></svg>
+        <text class="title" x="584" y="111.5">Copy Fail path</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="500" y="430" width="300" height="90" rx="8"/>
+        <svg x="522" y="454" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M22 14a1 1 0 0 1-1 1H11a1 1 0 1 1 0-2h10a1 1 0 0 1 1 1Zm-1 4H11a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2Zm-5 5h-5a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2ZM27 7.5v22c0 .827-.673 1.5-1.5 1.5h-19c-.827 0-1.5-.673-1.5-1.5v-22C5 6.673 5.673 6 6.5 6H9v-.5c0-.827.673-1.5 1.5-1.5h1.626c.445-1.724 2.013-3 3.874-3s3.428 1.276 3.874 3H21.5c.827 0 1.5.673 1.5 1.5V6h2.5c.827 0 1.5.673 1.5 1.5ZM11 8h10V6h-2a1 1 0 0 1-1-1c0-1.103-.897-2-2-2s-2 .897-2 2a1 1 0 0 1-1 1h-2v2Zm14 0h-2v.5c0 .827-.673 1.5-1.5 1.5h-11C9.673 10 9 9.327 9 8.5V8H7v21h18V8Z"/></svg>
+        <text class="title" x="584" y="481.5">AF_ALG socket</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="500" y="570" width="300" height="90" rx="8"/>
+        <svg x="522" y="594" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M22 14a1 1 0 0 1-1 1H11a1 1 0 1 1 0-2h10a1 1 0 0 1 1 1Zm-1 4H11a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2Zm-5 5h-5a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2ZM27 7.5v22c0 .827-.673 1.5-1.5 1.5h-19c-.827 0-1.5-.673-1.5-1.5v-22C5 6.673 5.673 6 6.5 6H9v-.5c0-.827.673-1.5 1.5-1.5h1.626c.445-1.724 2.013-3 3.874-3s3.428 1.276 3.874 3H21.5c.827 0 1.5.673 1.5 1.5V6h2.5c.827 0 1.5.673 1.5 1.5ZM11 8h10V6h-2a1 1 0 0 1-1-1c0-1.103-.897-2-2-2s-2 .897-2 2a1 1 0 0 1-1 1h-2v2Zm14 0h-2v.5c0 .827-.673 1.5-1.5 1.5h-11C9.673 10 9 9.327 9 8.5V8H7v21h18V8Z"/></svg>
+        <text class="title" x="584" y="621.5">bind(authencesn...)</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="500" y="710" width="300" height="90" rx="8"/>
+        <svg x="522" y="734" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 7.75c.69 0 1.25.56 1.25 1.25v7a1.25 1.25 0 0 1-2.5 0V9c0-.69.56-1.25 1.25-1.25Zm13-3.19V18c0 7.168-5.832 13-13 13S3 25.168 3 18V4.56a1 1 0 0 1 .791-.978l12-2.56c.139-.029.279-.029.418 0l12 2.56A1 1 0 0 1 29 4.56Zm-2 .809L16 3.022 5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369ZM16 20.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 16 20.25Z"/></svg>
+        <text class="title" x="584" y="761.5">vulnerable kernel path</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="80" y="60" width="300" height="90" rx="8"/>
+        <svg x="102" y="84" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 7.75c.69 0 1.25.56 1.25 1.25v7a1.25 1.25 0 0 1-2.5 0V9c0-.69.56-1.25 1.25-1.25Zm13-3.19V18c0 7.168-5.832 13-13 13S3 25.168 3 18V4.56a1 1 0 0 1 .791-.978l12-2.56c.139-.029.279-.029.418 0l12 2.56A1 1 0 0 1 29 4.56Zm-2 .809L16 3.022 5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369ZM16 20.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 16 20.25Z"/></svg>
+        <text class="title" x="164" y="103.5">block-copyfail</text>
+        <text class="subtitle" x="164" y="124.5">BPF LSM approach</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="80" y="250" width="300" height="90" rx="8"/>
+        <svg x="102" y="274" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 7.75c.69 0 1.25.56 1.25 1.25v7a1.25 1.25 0 0 1-2.5 0V9c0-.69.56-1.25 1.25-1.25Zm13-3.19V18c0 7.168-5.832 13-13 13S3 25.168 3 18V4.56a1 1 0 0 1 .791-.978l12-2.56c.139-.029.279-.029.418 0l12 2.56A1 1 0 0 1 29 4.56Zm-2 .809L16 3.022 5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369ZM16 20.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 16 20.25Z"/></svg>
+        <text class="title" x="164" y="293.5">Inspect sockaddr_alg</text>
+        <text class="subtitle" x="164" y="314.5">deny only authencesn</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="920" y="60" width="300" height="90" rx="8"/>
+        <svg x="942" y="84" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 31C8.832 31 3 25.168 3 18V4.56a1 1 0 0 1 .792-.978l12-2.56a1.01 1.01 0 0 1 .417 0l12 2.56c.461.099.792.506.792.978V18c0 7.168-5.832 13-13 13ZM5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369L16 3.022 5 5.369Z"/></svg>
+        <text class="title" x="1004" y="103.5">Blastwall</text>
+        <text class="subtitle" x="1004" y="124.5">SELinux approach</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="920" y="250" width="300" height="90" rx="8"/>
+        <svg x="942" y="274" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 7.75c.69 0 1.25.56 1.25 1.25v7a1.25 1.25 0 0 1-2.5 0V9c0-.69.56-1.25 1.25-1.25Zm13-3.19V18c0 7.168-5.832 13-13 13S3 25.168 3 18V4.56a1 1 0 0 1 .791-.978l12-2.56c.139-.029.279-.029.418 0l12 2.56A1 1 0 0 1 29 4.56Zm-2 .809L16 3.022 5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369ZM16 20.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 16 20.25Z"/></svg>
+        <text class="title" x="1004" y="293.5">Deny alg_socket class</text>
+        <text class="subtitle" x="1004" y="314.5">for automation domain</text>
+      </g>
+</svg>

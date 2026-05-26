@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="570" viewBox="0 0 1280 570" role="img" aria-labelledby="v3-calabi-reference-topology-title v3-calabi-reference-topology-desc">
+<title id="v3-calabi-reference-topology-title">Calabi Reference Topology</title>
+<desc id="v3-calabi-reference-topology-desc">The exemplar evidence path runs through the lab control chain before touching managed hosts.</desc>
+<defs>
+<marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ee0000" /></marker>
+<marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4d4d4d" /></marker>
+<marker id="arrow-success" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3d7317" /></marker>
+<marker id="arrow-warning" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f0ab00" /></marker>
+</defs>
+<style>
+svg { background: #ffffff; font-family: 'Red Hat Text', 'Helvetica Neue', Arial, sans-serif; }
+.diagram-title { fill: #151515; font: 700 26px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.diagram-subtitle { fill: #4d4d4d; font: 400 15px 'Red Hat Text', Arial, sans-serif; }
+.lane rect { fill: #f5f5f5; stroke: #e0e0e0; stroke-width: 1.5; }
+.lane--red rect { fill: #fff5f5; stroke: #f4b7b7; }
+.lane--blue rect { fill: #f1f7ff; stroke: #b8d8ff; }
+.lane-title { fill: #a30000; font: 700 16px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card rect { fill: #ffffff; stroke: #e0e0e0; stroke-width: 1.5; }
+.card--gate rect { stroke: #ee0000; stroke-width: 2.2; }
+.card--proof rect { stroke: #0066cc; stroke-width: 2; }
+.card--success rect { stroke: #3d7317; stroke-width: 2; }
+.card--warning rect { stroke: #f0ab00; stroke-width: 2; }
+.card--muted rect { fill: #f5f5f5; stroke: #c7c7c7; }
+.card-title { fill: #151515; font: 700 17px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card-body { fill: #4d4d4d; font: 400 13.5px 'Red Hat Text', Arial, sans-serif; }
+.connector { fill: none; stroke: #ee0000; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.connector--muted { stroke: #4d4d4d; }
+.connector--success { stroke: #3d7317; }
+.connector--warning { stroke: #f0ab00; }
+.connector--dashed { stroke-dasharray: 7 7; }
+.connector-label { fill: #4d4d4d; font: 700 12px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label { fill: #151515; font: 700 15px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label--muted { fill: #4d4d4d; font-weight: 500; }
+.standalone-label--red { fill: #a30000; }
+</style>
+<text class="diagram-title" x="32" y="42">Calabi Reference Topology</text>
+<text class="diagram-subtitle" x="32" y="68">The exemplar evidence path runs through the lab control chain before touching managed hosts.</text>
+<g class="lane lane--blue">
+<rect x="34" y="98" width="258" height="342" rx="8" />
+<text class="lane-title" x="52" y="126" text-anchor="start">
+<tspan x="52" dy="0">Operator workstation</tspan>
+</text>
+</g>
+<g class="lane lane--default">
+<rect x="330" y="98" width="260" height="342" rx="8" />
+<text class="lane-title" x="348" y="126" text-anchor="start">
+<tspan x="348" dy="0">Jump and bastion</tspan>
+</text>
+</g>
+<g class="lane lane--red">
+<rect x="628" y="98" width="288" height="342" rx="8" />
+<text class="lane-title" x="646" y="126" text-anchor="start">
+<tspan x="646" dy="0">Control services</tspan>
+</text>
+</g>
+<g class="lane lane--default">
+<rect x="954" y="98" width="292" height="342" rx="8" />
+<text class="lane-title" x="972" y="126" text-anchor="start">
+<tspan x="972" dy="0">Managed hosts</tspan>
+</text>
+</g>
+<polyline class="connector connector--muted" points="252,207 366,185" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--muted" points="456,225 456,285" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--default" points="546,325 662,169" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="546,325 662,279" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="882,169 994,217" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="882,279 994,217" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--success" points="882,389 994,352" marker-end="url(#arrow-success)" />
+<g class="card card--muted">
+<rect x="72" y="165" width="180" height="105" rx="6" />
+<text class="card-title" x="90" y="195" text-anchor="start">
+<tspan x="90" dy="0">Codex</tspan>
+<tspan x="90" dy="16">workspace</tspan>
+</text>
+<text class="card-body" x="90" y="229" text-anchor="start">
+<tspan x="90" dy="0">source branch</tspan>
+<tspan x="90" dy="13">validation</tspan>
+<tspan x="90" dy="13">publish docs</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="366" y="145" width="180" height="80" rx="6" />
+<text class="card-title" x="384" y="175" text-anchor="start">
+<tspan x="384" dy="0">virt-01</tspan>
+</text>
+<text class="card-body" x="384" y="194" text-anchor="start">
+<tspan x="384" dy="0">lab jump host</tspan>
+<tspan x="384" dy="13">boundary hop</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="366" y="285" width="180" height="80" rx="6" />
+<text class="card-title" x="384" y="315" text-anchor="start">
+<tspan x="384" dy="0">Bastion</tspan>
+</text>
+<text class="card-body" x="384" y="334" text-anchor="start">
+<tspan x="384" dy="0">AAP and IdM</tspan>
+<tspan x="384" dy="13">access path</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="662" y="130" width="220" height="78" rx="6" />
+<text class="card-title" x="680" y="160" text-anchor="start">
+<tspan x="680" dy="0">AAP Controller</tspan>
+</text>
+<text class="card-body" x="680" y="179" text-anchor="start">
+<tspan x="680" dy="0">inventory, preflight,</tspan>
+<tspan x="680" dy="13">workflow execution</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="662" y="240" width="220" height="78" rx="6" />
+<text class="card-title" x="680" y="270" text-anchor="start">
+<tspan x="680" dy="0">IdM + KRA</tspan>
+</text>
+<text class="card-body" x="680" y="289" text-anchor="start">
+<tspan x="680" dy="0">markers, CA, vault,</tspan>
+<tspan x="680" dy="13">latest index</tspan>
+</text>
+</g>
+<g class="card card--success">
+<rect x="662" y="350" width="220" height="78" rx="6" />
+<text class="card-title" x="680" y="380" text-anchor="start">
+<tspan x="680" dy="0">Evidence ledger</tspan>
+</text>
+<text class="card-body" x="680" y="399" text-anchor="start">
+<tspan x="680" dy="0">job IDs and</tspan>
+<tspan x="680" dy="13">artifact bindings</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="994" y="175" width="210" height="84" rx="6" />
+<text class="card-title" x="1012" y="205" text-anchor="start">
+<tspan x="1012" dy="0">mirror-registry</tspan>
+</text>
+<text class="card-body" x="1012" y="224" text-anchor="start">
+<tspan x="1012" dy="0">reference host</tspan>
+<tspan x="1012" dy="13">policy probes</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="994" y="310" width="210" height="84" rx="6" />
+<text class="card-title" x="1012" y="340" text-anchor="start">
+<tspan x="1012" dy="0">additional hosts</tspan>
+</text>
+<text class="card-body" x="1012" y="359" text-anchor="start">
+<tspan x="1012" dy="0">mixed-state</tspan>
+<tspan x="1012" dy="13">scheduled checks</tspan>
+</text>
+</g>
+</svg>

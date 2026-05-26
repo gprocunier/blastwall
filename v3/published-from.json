@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-05-26T06:54:02+00:00",
+  "root": {
+    "ref": "0ac671b97be9072389c1a149a99697199e8b9a38",
+    "source": "main:/docs"
+  },
+  "v3": {
+    "path": "/v3/",
+    "ref": "5668edd59a62edc73fb81f51cbe97047344ffc63",
+    "source": "v3:/docs"
+  }
+}

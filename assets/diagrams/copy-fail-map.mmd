@@ -1,0 +1,10 @@
+flowchart LR
+    COPY["Copy Fail mitigation idea"] --> BPF["block-copyfail<br/>BPF LSM precision"]
+    COPY --> BW["Blastwall<br/>SELinux automation boundary"]
+
+    BPF --> BPFHOOK["socket_bind hook<br/>inspect authencesn"]
+    BPFHOOK --> BPFDENY["Deny exact algorithm"]
+
+    BW --> IDM["IdM maps identity<br/>to blastwall_u"]
+    IDM --> AAP["AAP preflight<br/>chooses safe hosts"]
+    AAP --> SELINUX["SELinux denies<br/>alg_socket for automation"]

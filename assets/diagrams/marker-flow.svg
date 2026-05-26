@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="marker-flow Red Hat styled diagram" width="1110" height="610" viewBox="0 0 1110 610">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .group rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.5; filter: url(#shadow); }
+      .group-title { fill: #151515; font: 700 24px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .decision { stroke-width: 1.45; }
+      .title { fill: #151515; font: 700 18px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 14px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .compact-title { font-size: 13.5px; }
+      .compact-subtitle { font-size: 10.5px; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .connector.dashed { stroke-dasharray: 8 8; }
+      .edge-label-chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .edge-label-chip text { fill: #be0000; font: 600 13px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1110" height="610"/>
+  <rect class="grain" width="1110" height="610"/>
+
+  <g class="edges"><path class="connector" d="M 290 105 H 360" marker-end="url(#arrow)"/>
+<path class="connector" d="M 590 105 H 660" marker-end="url(#arrow)"/>
+<path class="connector" d="M 660 275 H 590" marker-end="url(#arrow)"/>
+<path class="connector" d="M 175 320 V 380 H 510 V 420" marker-end="url(#arrow)"/><g class="edge-label-chip">
+        <rect x="278" y="366.5" width="44" height="27" rx="5"/>
+        <text x="300" y="386.5">yes</text>
+      </g>
+<path class="connector" d="M 175 320 V 380 H 880 V 420" marker-end="url(#arrow)"/><g class="edge-label-chip">
+        <rect x="648" y="366.5" width="44" height="27" rx="5"/>
+        <text x="670" y="386.5">no</text>
+      </g>
+<path class="connector" d="M 775 150 V 230" marker-end="url(#arrow)"/>
+<path class="connector" d="M 360 275 H 290" marker-end="url(#arrow)"/></g>
+
+      <g class="node">
+        <rect class="card" x="60" y="60" width="230" height="90" rx="8"/>
+        <svg x="78" y="89" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M26 16c0 1.654 1.346 3 3 3a1 1 0 1 1 0 2c-2.757 0-5-2.243-5-5s2.243-5 5-5a1 1 0 1 1 0 2c-1.654 0-3 1.346-3 3Zm3 13c-1.02 0-2.025-.116-3-.348v-3.49a1 1 0 0 0-.6-.916 9.022 9.022 0 0 1-1.737-1.008 1.063 1.063 0 0 0-.316-.156 1 1 0 0 0-.788.093l-3.014 1.744a12.96 12.96 0 0 1-3.001-5.188l3.01-1.742a1 1 0 0 0 .509-.985C20.024 16.674 20 16.34 20 16s.023-.675.06-1.005a1.01 1.01 0 0 0-.5-.98l-3.016-1.746a12.96 12.96 0 0 1 3-5.188l3.015 1.744a1.027 1.027 0 0 0 1.109-.061 9.043 9.043 0 0 1 1.735-1.004c.363-.16.597-.524.597-.92V3.348C26.975 3.116 27.98 3 29 3a1 1 0 1 0 0-2c-1.465 0-2.907.209-4.287.622A1 1 0 0 0 24 2.58v3.634a10.92 10.92 0 0 0-.981.567L19.88 4.965a.998.998 0 0 0-1.19.14 14.986 14.986 0 0 0-4.284 7.414 1 1 0 0 0 .472 1.096l3.138 1.817a9.57 9.57 0 0 0 .001 1.137l-3.14 1.816a1 1 0 0 0-.47 1.096 14.986 14.986 0 0 0 4.283 7.414 1 1 0 0 0 1.19.14l3.134-1.813c.32.208.65.4.985.571v3.627a1 1 0 0 0 .713.958c1.38.413 2.822.622 4.287.622a1 1 0 1 0 0-2ZM10.164 1.675a.998.998 0 0 0-1.27-.62l-5.35 1.841a1 1 0 1 0 .651 1.891l3.018-1.039A24.908 24.908 0 0 0 4 16c0 4.825 1.377 9.508 3.982 13.542a.998.998 0 0 0 1.382.298.998.998 0 0 0 .298-1.382A22.918 22.918 0 0 1 6 16c0-4.036 1.057-7.957 3.047-11.426l1.067 3.1a1 1 0 1 0 1.89-.65l-1.84-5.35Z"/></svg>
+        <text class="title compact-title" x="126" y="102">Policy deployment</text><text class="title compact-title" x="126" y="118">workflow</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="360" y="60" width="230" height="90" rx="8"/>
+        <svg x="378" y="89" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 31C8.832 31 3 25.168 3 18V4.56a1 1 0 0 1 .792-.978l12-2.56a1.01 1.01 0 0 1 .417 0l12 2.56c.461.099.792.506.792.978V18c0 7.168-5.832 13-13 13ZM5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369L16 3.022 5 5.369Z"/></svg>
+        <text class="title compact-title" x="426" y="104">Install/update</text>
+        <text class="subtitle compact-subtitle" x="426" y="120">blastwall-selinux RPM</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="660" y="60" width="230" height="90" rx="8"/>
+        <svg x="678" y="89" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M26 16c0 1.654 1.346 3 3 3a1 1 0 1 1 0 2c-2.757 0-5-2.243-5-5s2.243-5 5-5a1 1 0 1 1 0 2c-1.654 0-3 1.346-3 3Zm3 13c-1.02 0-2.025-.116-3-.348v-3.49a1 1 0 0 0-.6-.916 9.022 9.022 0 0 1-1.737-1.008 1.063 1.063 0 0 0-.316-.156 1 1 0 0 0-.788.093l-3.014 1.744a12.96 12.96 0 0 1-3.001-5.188l3.01-1.742a1 1 0 0 0 .509-.985C20.024 16.674 20 16.34 20 16s.023-.675.06-1.005a1.01 1.01 0 0 0-.5-.98l-3.016-1.746a12.96 12.96 0 0 1 3-5.188l3.015 1.744a1.027 1.027 0 0 0 1.109-.061 9.043 9.043 0 0 1 1.735-1.004c.363-.16.597-.524.597-.92V3.348C26.975 3.116 27.98 3 29 3a1 1 0 1 0 0-2c-1.465 0-2.907.209-4.287.622A1 1 0 0 0 24 2.58v3.634a10.92 10.92 0 0 0-.981.567L19.88 4.965a.998.998 0 0 0-1.19.14 14.986 14.986 0 0 0-4.284 7.414 1 1 0 0 0 .472 1.096l3.138 1.817a9.57 9.57 0 0 0 .001 1.137l-3.14 1.816a1 1 0 0 0-.47 1.096 14.986 14.986 0 0 0 4.283 7.414 1 1 0 0 0 1.19.14l3.134-1.813c.32.208.65.4.985.571v3.627a1 1 0 0 0 .713.958c1.38.413 2.822.622 4.287.622a1 1 0 1 0 0-2ZM10.164 1.675a.998.998 0 0 0-1.27-.62l-5.35 1.841a1 1 0 1 0 .651 1.891l3.018-1.039A24.908 24.908 0 0 0 4 16c0 4.825 1.377 9.508 3.982 13.542a.998.998 0 0 0 1.382.298.998.998 0 0 0 .298-1.382A22.918 22.918 0 0 1 6 16c0-4.036 1.057-7.957 3.047-11.426l1.067 3.1a1 1 0 1 0 1.89-.65l-1.84-5.35Z"/></svg>
+        <text class="title compact-title" x="726" y="104">Verify local policy</text>
+        <text class="subtitle compact-subtitle" x="726" y="120">expected denials</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="660" y="230" width="230" height="90" rx="8"/>
+        <svg x="678" y="259" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M14.696 15.717A5.987 5.987 0 0 0 17 11c0-3.309-2.691-6-6-6s-6 2.691-6 6c0 1.914.904 3.617 2.304 4.717C3.616 17.19 1 20.793 1 25a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1c0-4.207-2.616-7.81-6.304-9.283ZM7 11c0-2.206 1.794-4 4-4s4 1.794 4 4-1.794 4-4 4-4-1.794-4-4ZM3.062 24c.494-3.94 3.866-7 7.938-7s7.444 3.06 7.938 7H3.063Zm27.645-11.293-4.646 4.647c-.292.292-.677.438-1.061.438s-.769-.146-1.06-.438l-2.647-2.647a1 1 0 1 1 1.414-1.414L25 15.586l4.293-4.293a1 1 0 1 1 1.414 1.414Z"/></svg>
+        <text class="title compact-title" x="726" y="272">Update IdM host</text><text class="title compact-title" x="726" y="288">userClass marker</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="360" y="230" width="230" height="90" rx="8"/>
+        <svg x="378" y="259" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 1C8.149 1 2 4.514 2 9v14c0 4.486 6.149 8 14 8s14-3.514 14-8V9c0-4.486-6.149-8-14-8Zm0 2c6.505 0 12 2.748 12 6s-5.495 6-12 6S4 12.252 4 9s5.495-6 12-6ZM4 13.161C6.427 15.476 10.839 17 16 17s9.573-1.524 12-3.839V16c0 3.252-5.495 6-12 6S4 19.252 4 16v-2.839ZM16 29c-6.505 0-12-2.748-12-6v-2.839C6.427 22.476 10.839 24 16 24s9.573-1.524 12-3.839V23c0 3.252-5.495 6-12 6Z"/></svg>
+        <text class="title compact-title" x="426" y="272">eigenstate.ipa.idm</text><text class="title compact-title" x="426" y="288">inventory sync</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="60" y="230" width="230" height="90" rx="8"/>
+        <svg x="78" y="259" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 1C8.149 1 2 4.514 2 9v14c0 4.486 6.149 8 14 8s14-3.514 14-8V9c0-4.486-6.149-8-14-8Zm0 2c6.505 0 12 2.748 12 6s-5.495 6-12 6S4 12.252 4 9s5.495-6 12-6ZM4 13.161C6.427 15.476 10.839 17 16 17s9.573-1.524 12-3.839V16c0 3.252-5.495 6-12 6S4 19.252 4 16v-2.839ZM16 29c-6.505 0-12-2.748-12-6v-2.839C6.427 22.476 10.839 24 16 24s9.573-1.524 12-3.839V23c0 3.252-5.495 6-12 6Z"/></svg>
+        <text class="title compact-title" x="126" y="274">Marker matches</text>
+        <text class="subtitle compact-subtitle" x="126" y="290">required policy?</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="350" y="420" width="320" height="90" rx="8"/>
+        <svg x="368" y="449" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M26 16c0 1.654 1.346 3 3 3a1 1 0 1 1 0 2c-2.757 0-5-2.243-5-5s2.243-5 5-5a1 1 0 1 1 0 2c-1.654 0-3 1.346-3 3Zm3 13c-1.02 0-2.025-.116-3-.348v-3.49a1 1 0 0 0-.6-.916 9.022 9.022 0 0 1-1.737-1.008 1.063 1.063 0 0 0-.316-.156 1 1 0 0 0-.788.093l-3.014 1.744a12.96 12.96 0 0 1-3.001-5.188l3.01-1.742a1 1 0 0 0 .509-.985C20.024 16.674 20 16.34 20 16s.023-.675.06-1.005a1.01 1.01 0 0 0-.5-.98l-3.016-1.746a12.96 12.96 0 0 1 3-5.188l3.015 1.744a1.027 1.027 0 0 0 1.109-.061 9.043 9.043 0 0 1 1.735-1.004c.363-.16.597-.524.597-.92V3.348C26.975 3.116 27.98 3 29 3a1 1 0 1 0 0-2c-1.465 0-2.907.209-4.287.622A1 1 0 0 0 24 2.58v3.634a10.92 10.92 0 0 0-.981.567L19.88 4.965a.998.998 0 0 0-1.19.14 14.986 14.986 0 0 0-4.284 7.414 1 1 0 0 0 .472 1.096l3.138 1.817a9.57 9.57 0 0 0 .001 1.137l-3.14 1.816a1 1 0 0 0-.47 1.096 14.986 14.986 0 0 0 4.283 7.414 1 1 0 0 0 1.19.14l3.134-1.813c.32.208.65.4.985.571v3.627a1 1 0 0 0 .713.958c1.38.413 2.822.622 4.287.622a1 1 0 1 0 0-2ZM10.164 1.675a.998.998 0 0 0-1.27-.62l-5.35 1.841a1 1 0 1 0 .651 1.891l3.018-1.039A24.908 24.908 0 0 0 4 16c0 4.825 1.377 9.508 3.982 13.542a.998.998 0 0 0 1.382.298.998.998 0 0 0 .298-1.382A22.918 22.918 0 0 1 6 16c0-4.036 1.057-7.957 3.047-11.426l1.067 3.1a1 1 0 1 0 1.89-.65l-1.84-5.35Z"/></svg>
+        <text class="title compact-title" x="416" y="464">blastwall_policy_current</text>
+        <text class="subtitle compact-subtitle" x="416" y="480">preferred candidates</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="720" y="420" width="320" height="90" rx="8"/>
+        <svg x="738" y="449" width="32" height="32" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M26 16c0 1.654 1.346 3 3 3a1 1 0 1 1 0 2c-2.757 0-5-2.243-5-5s2.243-5 5-5a1 1 0 1 1 0 2c-1.654 0-3 1.346-3 3Zm3 13c-1.02 0-2.025-.116-3-.348v-3.49a1 1 0 0 0-.6-.916 9.022 9.022 0 0 1-1.737-1.008 1.063 1.063 0 0 0-.316-.156 1 1 0 0 0-.788.093l-3.014 1.744a12.96 12.96 0 0 1-3.001-5.188l3.01-1.742a1 1 0 0 0 .509-.985C20.024 16.674 20 16.34 20 16s.023-.675.06-1.005a1.01 1.01 0 0 0-.5-.98l-3.016-1.746a12.96 12.96 0 0 1 3-5.188l3.015 1.744a1.027 1.027 0 0 0 1.109-.061 9.043 9.043 0 0 1 1.735-1.004c.363-.16.597-.524.597-.92V3.348C26.975 3.116 27.98 3 29 3a1 1 0 1 0 0-2c-1.465 0-2.907.209-4.287.622A1 1 0 0 0 24 2.58v3.634a10.92 10.92 0 0 0-.981.567L19.88 4.965a.998.998 0 0 0-1.19.14 14.986 14.986 0 0 0-4.284 7.414 1 1 0 0 0 .472 1.096l3.138 1.817a9.57 9.57 0 0 0 .001 1.137l-3.14 1.816a1 1 0 0 0-.47 1.096 14.986 14.986 0 0 0 4.283 7.414 1 1 0 0 0 1.19.14l3.134-1.813c.32.208.65.4.985.571v3.627a1 1 0 0 0 .713.958c1.38.413 2.822.622 4.287.622a1 1 0 1 0 0-2ZM10.164 1.675a.998.998 0 0 0-1.27-.62l-5.35 1.841a1 1 0 1 0 .651 1.891l3.018-1.039A24.908 24.908 0 0 0 4 16c0 4.825 1.377 9.508 3.982 13.542a.998.998 0 0 0 1.382.298.998.998 0 0 0 .298-1.382A22.918 22.918 0 0 1 6 16c0-4.036 1.057-7.957 3.047-11.426l1.067 3.1a1 1 0 1 0 1.89-.65l-1.84-5.35Z"/></svg>
+        <text class="title compact-title" x="786" y="464">blastwall_policy_stale</text>
+        <text class="subtitle compact-subtitle" x="786" y="480">report/remediate</text>
+      </g>
+</svg>

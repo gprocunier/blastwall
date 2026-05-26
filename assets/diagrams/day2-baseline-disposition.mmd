@@ -1,0 +1,16 @@
+flowchart TB
+    SIGNALS["Inputs"] --> CVE["Exploit pressure<br/>copy.fail, CVEs, research"]
+    SIGNALS --> CORPUS["Automation corpus<br/>normal jobs in staging"]
+    SIGNALS --> TARGETED["RHEL targeted policy<br/>existing grants"]
+
+    CVE --> CLASSIFY["Classify capability<br/>expected value vs exploit value"]
+    CORPUS --> CLASSIFY
+    TARGETED --> CLASSIFY
+
+    CLASSIFY --> KEEP["Keep<br/>needed by normal automation"]
+    CLASSIFY --> DENY["Deny<br/>high risk, low expected value"]
+    CLASSIFY --> SPLIT["Split identity<br/>one workflow needs more power"]
+
+    KEEP --> BASELINE["Baseline disposition<br/>reviewable automation posture"]
+    DENY --> BASELINE
+    SPLIT --> BASELINE

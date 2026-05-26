@@ -1,0 +1,8 @@
+flowchart LR
+  artifact[KRA artifact not visible] --> scope[Explicit breakglass profile scope]
+  scope --> audit[Audit package<br/>ticket, approver, reason, timeout, review]
+
+  sig[Signature failure] --> revoked[Revoked or replayed]
+  bind[Binding mismatch] --> drift[Live drift]
+  revoked --> fail[Fail closed]
+  drift --> fail

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenShift/SPO | blastwall</title>
+    <meta name="description" content="Blastwall for OpenShift workloads with Security Profiles Operator, SCC selection, and safe UBI-based validation.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">OpenShift workloads get their own SELinux path: SPO installs the policy, SCC selects the type, and safe probes prove the boundary.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">The OpenShift path uses Security Profiles Operator (SPO) to install Blastwall SELinux workload profiles and custom Security Context Constraints (SCCs) to move selected pods into those profiles. It is workload confinement, not the RHEL/IdM login-domain path.</p>
+        <p>RHEL managed hosts use <code>blastwall_u:blastwall_r:blastwall_t:s0</code> for SSH automation sessions. OpenShift pods keep the native pod identity shape and run as <code>system_u:system_r:&lt;spo-type&gt;:s0:cX,cY</code>. The default class uses <code>blastwall_.process</code> on the validated OCP 4.20 lab; the nested class uses <code>blastwallnested_.process</code>.</p>
+
+        <section id="workload-classes">
+          <h2>Two BlastWall Workload Classes</h2>
+          <p><code>blastwall</code> is the standard class and should remain the default recommendation. It denies workload-created user namespaces along with xfrm, RxRPC, AF_ALG, BPF, packet socket, and io_uring entry points.</p>
+          <p><code>blastwall-nested</code> is the explicit exception class for workloads that need pod-level user namespace behavior, such as rootless build or nested-container workflows. It omits only the <code>user_namespace create</code> deny. It still denies xfrm, RxRPC, AF_ALG, BPF, packet socket, and io_uring, so it is not a general escape hatch.</p>
+          <p>Nested workloads must opt in with the separate <code>blastwall-nested-runner</code> service account, <code>openshift.io/required-scc: blastwall-nested</code>, and <code>spec.hostUsers: false</code>. The standard service account is not bound to the nested SCC.</p>
+          <figure class="diagram-card" id="openshift-spo-workload-classes">
+            <figcaption>
+              <strong>Two Workload Classes</strong>
+              <span>The nested class is a narrow exception for pod-level user namespaces, not a bypass for the remaining high-risk kernel surfaces.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/openshift-spo-workload-classes.svg" alt="Standard Blastwall denies user namespaces and high-risk kernel surfaces while nested Blastwall allows pod user namespaces but still denies the other surfaces">
+          </figure>
+        </section>
+
+        <section id="control-model">
+          <h2>Control Model</h2>
+          <p>SPO owns policy delivery. The SCC owns workload selection. OpenShift keeps namespace MCS categories so two namespaces do not collapse into the same SELinux level. Blastwall subtracts risky kernel surfaces from the selected workload type.</p>
+          <figure class="diagram-card" id="openshift-spo-control-flow">
+            <figcaption>
+              <strong>OpenShift Control Flow</strong>
+              <span>SPO delivers the policy, SCC and RBAC choose the workload type, and the UBI probes read the enforcement result.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/openshift-spo-control-flow.svg" alt="OpenShift control flow from Security Profiles Operator profile through SCC, service account RBAC, pod runtime context, and UBI validation probes">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Part</th><th>Role</th><th>Evidence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Part">SPO</td><td data-label="Role">Installs sibling <code>RawSelinuxProfile</code> objects: <code>blastwall</code> and <code>blastwallnested</code>. The latter is the enforcing profile resource for the public <code>blastwall-nested</code> class.</td><td data-label="Evidence">Both profiles report Ready, and probe pods show the expected workload type.</td></tr>
+              <tr><td data-label="Part">SCC</td><td data-label="Role">Requires the matching profile type through <code>blastwall-confined</code> or <code>blastwall-nested</code>.</td><td data-label="Evidence">The pod annotation shows the selected SCC.</td></tr>
+              <tr><td data-label="Part">Service account RBAC</td><td data-label="Role">Limits who can use each SCC.</td><td data-label="Evidence"><code>oc auth can-i use</code> succeeds only for the intended service account and SCC pair.</td></tr>
+              <tr><td data-label="Part">Safe probes</td><td data-label="Role">Exercise entry points without exploit behavior.</td><td data-label="Evidence"><code>PASS</code>, <code>BLOCKED</code>, <code>SKIP</code>, or <code>FAIL</code> output per surface.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="why-spo">
+          <h2>Why SPO</h2>
+          <p>This policy should move faster than worker OS image changes. A custom RHCOS image would turn a workload confinement adjustment into an image lifecycle problem. MachineConfig-delivered SELinux policy has the same mismatch: it treats policy as node configuration instead of a Kubernetes-managed workload profile.</p>
+          <p>SPO is the right shape for this use case because the profile becomes a cluster object. Operators can review it, render it as part of the Day 2 pipeline, apply it through normal cluster change control, and validate it with a pod that uses the same type as the protected workload.</p>
+        </section>
+
+        <section id="deny-surfaces">
+          <h2>What Is Denied</h2>
+          <p>The standard OpenShift profile mirrors the current Blastwall deny posture for workload type <code>blastwall_.process</code>: AF_ALG, BPF, <code>capability2 bpf</code>, packet sockets, user namespace creation, io_uring, NETLINK_XFRM, and AF_RXRPC. The nested profile carries the same denies except for user namespace creation.</p>
+          <p>The profile uses CIL optional blocks around object classes that can differ by kernel and policy version. The repository keeps neverallow guards where the target policy compiler supports them.</p>
+        </section>
+
+        <section id="apply">
+          <h2>Apply The Profile</h2>
+          <p>Verify the installed SPO schema first. Blastwall uses <code>RawSelinuxProfile</code> because the inherited container profile and deny rules must compile in the same raw CIL block.</p>
+          <p>The governed source for the OpenShift policy is in <code>openshift/spo</code>. For normal Day 2 rollout, render that source in AAP and apply the returned bundle artifact to OpenShift.</p>
+          <pre><code class="language-bash">oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2
+
+oc apply -f /tmp/blastwall-spo-crs.yaml
+
+oc -n blastwall-spo wait \
+  --for=condition=ready rawselinuxprofile/blastwall \
+  --timeout=180s
+
+oc -n blastwall-spo wait \
+  --for=condition=ready rawselinuxprofile/blastwallnested \
+  --timeout=180s
+
+oc -n blastwall-spo get rawselinuxprofile blastwall \
+  -o jsonpath='{.status.usage}{"\n"}'</code></pre>
+          <p>On the validated OCP 4.20 lab, <code>status.usage</code> reports <code>blastwall.process</code> and <code>blastwallnested.process</code>, while admitted pods run as <code>blastwall_.process</code> and <code>blastwallnested_.process</code>. The nested public class remains <code>blastwall-nested</code>, but the profile resource avoids a hyphen because the validated SPO/CIL path did not enforce deny rules on the generated hyphenated type. The pod context is the source of truth.</p>
+        </section>
+
+        <section id="bind-workloads">
+          <h2>Bind Workloads</h2>
+          <p>The standard SCC is named <code>blastwall-confined</code>. The nested SCC is named <code>blastwall-nested</code>. Both avoid a fixed SELinux level, deny host namespaces and hostPath, drop all capabilities by default, deny privilege escalation, and use <code>runtime/default</code> seccomp. The nested SCC also requires pod-level user namespace behavior with <code>userNamespaceLevel: RequirePodLevel</code> on OpenShift versions that support that field.</p>
+          <p>The nested SCC uses <code>RunAsAny</code> for UID and group strategy fields because OpenShift interprets those IDs inside the pod user namespace. It does not grant privileged containers, host namespaces, hostPath, extra capabilities, or privilege escalation.</p>
+          <pre><code class="language-bash">oc auth can-i use scc/blastwall-confined \
+  --as system:serviceaccount:blastwall-workloads:blastwall-runner \
+  -n blastwall-workloads 2&gt;/dev/null
+
+oc auth can-i use scc/blastwall-nested \
+  --as system:serviceaccount:blastwall-workloads:blastwall-nested-runner \
+  -n blastwall-workloads 2&gt;/dev/null
+
+oc apply -f openshift/spo/examples/blastwall-protected-deployment.yaml
+oc apply -f openshift/spo/examples/blastwall-nested-deployment.yaml
+
+oc -n blastwall-workloads get pods \
+  -l app.kubernetes.io/name=blastwall-demo \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" scc="}{.metadata.annotations.openshift\.io/scc}{"\n"}{end}'
+
+oc -n blastwall-workloads get pods \
+  -l app.kubernetes.io/name=blastwall-nested-demo \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" scc="}{.metadata.annotations.openshift\.io/scc}{" hostUsers="}{.spec.hostUsers}{"\n"}{end}'
+
+oc -n blastwall-workloads exec deploy/blastwall-demo -- \
+  sh -c 'id -Z 2>/dev/null || cat /proc/self/attr/current'</code></pre>
+          <p>The SCC object is cluster-scoped, but the grant is tested through a namespaced service account identity. The command keeps the namespace context for the RBAC check and redirects the OpenShift SCC scope warning away from the operator-facing proof.</p>
+          <p>The standard pod should report a context containing <code>blastwall_.process</code>. The nested pod should report <code>blastwallnested_.process</code> and expose pod-level user namespace maps through <code>/proc/self/uid_map</code> and <code>/proc/self/gid_map</code>.</p>
+        </section>
+
+        <section id="validate">
+          <h2>Validate Nodes</h2>
+          <p>The validation harness uses a UBI Python image and safe entry-point probes. It does not run exploit code. The strongest evidence is the combination of profile readiness, SCC admission, pod SELinux context from <code>id -Z</code> or <code>/proc/self/attr/current</code>, and blocked probes from the selected Blastwall workload type.</p>
+          <pre><code class="language-bash">openshift/spo/scripts/validate-blastwall-spo-nodes.sh --class both --all
+
+openshift/spo/scripts/validate-blastwall-spo-nodes.sh --role worker
+
+openshift/spo/scripts/validate-blastwall-spo-nodes.sh --class nested --selector 'node-role.kubernetes.io/infra='</code></pre>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Result</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Result"><code>PASS</code></td><td data-label="Meaning">The pod ran under the expected type and all protected probes were blocked or acceptably skipped.</td></tr>
+              <tr><td data-label="Result"><code>BLOCKED</code></td><td data-label="Meaning">The probe reached the entry point and received <code>EPERM</code> or <code>EACCES</code>.</td></tr>
+              <tr><td data-label="Result"><code>SKIP</code></td><td data-label="Meaning">The feature, node class, or scheduling policy is not available for this check.</td></tr>
+              <tr><td data-label="Result"><code>FAIL</code></td><td data-label="Meaning">The pod did not run under the expected class type, or a protected entry point succeeded.</td></tr>
+            </tbody>
+          </table>
+          <p>Do not read every <code>EPERM</code> as SELinux proof by itself. Capabilities, SCC, seccomp, and kernel availability can also shape probe results. The context and admission evidence are part of the claim.</p>
+        </section>
+
+        <section id="day2">
+          <h2>Day 2 Pipeline</h2>
+          <p>The policy pipeline now has two governed outputs: the RHEL/IdM policy RPM and the OpenShift/SPO CR bundle. A single deny-scope decision can become <code>blastwall_t</code> policy for SSH automation and two OpenShift workload classes: <code>blastwall</code> and <code>blastwall-nested</code>.</p>
+          <p>In AAP, the source manifests are read from Git at <code>openshift/spo</code>. The render node generates a versioned <code>blastwall-spo-crs.yaml</code> bundle in the job <code>.artifacts</code> map, and that artifact is then applied to OpenShift as part of cluster change control.</p>
+          <pre><code class="language-bash">bundle_id="$(awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json \
+  | jq -r '.results[] | select(.identifier == "render_spo_policy_crs") | .summary_fields.job.id')"
+awx jobs get "${bundle_id}" -f json \
+  | jq -r '.artifacts.blastwall_spo_bundle_yaml' \
+  > /tmp/blastwall-spo-crs.yaml</code></pre>
+          <p>Then apply only that versioned artifact to the cluster:</p>
+          <pre><code class="language-bash">oc apply -f /tmp/blastwall-spo-crs.yaml</code></pre>
+        </section>
+
+        <section id="limitations">
+          <h2>Limitations</h2>
+          <ul>
+            <li>RawSelinuxProfile and SCC schema details can vary by SPO and OpenShift release. Confirm <code>oc explain rawselinuxprofile.spec --api-version=security-profiles-operator.x-k8s.io/v1alpha2</code> and <code>oc explain scc.userNamespaceLevel</code> before applying in a production cluster.</li>
+            <li>Master, control-plane, and infra validation depends on scheduling policy and taints. Skips are expected when the cluster is not configured to run this test pod there.</li>
+            <li>The SCC chooses a workload type; it does not make the pod privileged and it does not replace ordinary image, SCC, seccomp, or network controls.</li>
+            <li>Fleet governance objects are outside this OpenShift/SPO bundle.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Scope</h2>
+          <p class="context-kicker">OpenShift workload boundary</p>
+          <p class="context-copy">SPO installs the policy, SCC selects the type, and a UBI probe pod validates the result.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#workload-classes">Workload Classes</a></li>
+            <li><a href="#control-model">Control Model</a></li>
+            <li><a href="#why-spo">Why SPO</a></li>
+            <li><a href="#deny-surfaces">Denied Surfaces</a></li>
+            <li><a href="#apply">Apply</a></li>
+            <li><a href="#bind-workloads">Bind Workloads</a></li>
+            <li><a href="#validate">Validate</a></li>
+            <li><a href="#day2">Day 2</a></li>
+            <li><a href="#limitations">Limitations</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="openshift-spo-demo.html">OpenShift/SPO Demo</a> shows the command sequence. <a href="day2-operations.html">Day 2 Operations</a> explains how the CR bundle is rendered beside the RPM.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+flowchart TB
+    SYNC["Sync evidence<br/>project + inventory"]
+    BUILD["Build evidence<br/>candidate NEVRA"]
+    INSTALL["Install evidence<br/>package + modules"]
+    VERIFY["Verify evidence<br/>context + probes"]
+    BUNDLE["Proof bundle<br/>AAP job logs"]
+    MARK["Promote marker<br/>policy version + scopes"]
+    PREFLIGHT["Preflight evidence<br/>current host selection"]
+
+    SYNC --> BUILD
+    SYNC --> INSTALL
+    SYNC --> VERIFY
+    BUILD --> BUNDLE
+    INSTALL --> BUNDLE
+    VERIFY --> BUNDLE
+    BUNDLE --> MARK --> PREFLIGHT

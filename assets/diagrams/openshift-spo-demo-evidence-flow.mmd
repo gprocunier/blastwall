@@ -1,0 +1,7 @@
+flowchart TD
+    SETUP["SPO setup<br/>schema, apply, profiles ready"]
+    ADMISSION["Admission proof<br/>SCC state + yes / yes / no"]
+    RUNTIME["Workload proof<br/>UBI rollout, SCC annotation, id -Z"]
+    VALIDATION["Validation proof<br/>safe node sweep, pass summaries"]
+
+    SETUP --> ADMISSION --> RUNTIME --> VALIDATION

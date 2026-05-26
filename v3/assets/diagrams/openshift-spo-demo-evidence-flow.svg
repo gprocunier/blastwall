@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenShift SPO demo CLI proof sequence Red Hat styled diagram" width="1280" height="460" viewBox="0 0 1280 460">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .lane rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.4; filter: url(#shadow); }
+      .lane-title { fill: #151515; font: 700 22px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 18px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 13.5px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .chip text { fill: #be0000; font: 600 12.5px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .icon { fill: none; stroke: #ee0000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1280" height="460"/>
+  <rect class="grain" width="1280" height="460"/>
+
+  <g class="lane">
+    <rect x="42" y="48" width="1196" height="320" rx="14"/>
+    <text class="lane-title" x="640" y="86">CLI proof sequence</text>
+  </g>
+
+  <g class="edges">
+    <path class="connector" d="M 290 198 H 372" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 572 198 H 654" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 854 198 H 936" marker-end="url(#arrow)"/>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="72" y="130" width="218" height="136" rx="8"/>
+    <g class="icon" transform="translate(94 158)">
+      <path d="M 12 2 L 28 10 L 28 28 L 12 36 L -4 28 L -4 10 Z"/>
+      <path d="M -4 10 L 12 18 L 28 10"/>
+      <path d="M 12 18 V 36"/>
+    </g>
+    <text class="title" x="148" y="169">SPO setup</text>
+    <text class="subtitle" x="148" y="191">schema available</text>
+    <text class="subtitle" x="148" y="209">profiles ready</text>
+    <text class="subtitle" x="148" y="227">operator accepts CRs</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="372" y="130" width="200" height="136" rx="8"/>
+    <g class="icon" transform="translate(394 160)">
+      <rect x="0" y="0" width="32" height="32" rx="4"/>
+      <path d="M 8 10 H 24"/>
+      <path d="M 8 17 H 20"/>
+      <path d="M 8 24 H 24"/>
+    </g>
+    <text class="title" x="448" y="169">Admission</text>
+    <text class="title" x="448" y="190">proof</text>
+    <text class="subtitle" x="448" y="211">SCC yes / yes / no</text>
+    <text class="subtitle" x="448" y="229">expected gating</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="654" y="130" width="200" height="136" rx="8"/>
+    <g class="icon" transform="translate(676 160)">
+      <circle cx="16" cy="16" r="15"/>
+      <path d="M 12 9 L 24 16 L 12 23 Z"/>
+    </g>
+    <text class="title" x="730" y="169">Workload</text>
+    <text class="title" x="730" y="190">proof</text>
+    <text class="subtitle" x="730" y="211">UBI rollout</text>
+    <text class="subtitle" x="730" y="229">SCC annotation</text>
+    <text class="subtitle" x="730" y="247">and id -Z</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="936" y="130" width="272" height="136" rx="8"/>
+    <g class="icon" transform="translate(958 160)">
+      <rect x="0" y="4" width="34" height="24" rx="4"/>
+      <path d="M 7 16 H 15"/>
+      <path d="M 22 16 H 28"/>
+      <circle cx="17" cy="16" r="2"/>
+    </g>
+    <text class="title" x="1014" y="169">Validation proof</text>
+    <text class="subtitle" x="1014" y="191">safe node sweep</text>
+    <text class="subtitle" x="1014" y="209">standard profile passed</text>
+    <text class="subtitle" x="1014" y="227">nested profile passed</text>
+  </g>
+
+  <g class="chip">
+    <rect x="94" y="300" width="166" height="30" rx="5"/>
+    <text x="177" y="320">capability established</text>
+  </g>
+  <g class="chip">
+    <rect x="390" y="300" width="164" height="30" rx="5"/>
+    <text x="472" y="320">admission constrained</text>
+  </g>
+  <g class="chip">
+    <rect x="672" y="300" width="166" height="30" rx="5"/>
+    <text x="755" y="320">runtime label visible</text>
+  </g>
+  <g class="chip">
+    <rect x="986" y="300" width="172" height="30" rx="5"/>
+    <text x="1072" y="320">pass summaries kept</text>
+  </g>
+</svg>

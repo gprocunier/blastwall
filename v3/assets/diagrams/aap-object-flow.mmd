@@ -1,0 +1,23 @@
+flowchart LR
+  org["Organization: Blastwall"]
+  project["Project: Blastwall<br/>github.com/gprocunier/blastwall"]
+  ee["Execution Environment<br/>mirror-registry.workshop.lan:8443/blastwall/blastwall-ee"]
+  inventory["Inventory<br/>Blastwall IdM Inventory"]
+  source["SCM Inventory Source<br/>inventory/blastwall-idm.yml"]
+  idmcred["Credential Type<br/>Blastwall IdM Runtime"]
+  machine["Machine Credential<br/>svc-ansible-runner"]
+  preflight["Job Template<br/>preflight"]
+  verify["Job Template<br/>verify managed host"]
+  workflow["Workflow<br/>Blastwall runtime verification"]
+
+  org --> project
+  org --> ee
+  org --> inventory
+  project --> source
+  ee --> source
+  source --> inventory
+  idmcred --> source
+  idmcred --> preflight
+  machine --> verify
+  preflight --> workflow
+  verify --> workflow

@@ -1,0 +1,9 @@
+flowchart TB
+    GROUP["IdM group<br/>blastwall"] --> HBAC["HBAC rule<br/>blastwall-ssh"]
+    HOSTGROUP["IdM hostgroup<br/>blastwall-managed-hosts"] --> HBAC
+    SERVICE["HBAC service<br/>sshd"] --> HBAC
+    HBAC --> MAP["SELinux user map<br/>blastwall-root-local-map"]
+    MAP --> SEUSER["blastwall_u:s0"]
+    GROUP --> SUDO["Sudo rule<br/>blastwall-root-local-sudo"]
+    HOSTGROUP --> SUDO
+    SUDO --> ROOT["RunAs root<br/>no unconfined role/type option"]

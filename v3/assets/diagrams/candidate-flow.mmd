@@ -1,0 +1,9 @@
+flowchart LR
+    JOB["AAP job<br/>required coverage"] --> REQ["Required markers<br/>policy version + scopes"]
+    REQ --> H1{"Host A<br/>older marker"}
+    REQ --> H2{"Host B<br/>current marker set"}
+    H1 -->|"missing scope"| STALE["Stale candidate<br/>skip or remediate"]
+    STALE --> REMEDIATE["Policy update<br/>workflow"]
+    REMEDIATE --> MARKER["Refresh<br/>IdM marker"]
+    MARKER --> H2
+    H2 -->|"all scopes"| SELECT["Preferred<br/>candidate"]

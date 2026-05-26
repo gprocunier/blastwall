@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Architecture | blastwall</title>
+    <meta name="description" content="Blastwall architecture explanation for privileged automation confinement with IdM, eigenstate.ipa, Ansible Automation Platform, SSH, SSSD, pam_selinux, SELinux, and audit evidence.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">The control chain from identity records to Ansible Automation Platform preflight to host-local SELinux confinement.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">Blastwall is built around one claim: privileged automation should not arrive on managed RHEL hosts with the same unconfined local shape as a human operator. Red Hat Identity Management (IdM) defines who may arrive, Ansible Automation Platform (AAP) acts on that state, and SELinux confines the session after login.</p>
+
+        <section id="problem-statement">
+          <h2>Problem Statement</h2>
+          <p>Privileged automation is valuable because it moves quickly across many hosts. That same reach becomes a security problem when the automation identity lands as a broad unconfined local subject. A single useful kernel path, unsafe local tool, or overbroad sudo rule can become fleet-scale exposure.</p>
+          <p>Blastwall narrows the problem to privileged automation confinement. It does not replace patching, exploit-specific BPF LSM controls, seccomp profiles, EDR, container isolation, or runtime detection. It asks whether a managed RHEL fleet can make automation arrive in a governed identity shape and then confine that shape on the host.</p>
+        </section>
+
+        <section id="control-chain">
+          <h2>Control Chain</h2>
+          <figure class="diagram-card" id="architecture-flow">
+            <figcaption>
+              <strong>Architecture Flow</strong>
+              <span>IdM records, inventory facts, AAP preflight, SSH login mapping, SELinux runtime confinement, and audit evidence each carry a separate part of the proof.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/architecture-flow.svg" alt="Blastwall architecture flow from AAP job to SELinux denial">
+          </figure>
+          <p>The chain is deliberately explicit: IdM records the identity and access model, <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> translates that model into inventory facts, AAP gates and records execution, SSH and SSSD apply the login path, <a href="glossary.html#pam-selinux"><code>pam_selinux</code></a> applies the SELinux login mapping, SELinux denies the configured surfaces, and audit output gives the reviewer host-local evidence.</p>
+        </section>
+
+        <section id="responsibilities">
+          <h2>Responsibility Table</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Component</th><th>Responsibility</th><th>Not Its Job</th><th>Evidence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Component">IdM</td><td data-label="Responsibility">Records automation identity, host groups, HBAC, sudo, SELinux user maps, and host markers.</td><td data-label="Not Its Job">Authoring SELinux policy or proving kernel denials.</td><td data-label="Evidence">IdM records and inventory facts shown in the demos.</td></tr>
+              <tr><td data-label="Component"><code>eigenstate.ipa</code></td><td data-label="Responsibility">Reads IdM state and exposes it as Ansible inventory facts.</td><td data-label="Not Its Job">Making enforcement decisions on the host.</td><td data-label="Evidence">Current and stale host groups in AAP preflight.</td></tr>
+              <tr><td data-label="Component">AAP</td><td data-label="Responsibility">Syncs code and inventory, gates execution, launches workflow nodes, and records stdout.</td><td data-label="Not Its Job">Acting as the SELinux enforcement engine.</td><td data-label="Evidence">Controller objects, workflow graph, node status, and job output.</td></tr>
+              <tr><td data-label="Component">SSSD and PAM</td><td data-label="Responsibility">Apply central identity, access, and SELinux login mapping during SSH login.</td><td data-label="Not Its Job">Replacing AAP preflight or policy packaging.</td><td data-label="Evidence">The runtime context becomes <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</td></tr>
+              <tr><td data-label="Component">SELinux</td><td data-label="Responsibility">Enforces host-local denials for the confined automation domain.</td><td data-label="Not Its Job">Knowing fleet suitability or Controller workflow intent.</td><td data-label="Evidence">Denied AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and policy self-protection probes.</td></tr>
+              <tr><td data-label="Component">Audit log</td><td data-label="Responsibility">Records host-local denial evidence.</td><td data-label="Not Its Job">Serving as the preflight decision source.</td><td data-label="Evidence">Target-host audit entries for denied operations.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="enforcement-boundary">
+          <h2>Enforcement Boundary</h2>
+          <p>AAP and IdM shape the arrival conditions, but the kernel denial happens on the managed host. The important runtime evidence is the mapped process context: <code>blastwall_u:blastwall_r:blastwall_t:s0</code>. In SELinux terms, <code>blastwall_u</code> is the SELinux user, <code>blastwall_r</code> is the role, and <code>blastwall_t</code> is the process type/domain.</p>
+          <p>Sudo can still reach UID 0 for delegated work. The proof checks that sudo does not move the automation process out of <code>blastwall_t</code>, and that the confined domain cannot remove the deny modules even after a temporary sudo rule exposes <code>/usr/sbin/semodule</code>.</p>
+        </section>
+
+        <section id="deny-lifecycle">
+          <h2>Lifecycle Of A Deny Scope</h2>
+          <p>A useful deny scope needs more than a local policy edit. It may start as an emergency mitigation for a live CVE, or as a proactive decision that a surface has no legitimate value for privileged automation. Either way, it needs a source change, a versioned artifact, rollout, local verification, a marker that AAP can read, and preflight logic that refuses stale or unsuitable hosts. <a href="day2-operations.html">Day 2 Operations</a> explains how operators maintain that baseline over time.</p>
+          <figure class="diagram-card diagram-card--focus" id="rollout-flow">
+            <figcaption>
+              <strong>Policy Lifecycle</strong>
+              <span>The deny rule becomes useful at fleet scale when it has artifact, rollout, verification, marker, and preflight states.</span>
+            </figcaption>
+            <div class="stage-flow" role="img" aria-label="Four-stage flow from exploit surface to verified automation preflight state">
+              <ol class="stage-flow__stages">
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">1</span>
+                  <h3>Define the deny scope</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Identify risky or low-value automation surface</li>
+                    <li>Update Blastwall SELinux policy</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">2</span>
+                  <h3>Publish an artifact</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Build policy RPM</li>
+                    <li>Stage through the content pipeline</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">3</span>
+                  <h3>Verify locally</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Install or refresh policy</li>
+                    <li>Run safe denial probes</li>
+                  </ol>
+                </li>
+                <li class="stage-flow__stage">
+                  <span class="stage-flow__number">4</span>
+                  <h3>Feed preflight</h3>
+                  <ol class="stage-flow__steps">
+                    <li>Write verified host marker</li>
+                    <li>Sync IdM-backed inventory</li>
+                    <li>Select only current hosts</li>
+                  </ol>
+                </li>
+              </ol>
+            </div>
+          </figure>
+        </section>
+
+        <section id="evidence-loop">
+          <h2>Evidence Loop</h2>
+          <p>The demos prove different parts of the same loop. The <a href="aap-demo.html">AAP Demo</a> is the operator-facing proof: Controller objects, credential smoke, inventory sync, preflight, workflow launch, node status, and job stdout. The <a href="demo.html">Ansible Demo</a> is the bootstrap proof: IdM object creation, policy rollout, direct probes, audit evidence, and self-protection.</p>
+          <figure class="diagram-card diagram-card--focus" id="evidence-loop-diagram">
+            <figcaption>
+              <strong>Evidence Loop</strong>
+              <span>Bootstrap proof writes verified state, AAP consumes that state as a gate, and the next workflow leaves operator-visible evidence for the next cycle.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/evidence-loop.svg" alt="Blastwall evidence loop from IdM state and policy rollout through managed-host verification, marker write, inventory sync, AAP preflight, workflow evidence, and the next run input">
+          </figure>
+          <p>The host marker is useful only after verification writes it. The marker helps AAP avoid stale hosts, but it is not the enforcement boundary and it is not proof by itself.</p>
+        </section>
+
+        <section id="why-each-part-matters">
+          <h2>Why Each Part Matters</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Part</th><th>Why It Matters</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Part">SELinux</td><td data-label="Why It Matters">It enforces the host-local domain after the automation identity arrives and after sudo reaches UID 0.</td></tr>
+              <tr><td data-label="Part">IdM</td><td data-label="Why It Matters">It gives the fleet a central record for identity, access, mapping, sudo, host membership, and verified coverage markers.</td></tr>
+              <tr><td data-label="Part"><code>eigenstate.ipa</code></td><td data-label="Why It Matters">It turns IdM records into inventory state that Ansible and AAP can query before runtime work begins.</td></tr>
+              <tr><td data-label="Part">AAP</td><td data-label="Why It Matters">It makes the gate and evidence visible to operators through workflow nodes, stdout, launch identity, and Controller history.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="limits">
+          <h2>Limits And Assumptions</h2>
+          <ul>
+            <li>Blastwall reduces blast radius for a defined automation identity path. It does not fix the kernel vulnerability.</li>
+            <li>SELinux denies the broader surface shown in policy. It does not inspect the same hook arguments as exploit-specific BPF LSM controls.</li>
+            <li>AAP is a gate and evidence surface. The managed host still performs enforcement.</li>
+            <li>IdM markers can be stale or spoofed by sufficiently privileged actors. Verification must refresh or reject marker state before high-value workflows depend on it.</li>
+            <li>The proof is a lab proof of concept. Production use would need hardening around credentials, marker integrity, rollout scope, emergency rollback, and multi-host scale.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Page Type</h2>
+          <p class="context-kicker">Explanation</p>
+          <p class="context-copy">Use this page to understand the control chain before reviewing threat paths or replaying the lab.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#problem-statement">Problem</a></li>
+            <li><a href="#control-chain">Control Chain</a></li>
+            <li><a href="#responsibilities">Responsibilities</a></li>
+            <li><a href="#enforcement-boundary">Enforcement</a></li>
+            <li><a href="#deny-lifecycle">Deny Lifecycle</a></li>
+            <li><a href="#evidence-loop">Evidence Loop</a></li>
+            <li><a href="#why-each-part-matters">Why Parts Matter</a></li>
+            <li><a href="#limits">Limits</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="idm-control-model.html">IdM Control Model</a> warms up the identity records. <a href="selinux-control-model.html">SELinux Control Model</a> explains the host-local boundary. <a href="day2-operations.html">Day 2 Operations</a> explains policy source and baseline maintenance.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

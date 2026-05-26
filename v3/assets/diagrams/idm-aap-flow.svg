@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="idm-aap-flow Red Hat styled diagram" width="1480" height="750" viewBox="0 0 1480 750">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .group rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.5; filter: url(#shadow); }
+      .group-title { fill: #151515; font: 700 24px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .decision { stroke-width: 1.45; }
+      .title { fill: #151515; font: 700 18px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 14px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .compact-title { font-size: 13.5px; }
+      .compact-subtitle { font-size: 10.5px; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .connector.dashed { stroke-dasharray: 8 8; }
+      .edge-label-chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .edge-label-chip text { fill: #be0000; font: 600 13px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1480" height="750"/>
+  <rect class="grain" width="1480" height="750"/>
+
+  <g class="edges"><path class="connector" d="M 400 120 H 450" marker-end="url(#arrow)"/>
+<path class="connector" d="M 780 120 H 830" marker-end="url(#arrow)"/>
+<path class="connector" d="M 1000 170 V 210 H 1255 V 250" marker-end="url(#arrow)"/>
+<path class="connector" d="M 1090 300 H 1010" marker-end="url(#arrow)"/>
+<path class="connector" d="M 830 350 V 410" marker-end="url(#arrow)"/>
+<path class="connector" d="M 840 510 V 560 H 470 V 610" marker-end="url(#arrow)"/>
+<path class="connector" d="M 840 510 V 560 H 1250 V 610" marker-end="url(#arrow)"/></g>
+
+      <g class="node">
+        <rect class="card" x="60" y="70" width="340" height="100" rx="8"/>
+        <svg x="82" y="99" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M14.696 15.717A5.987 5.987 0 0 0 17 11c0-3.309-2.691-6-6-6s-6 2.691-6 6c0 1.914.904 3.617 2.304 4.717C3.616 17.19 1 20.793 1 25a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1c0-4.207-2.616-7.81-6.304-9.283ZM7 11c0-2.206 1.794-4 4-4s4 1.794 4 4-1.794 4-4 4-4-1.794-4-4ZM3.062 24c.494-3.94 3.866-7 7.938-7s7.444 3.06 7.938 7H3.063Zm27.645-11.293-4.646 4.647c-.292.292-.677.438-1.061.438s-.769-.146-1.06-.438l-2.647-2.647a1 1 0 1 1 1.414-1.414L25 15.586l4.293-4.293a1 1 0 1 1 1.414 1.414Z"/></svg>
+        <text class="title" x="144" y="110.5">IdM / FreeIPA</text>
+        <text class="subtitle" x="144" y="131.5">provides identity, host, access, and</text><text class="subtitle" x="144" y="147.5">marker truth</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="450" y="70" width="330" height="100" rx="8"/>
+        <svg x="472" y="99" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 1C8.149 1 2 4.514 2 9v14c0 4.486 6.149 8 14 8s14-3.514 14-8V9c0-4.486-6.149-8-14-8Zm0 2c6.505 0 12 2.748 12 6s-5.495 6-12 6S4 12.252 4 9s5.495-6 12-6ZM4 13.161C6.427 15.476 10.839 17 16 17s9.573-1.524 12-3.839V16c0 3.252-5.495 6-12 6S4 19.252 4 16v-2.839ZM16 29c-6.505 0-12-2.748-12-6v-2.839C6.427 22.476 10.839 24 16 24s9.573-1.524 12-3.839V23c0 3.252-5.495 6-12 6Z"/></svg>
+        <text class="title" x="534" y="118.5">eigenstate.ipa</text>
+        <text class="subtitle" x="534" y="139.5">reads IdM state into inventory</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="830" y="70" width="340" height="100" rx="8"/>
+        <svg x="852" y="99" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 31C8.832 31 3 25.168 3 18V4.56a1 1 0 0 1 .792-.978l12-2.56a1.01 1.01 0 0 1 .417 0l12 2.56c.461.099.792.506.792.978V18c0 7.168-5.832 13-13 13ZM5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369L16 3.022 5 5.369Z"/></svg>
+        <text class="title" x="914" y="118.5">AAP preflight</text>
+        <text class="subtitle" x="914" y="139.5">selects suitable targets before launch</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="1090" y="250" width="330" height="100" rx="8"/>
+        <svg x="1112" y="279" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M14.696 15.717A5.987 5.987 0 0 0 17 11c0-3.309-2.691-6-6-6s-6 2.691-6 6c0 1.914.904 3.617 2.304 4.717C3.616 17.19 1 20.793 1 25a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1c0-4.207-2.616-7.81-6.304-9.283ZM7 11c0-2.206 1.794-4 4-4s4 1.794 4 4-1.794 4-4 4-4-1.794-4-4ZM3.062 24c.494-3.94 3.866-7 7.938-7s7.444 3.06 7.938 7H3.063Zm27.645-11.293-4.646 4.647c-.292.292-.677.438-1.061.438s-.769-.146-1.06-.438l-2.647-2.647a1 1 0 1 1 1.414-1.414L25 15.586l4.293-4.293a1 1 0 1 1 1.414 1.414Z"/></svg>
+        <text class="title" x="1174" y="306.5">SSH to managed host</text>
+
+      </g>
+
+      <g class="node">
+        <rect class="card" x="650" y="250" width="360" height="100" rx="8"/>
+        <svg x="672" y="279" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 31C8.832 31 3 25.168 3 18V4.56a1 1 0 0 1 .792-.978l12-2.56a1.01 1.01 0 0 1 .417 0l12 2.56c.461.099.792.506.792.978V18c0 7.168-5.832 13-13 13ZM5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369L16 3.022 5 5.369Z"/></svg>
+        <text class="title" x="734" y="298.5">SSSD + pam_selinux</text>
+        <text class="subtitle" x="734" y="319.5">apply mapped login label</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="650" y="410" width="380" height="100" rx="8"/>
+        <svg x="672" y="439" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 31C8.832 31 3 25.168 3 18V4.56a1 1 0 0 1 .792-.978l12-2.56a1.01 1.01 0 0 1 .417 0l12 2.56c.461.099.792.506.792.978V18c0 7.168-5.832 13-13 13ZM5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369L16 3.022 5 5.369Z"/></svg>
+        <text class="title" x="734" y="458.5">Confined automation session</text>
+        <text class="subtitle" x="734" y="479.5">runs under host SELinux policy</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="300" y="610" width="340" height="96" rx="8"/>
+        <svg x="322" y="637" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 31C8.832 31 3 25.168 3 18V4.56a1 1 0 0 1 .792-.978l12-2.56a1.01 1.01 0 0 1 .417 0l12 2.56c.461.099.792.506.792.978V18c0 7.168-5.832 13-13 13ZM5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369L16 3.022 5 5.369Z"/></svg>
+        <text class="title" x="384" y="656.5">Local root work</text>
+        <text class="subtitle" x="384" y="677.5">inside SELinux boundary</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="1080" y="610" width="340" height="96" rx="8"/>
+        <svg x="1102" y="637" width="42" height="42" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 7.75c.69 0 1.25.56 1.25 1.25v7a1.25 1.25 0 0 1-2.5 0V9c0-.69.56-1.25 1.25-1.25Zm13-3.19V18c0 7.168-5.832 13-13 13S3 25.168 3 18V4.56a1 1 0 0 1 .791-.978l12-2.56c.139-.029.279-.029.418 0l12 2.56A1 1 0 0 1 29 4.56Zm-2 .809L16 3.022 5 5.369V18c0 6.065 4.935 11 11 11s11-4.935 11-11V5.369ZM16 20.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 16 20.25Z"/></svg>
+        <text class="title" x="1164" y="656.5">Exploit surfaces denied</text>
+        <text class="subtitle" x="1164" y="677.5">by versioned policy</text>
+      </g>
+</svg>

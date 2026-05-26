@@ -1,0 +1,8 @@
+flowchart LR
+  signer[Signer owner<br/>named service principal] --> vault[Service-owned KRA vault<br/>artifact + latest index]
+  vault --> verifier[Verifier principal<br/>read-only retrieval]
+  verifier --> health[KRA health owner<br/>replica + canary checks]
+  health --> record[Decision record<br/>owners and evidence]
+
+  shared[Shared vault scope<br/>lab or RC only] --> transition[Transition workflow<br/>labels custody as RC]
+  transition --> stable[stable-v3 verifier<br/>rejects shared scope]

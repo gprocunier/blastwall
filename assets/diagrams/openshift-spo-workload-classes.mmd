@@ -1,0 +1,13 @@
+flowchart LR
+    ROOT["OpenShift/SPO<br/>Blastwall workload profiles"]
+
+    STD["blastwall<br/>standard class"]
+    STDSCC["blastwall-confined<br/>blastwall_.process"]
+    STDDENY["Denies userns<br/>xfrm, RxRPC, AF_ALG,<br/>BPF, packet, io_uring"]
+
+    NEST["blastwall-nested<br/>explicit exception"]
+    NESTSCC["blastwall-nested<br/>blastwallnested_.process"]
+    NESTDENY["Allows pod userns<br/>still denies xfrm, RxRPC,<br/>AF_ALG, BPF, packet, io_uring"]
+
+    ROOT --> STD --> STDSCC --> STDDENY
+    ROOT --> NEST --> NESTSCC --> NESTDENY

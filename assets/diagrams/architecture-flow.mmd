@@ -1,0 +1,19 @@
+flowchart TB
+    AAP["AAP job<br/>automation identity"] --> INV["Inventory facts<br/>eigenstate.ipa reads IdM"]
+
+    subgraph IDM["IdM records"]
+      HBAC["HBAC<br/>blastwall-ssh"]
+      MARKERS["Host markers<br/>policy version + scopes"]
+      MAP["SELinux map<br/>blastwall-root-local-map"]
+      SUDO["Sudo rule<br/>blastwall-root-local-sudo"]
+    end
+
+    INV --> PREFLIGHT["Preflight gate<br/>access + marker state"]
+    HBAC --> PREFLIGHT
+    MARKERS --> PREFLIGHT
+    PREFLIGHT --> RUN["Run job<br/>on selected hosts"]
+    MAP --> LOGIN["SSH login<br/>SSSD + pam_selinux"]
+    RUN --> LOGIN
+    LOGIN --> DOMAIN["Confined session<br/>blastwall_t"]
+    SUDO --> DOMAIN
+    DOMAIN --> DENY["SELinux denies<br/>AF_ALG, BPF, packet sockets,<br/>userns, io_uring,<br/>xfrm, RxRPC, policy writes"]

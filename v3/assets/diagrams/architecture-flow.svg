@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blastwall architecture Red Hat styled diagram" width="1261" height="965" viewBox="0 0 1261 965">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .group rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.5; filter: url(#shadow); }
+      .group-title { fill: #151515; font: 700 24px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 17px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 14px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1261" height="965"/>
+  <rect class="grain" width="1261" height="965"/>
+
+  <g class="edges">
+    <path class="connector" d="M 142 108 V 162" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 142 248 V 328 H 522" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 435 228 V 585 H 484" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 664 228 V 300" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 893 228 V 328 H 782" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 1122 228 V 708 H 920" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 652 383 V 430" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 652 512 V 556" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 526 639 V 708 H 632" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 776 752 V 804" marker-end="url(#arrow)"/>
+  </g>
+
+  <g class="group">
+    <rect x="316" y="62" width="925" height="190" rx="16"/>
+    <text class="group-title" x="778" y="96">IdM records</text>
+  </g>
+
+
+      <g class="node">
+        <rect class="card" x="20" y="26" width="270" height="88" rx="8"/>
+        <svg x="42" y="50.5" width="39" height="39" viewBox="0 0 36 36" fill="#ee0000" aria-hidden="true"><path d="M21.32 17.8C27.8 14.41 25.42 4.39 18 4.38s-9.8 10-3.32 13.42A13.63 13.63 0 0 0 4.38 31a.61.61 0 0 0 .62.62h26a.61.61 0 0 0 .62-.62 13.63 13.63 0 0 0-10.3-13.2Zm-9.2-6.3c.25-7.76 11.51-7.76 11.76 0-.25 7.76-11.51 7.76-11.76 0ZM5.64 30.38c1.36-15.59 23.41-15.58 24.72 0Z"/></svg>
+        <text class="title" x="104" y="69.5">AAP job</text>
+        <text class="subtitle" x="104" y="89.5">automation identity</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="20" y="162" width="270" height="88" rx="8"/>
+        <svg x="42" y="186.5" width="39" height="39" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M25.5 6H23v-.5c0-.827-.673-1.5-1.5-1.5h-1.626C19.429 2.276 17.861 1 16 1s-3.428 1.276-3.874 3H10.5C9.673 4 9 4.673 9 5.5V6H6.5C5.673 6 5 6.673 5 7.5v22c0 .827.673 1.5 1.5 1.5h19c.827 0 1.5-.673 1.5-1.5v-22c0-.827-.673-1.5-1.5-1.5ZM11 6h2a1 1 0 0 0 1-1c0-1.103.897-2 2-2s2 .897 2 2a1 1 0 0 0 1 1h2v2H11V6Zm14 23H7V8h2v.5c0 .827.673 1.5 1.5 1.5h11c.827 0 1.5-.673 1.5-1.5V8h2v21Z"/></svg>
+        <text class="title" x="104" y="205.5">Inventory facts</text>
+        <text class="subtitle" x="104" y="225.5">eigenstate.ipa reads IdM</text>
+      </g>
+
+
+      <g class="node">
+        <rect class="card" x="331" y="110" width="208" height="118" rx="8"/>
+        <svg x="353" y="149.5" width="39" height="39" viewBox="0 0 36 36" fill="#ee0000" aria-hidden="true"><path d="m29.13 6.73-11-2.34a.57.57 0 0 0-.26 0l-11 2.34a.61.61 0 0 0-.49.61V20a11.62 11.62 0 0 0 23.24 0V7.34a.61.61 0 0 0-.49-.61ZM18 5.64l10.38 2.2v5.61L7.62 17.86v-10Zm0 24.74A10.4 10.4 0 0 1 7.62 20v-.86l20.76-4.41V20A10.4 10.4 0 0 1 18 30.38Z"/></svg>
+        <text class="title" x="415" y="161">SELinux map</text>
+        <text class="subtitle" x="415" y="181">blastwall-root</text><text class="subtitle" x="415" y="196">local-map</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="560" y="110" width="208" height="118" rx="8"/>
+        <svg x="582" y="149.5" width="39" height="39" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M24.5 12H23V8c0-3.86-3.14-7-7-7S9 4.14 9 8v4H7.5c-.827 0-1.5.673-1.5 1.5v15c0 .827.673 1.5 1.5 1.5h17c.827 0 1.5-.673 1.5-1.5v-15c0-.827-.673-1.5-1.5-1.5ZM11 8c0-2.757 2.243-5 5-5s5 2.243 5 5v4H11V8Zm13 20H8V14h16v14Zm-6.5-7c0 .52-.265.978-.667 1.247l-.004.003a1.938 1.938 0 0 1-.203.109c-.015.007-.029.017-.044.024l-.013.007c-.039.013-.082.023-.122.035a1.47 1.47 0 0 1-.447.076c-.057 0-.111-.011-.167-.017-.043-.005-.087-.005-.129-.013a1.499 1.499 0 0 1-1.204-1.47c0-.035.008-.07.011-.105.035-.492.302-.917.697-1.164.024-.015.05-.027.075-.041.074-.04.15-.075.231-.103.033-.011.065-.022.098-.031a1.52 1.52 0 0 1 .235-.042c.036-.004.071-.01.107-.011.016 0 .03-.005.046-.005.293 0 .564.087.795.232.011.007.024.011.035.017l.005.004c.388.261.645.699.661 1.198 0 .016.005.032.005.048Z"/></svg>
+        <text class="title" x="644" y="168.5">HBAC</text>
+        <text class="subtitle" x="644" y="188.5">blastwall-ssh</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="789" y="110" width="208" height="118" rx="8"/>
+        <svg x="811" y="149.5" width="39" height="39" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M28.5 1h-25C2.673 1 2 1.673 2 2.5v27c0 .827.673 1.5 1.5 1.5h25c.827 0 1.5-.673 1.5-1.5v-27c0-.827-.673-1.5-1.5-1.5ZM28 29H4V3h24v26ZM7 8a1 1 0 0 1 1-1h5a1 1 0 0 1 0 2H8a1 1 0 0 1-1-1Zm0 16a1 1 0 0 1 1-1h5a1 1 0 0 1 0 2H8a1 1 0 0 1-1-1Zm0-8a1 1 0 0 1 1-1h5a1 1 0 0 1 0 2H8a1 1 0 0 1-1-1Zm14.38-7.987a1.626 1.626 0 1 1 3.251.001 1.626 1.626 0 0 1-3.251-.001Zm0 8a1.626 1.626 0 1 1 3.251.001 1.626 1.626 0 0 1-3.251-.001Zm-.005 8.002a1.626 1.626 0 1 1 3.251.001 1.626 1.626 0 0 1-3.251-.001Z"/></svg>
+        <text class="title" x="873" y="161">Host markers</text>
+        <text class="subtitle" x="873" y="181">policy version +</text><text class="subtitle" x="873" y="196">scopes</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="1018" y="110" width="208" height="118" rx="8"/>
+        <svg x="1040" y="149.5" width="39" height="39" viewBox="0 0 36 36" fill="#ee0000" aria-hidden="true"><path d="m11.44 25.44 7-7a.61.61 0 0 0 0-.88l-7-7a.63.63 0 1 0-.88.88L17.12 18l-6.56 6.56a.63.63 0 1 0 .88.88Zm6.94-.52a.63.63 0 0 0 .62.63h7a.63.63 0 0 0 0-1.25h-7a.62.62 0 0 0-.62.62Z"/><path d="M31 4.38H5a.62.62 0 0 0-.62.62v26a.62.62 0 0 0 .62.62h26a.62.62 0 0 0 .62-.62V5a.62.62 0 0 0-.62-.62Zm-.62 26H5.62V5.62h24.76Z"/></svg>
+        <text class="title" x="1102" y="161">Sudo rule</text>
+        <text class="subtitle" x="1102" y="181">blastwall-root</text><text class="subtitle" x="1102" y="196">local-sudo</text>
+      </g>
+
+
+      <g class="node">
+        <rect class="card" x="522" y="300" width="260" height="84" rx="8"/>
+        <svg x="544" y="322.5" width="39" height="39" viewBox="0 0 36 36" fill="#ee0000" aria-hidden="true"><path d="m29.13 6.73-11-2.34a.57.57 0 0 0-.26 0l-11 2.34a.61.61 0 0 0-.49.61V20a11.62 11.62 0 0 0 23.24 0V7.34a.61.61 0 0 0-.49-.61ZM18 5.64l10.38 2.2v5.61L7.62 17.86v-10Zm0 24.74A10.4 10.4 0 0 1 7.62 20v-.86l20.76-4.41V20A10.4 10.4 0 0 1 18 30.38Z"/></svg>
+        <text class="title" x="606" y="341.5">Preflight gate</text>
+        <text class="subtitle" x="606" y="361.5">access + marker state</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="522" y="430" width="260" height="82" rx="8"/>
+        <svg x="544" y="451.5" width="39" height="39" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 1C7.729 1 1 7.729 1 16s6.729 15 15 15 15-6.729 15-15S24.271 1 16 1Zm0 28C8.832 29 3 23.168 3 16S8.832 3 16 3s13 5.832 13 13-5.832 13-13 13Zm7.659-13c0 .379-.214.725-.553.895l-10.659 5.329a1.005 1.005 0 0 1-.973-.044 1 1 0 0 1-.474-.851V10.672a1 1 0 0 1 1.447-.895l10.659 5.329a1 1 0 0 1 .553.895Z"/></svg>
+        <text class="title" x="606" y="470.5">Run job</text>
+        <text class="subtitle" x="606" y="490.5">on selected hosts</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="484" y="556" width="256" height="84" rx="8"/>
+        <svg x="506" y="578.5" width="39" height="39" viewBox="0 0 36 36" fill="#ee0000" aria-hidden="true"><path d="M21.32 17.8C27.8 14.41 25.42 4.39 18 4.38s-9.8 10-3.32 13.42A13.63 13.63 0 0 0 4.38 31a.61.61 0 0 0 .62.62h26a.61.61 0 0 0 .62-.62 13.63 13.63 0 0 0-10.3-13.2Zm-9.2-6.3c.25-7.76 11.51-7.76 11.76 0-.25 7.76-11.51 7.76-11.76 0ZM5.64 30.38c1.36-15.59 23.41-15.58 24.72 0Z"/></svg>
+        <text class="title" x="568" y="597.5">SSH login</text>
+        <text class="subtitle" x="568" y="617.5">SSSD + pam_selinux</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="632" y="685" width="288" height="68" rx="8"/>
+        <svg x="654" y="699.5" width="39" height="39" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M24.5 12H23V8c0-3.86-3.14-7-7-7S9 4.14 9 8v4H7.5c-.827 0-1.5.673-1.5 1.5v15c0 .827.673 1.5 1.5 1.5h17c.827 0 1.5-.673 1.5-1.5v-15c0-.827-.673-1.5-1.5-1.5ZM11 8c0-2.757 2.243-5 5-5s5 2.243 5 5v4H11V8Zm13 20H8V14h16v14Zm-6.5-7c0 .52-.265.978-.667 1.247l-.004.003a1.938 1.938 0 0 1-.203.109c-.015.007-.029.017-.044.024l-.013.007c-.039.013-.082.023-.122.035a1.47 1.47 0 0 1-.447.076c-.057 0-.111-.011-.167-.017-.043-.005-.087-.005-.129-.013a1.499 1.499 0 0 1-1.204-1.47c0-.035.008-.07.011-.105.035-.492.302-.917.697-1.164.024-.015.05-.027.075-.041.074-.04.15-.075.231-.103.033-.011.065-.022.098-.031a1.52 1.52 0 0 1 .235-.042c.036-.004.071-.01.107-.011.016 0 .03-.005.046-.005.293 0 .564.087.795.232.011.007.024.011.035.017l.005.004c.388.261.645.699.661 1.198 0 .016.005.032.005.048Z"/></svg>
+        <text class="title" x="716" y="718.5">Confined session</text>
+        <text class="subtitle" x="716" y="738.5">blastwall_t</text>
+      </g>
+
+      <g class="node">
+        <rect class="card" x="552" y="804" width="430" height="120" rx="8"/>
+        <svg x="574" y="844.5" width="39" height="39" viewBox="0 0 32 32" fill="#ee0000" aria-hidden="true"><path d="M16 1C7.729 1 1 7.729 1 16s6.729 15 15 15 15-6.729 15-15S24.271 1 16 1ZM3 16c0-3.241 1.2-6.201 3.169-8.48.04.064.069.132.124.187l18 18c.055.055.124.085.187.124A12.932 12.932 0 0 1 16 29C8.832 29 3 23.168 3 16Zm22.831 8.48c-.04-.064-.069-.132-.124-.187l-18-18c-.055-.055-.124-.085-.187-.124A12.932 12.932 0 0 1 16 3c7.168 0 13 5.832 13 13 0 3.241-1.2 6.201-3.169 8.48Z"/></svg>
+        <text class="title" x="636" y="856">SELinux denies</text>
+        <text class="subtitle" x="636" y="876">AF_ALG, BPF, packet sockets, userns, io_uring, policy</text><text class="subtitle" x="636" y="891">writes</text>
+      </g>
+</svg>

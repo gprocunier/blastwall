@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph SIGNAL["1. Convert the exploit into managed policy"]
+        EXP["New exploit surface"] --> POLICY["Update Blastwall policy"]
+    end
+
+    subgraph ARTIFACT["2. Give the mitigation an artifact lifecycle"]
+        RPM["Build/sign policy RPM"] --> SAT["Publish via Satellite<br/>or content pipeline"]
+    end
+
+    subgraph ROLLOUT["3. Roll out and prove host-local enforcement"]
+        DELIVERY["Satellite/AAP content delivery<br/>outside confined runtime"] --> VERIFY["Local verification<br/>expected denial works"]
+    end
+
+    subgraph INVENTORY["4. Feed verified state back into automation"]
+        IDM["Update IdM host marker"] --> EIGEN["eigenstate.ipa inventory"]
+        EIGEN --> PREFLIGHT["AAP preflight<br/>select current hosts"]
+    end
+
+    POLICY --> RPM
+    SAT --> DELIVERY
+    VERIFY --> IDM

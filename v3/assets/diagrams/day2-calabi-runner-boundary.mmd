@@ -1,0 +1,8 @@
+flowchart TB
+    RUNNER["GitHub dispatch<br/>lab runner launches awx"]
+    AAP["AAP Controller<br/>policy workflow"]
+    EVIDENCE["Lab proof<br/>install, verify, collect logs"]
+    GATE["IdM marker + inventory<br/>preflight selects host"]
+
+    RUNNER --> AAP --> EVIDENCE --> GATE
+    GATE -. feeds .-> AAP

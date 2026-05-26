@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="620" viewBox="0 0 1280 620" role="img" aria-labelledby="v3-failure-state-map-title v3-failure-state-map-desc">
+<title id="v3-failure-state-map-title">Failure-State Map</title>
+<desc id="v3-failure-state-map-desc">Stable-v3 turns verifier problems into durable, auditable outcomes instead of ambiguous launch errors.</desc>
+<defs>
+<marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ee0000" /></marker>
+<marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4d4d4d" /></marker>
+<marker id="arrow-success" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3d7317" /></marker>
+<marker id="arrow-warning" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f0ab00" /></marker>
+</defs>
+<style>
+svg { background: #ffffff; font-family: 'Red Hat Text', 'Helvetica Neue', Arial, sans-serif; }
+.diagram-title { fill: #151515; font: 700 26px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.diagram-subtitle { fill: #4d4d4d; font: 400 15px 'Red Hat Text', Arial, sans-serif; }
+.lane rect { fill: #f5f5f5; stroke: #e0e0e0; stroke-width: 1.5; }
+.lane--red rect { fill: #fff5f5; stroke: #f4b7b7; }
+.lane--blue rect { fill: #f1f7ff; stroke: #b8d8ff; }
+.lane-title { fill: #a30000; font: 700 16px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card rect { fill: #ffffff; stroke: #e0e0e0; stroke-width: 1.5; }
+.card--gate rect { stroke: #ee0000; stroke-width: 2.2; }
+.card--proof rect { stroke: #0066cc; stroke-width: 2; }
+.card--success rect { stroke: #3d7317; stroke-width: 2; }
+.card--warning rect { stroke: #f0ab00; stroke-width: 2; }
+.card--muted rect { fill: #f5f5f5; stroke: #c7c7c7; }
+.card-title { fill: #151515; font: 700 17px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card-body { fill: #4d4d4d; font: 400 13.5px 'Red Hat Text', Arial, sans-serif; }
+.connector { fill: none; stroke: #ee0000; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.connector--muted { stroke: #4d4d4d; }
+.connector--success { stroke: #3d7317; }
+.connector--warning { stroke: #f0ab00; }
+.connector--dashed { stroke-dasharray: 7 7; }
+.connector-label { fill: #4d4d4d; font: 700 12px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label { fill: #151515; font: 700 15px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label--muted { fill: #4d4d4d; font-weight: 500; }
+.standalone-label--red { fill: #a30000; }
+</style>
+<text class="diagram-title" x="32" y="42">Failure-State Map</text>
+<text class="diagram-subtitle" x="32" y="68">Stable-v3 turns verifier problems into durable, auditable outcomes instead of ambiguous launch errors.</text>
+<polyline class="connector connector--warning" points="520,177 170,177 170,300" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--warning" points="560,222 390,222 390,300" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--warning" points="640,222 610,222 610,300" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--warning" points="720,222 830,222 830,300" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--warning" points="760,177 1050,177 1050,300" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--muted" points="170,386 170,510 520,510" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--muted" points="390,386 390,510 520,510" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--muted" points="610,386 610,470" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--muted" points="830,386 830,510 760,510" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--muted" points="1050,386 1050,510 760,510" marker-end="url(#arrow-muted)" />
+<g class="card card--gate">
+<rect x="520" y="132" width="240" height="90" rx="6" />
+<text class="card-title" x="538" y="162" text-anchor="start">
+<tspan x="538" dy="0">Stable-v3</tspan>
+<tspan x="538" dy="16">verifier</tspan>
+</text>
+<text class="card-body" x="538" y="196" text-anchor="start">
+<tspan x="538" dy="0">classifies every</tspan>
+<tspan x="538" dy="13">stop condition</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="80" y="300" width="180" height="105" rx="6" />
+<text class="card-title" x="98" y="330" text-anchor="start">
+<tspan x="98" dy="0">Marker</tspan>
+<tspan x="98" dy="16">parse</tspan>
+</text>
+<text class="card-body" x="98" y="364" text-anchor="start">
+<tspan x="98" dy="0">unsupported</tspan>
+<tspan x="98" dy="13">malformed</tspan>
+<tspan x="98" dy="13">unsuitable</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="300" y="300" width="180" height="105" rx="6" />
+<text class="card-title" x="318" y="330" text-anchor="start">
+<tspan x="318" dy="0">Artifact</tspan>
+<tspan x="318" dy="16">visibility</tspan>
+</text>
+<text class="card-body" x="318" y="364" text-anchor="start">
+<tspan x="318" dy="0">missing</tspan>
+<tspan x="318" dy="13">digest mismatch</tspan>
+<tspan x="318" dy="13">KRA outage</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="520" y="300" width="180" height="105" rx="6" />
+<text class="card-title" x="538" y="330" text-anchor="start">
+<tspan x="538" dy="0">Signature</tspan>
+<tspan x="538" dy="16">and signer</tspan>
+</text>
+<text class="card-body" x="538" y="364" text-anchor="start">
+<tspan x="538" dy="0">invalid</tspan>
+<tspan x="538" dy="13">untrusted</tspan>
+<tspan x="538" dy="13">expired</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="740" y="300" width="180" height="105" rx="6" />
+<text class="card-title" x="758" y="330" text-anchor="start">
+<tspan x="758" dy="0">Replay</tspan>
+<tspan x="758" dy="16">and revocation</tspan>
+</text>
+<text class="card-body" x="758" y="364" text-anchor="start">
+<tspan x="758" dy="0">not latest</tspan>
+<tspan x="758" dy="13">revoked marker</tspan>
+<tspan x="758" dy="13">revoked index</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="960" y="300" width="180" height="105" rx="6" />
+<text class="card-title" x="978" y="330" text-anchor="start">
+<tspan x="978" dy="0">Binding</tspan>
+<tspan x="978" dy="16">and drift</tspan>
+</text>
+<text class="card-body" x="978" y="364" text-anchor="start">
+<tspan x="978" dy="0">wrong host</tspan>
+<tspan x="978" dy="13">wrong profile</tspan>
+<tspan x="978" dy="13">policy mismatch</tspan>
+</text>
+</g>
+<g class="card card--success">
+<rect x="520" y="470" width="240" height="78" rx="6" />
+<text class="card-title" x="538" y="500" text-anchor="start">
+<tspan x="538" dy="0">Outcome</tspan>
+</text>
+<text class="card-body" x="538" y="519" text-anchor="start">
+<tspan x="538" dy="0">fail closed, route by failure class</tspan>
+</text>
+</g>
+</svg>

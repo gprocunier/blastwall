@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant A as AAP
+    participant I as IdM / FreeIPA
+    participant S as SSSD + pam_selinux
+    participant H as Managed RHEL host
+    participant K as SELinux kernel policy
+
+    A->>I: Read inventory, HBAC, SELinux map, sudo policy
+    I-->>A: Eligible hosts + confinement policy state
+    A->>I: hbactest automation identity against host:sshd
+    I-->>A: access granted or denied
+    A->>H: SSH as automation identity
+    H->>S: Resolve SELinux user map at login
+    S-->>H: Launch session as blastwall_u:blastwall_r:blastwall_t
+    A->>H: Run sudo for local-root task
+    H->>K: Enforce blastwall_t permissions
+    K-->>H: Deny alg_socket, bpf, packet_socket, userns, io_uring, xfrm, RxRPC, and policy self-protection

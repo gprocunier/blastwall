@@ -1,0 +1,14 @@
+flowchart LR
+  candidate[Candidate selected by inventory] --> marker[Parse v3 marker]
+  marker --> artifact[Fetch KRA artifact and latest index]
+  artifact --> signature[Verify signature and signer]
+  signature --> replay[Check latest generation and revocation]
+  replay --> binding[Check host/profile/policy binding]
+  binding --> live[Probe live host state]
+  live --> allow[Allow launch]
+  marker -. any failure .-> fail[Fail closed with named state]
+  artifact -. any failure .-> fail
+  signature -. any failure .-> fail
+  replay -. any failure .-> fail
+  binding -. any failure .-> fail
+  live -. any failure .-> fail

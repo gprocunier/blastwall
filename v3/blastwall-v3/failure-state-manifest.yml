@@ -1,0 +1,65 @@
+schema_version: 1
+claim_scope: stable-v3-reference-topology
+description: Machine-readable expected failure-state contract for stable-v3.
+cases:
+  - id: missing_envelope
+    expected_state: FAIL_ATTESTATION_NOT_VISIBLE
+    class: infrastructure_visibility
+    breakglass: allowed_if_explicit_scope
+  - id: missing_index
+    expected_state: FAIL_INDEX_NOT_VISIBLE
+    class: infrastructure_visibility
+    breakglass: allowed_if_explicit_scope
+  - id: digest_mismatch
+    expected_state: FAIL_ATTESTATION_INTEGRITY
+    class: attestation_security
+    breakglass: rejected
+  - id: revoked_marker
+    expected_state: FAIL_REVOKED_ATTESTATION
+    class: attestation_security
+    breakglass: rejected
+  - id: revoked_latest_index
+    expected_state: FAIL_REVOKED_ATTESTATION
+    class: attestation_security
+    breakglass: rejected
+  - id: replay
+    expected_state: FAIL_REPLAYED_ATTESTATION
+    class: attestation_security
+    breakglass: rejected
+  - id: expired
+    expected_state: FAIL_STALE_ATTESTATION
+    class: attestation_security
+    breakglass: rejected
+  - id: policy_drift
+    expected_state: FAIL_DRIFTED_POLICY
+    class: host_security
+    breakglass: rejected
+  - id: signer_untrusted
+    expected_state: FAIL_SIGNER_UNTRUSTED
+    class: signature_security
+    breakglass: rejected
+  - id: signature_tamper
+    expected_state: FAIL_SIGNATURE_INVALID
+    class: signature_security
+    breakglass: rejected
+  - id: profile_mismatch
+    expected_state: FAIL_PROFILE_MISMATCH
+    class: binding_security
+    breakglass: rejected
+  - id: host_binding_mismatch
+    expected_state: FAIL_BINDING_MISMATCH
+    class: binding_security
+    breakglass: rejected
+  - id: v2_marker
+    expected_state: FAIL_UNSUPPORTED_MARKER_VERSION
+    class: marker_security
+    breakglass: rejected
+  - id: kra_unavailable
+    expected_state: FAIL_INFRA_VAULT_KRA
+    class: infrastructure_health
+    breakglass: rejected_until_visibility_state
+notes:
+  - Breakglass can only pass after the verifier sees FAIL_ATTESTATION_NOT_VISIBLE
+    or FAIL_INDEX_NOT_VISIBLE and all explicit scope metadata matches the run.
+  - Digest mismatch and revoked-marker mappings were re-captured after
+    Controller sync 4221 to f50c1228ddcf4544a38634f05fd87179210c6917.

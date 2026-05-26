@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Day 2 Operations | blastwall</title>
+    <meta name="description" content="Living with Blastwall: where SELinux policy comes from, how operators build a baseline disposition, and how CI/CD keeps automation posture current.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">Living with Blastwall after the first proof: policy source, baseline posture, CI/CD, and new CVE response.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell page-shell--wide">
+      <article class="content-column markdown-body">
+        <p class="lead">Day 2 is where Blastwall stops being a one-time CVE response and becomes an automation posture program. Operators decide what privileged automation should normally be allowed to do, encode that decision as SELinux policy source, test it against real automation, and promote the verified boundary like any other governed artifact.</p>
+        <p>The important boundary is ownership. Blastwall policy starts as operator-maintained source, becomes a versioned SELinux policy artifact, gets proven on managed hosts, and returns to AAP as suitability state. IdM records scope. <code>eigenstate.ipa</code> translates that state into inventory facts. AAP uses those facts before launching high-value work.</p>
+
+        <section id="where-policy-comes-from">
+          <h2>Where The Policy Comes From</h2>
+          <p>The policy starts in <code>policy/</code>. The base <code>blastwall.te</code> module defines the automation SELinux user, role, and domain using the RHEL targeted policy model. The standalone CIL deny files subtract high-risk surfaces from that domain, such as AF_ALG, BPF, packet sockets, user namespace creation, io_uring, xfrm, RxRPC, and direct policy self-protection.</p>
+          <p>The source of authority is the versioned SELinux policy artifact installed on the managed host. IdM records which identities and hosts are in scope, <code>eigenstate.ipa</code> translates that state into inventory facts, and AAP decides whether the host is suitable before the job runs.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-policy-source">
+            <figcaption>
+              <strong>Policy source becomes launch suitability.</strong>
+              <span>The policy artifact is built and verified on the host before IdM, inventory, and AAP use that state to select where automation can run.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-policy-source.svg" alt="Day 2 policy source flow from SELinux source to AAP preflight suitability">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Layer</th><th>What It Contributes</th><th>Where It Hands Off</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Layer">RHEL targeted policy</td><td data-label="What It Contributes">The standard SELinux policy foundation and ordinary RHEL domain model.</td><td data-label="Where It Hands Off">Blastwall policy narrows the automation domain for this fleet.</td></tr>
+              <tr><td data-label="Layer">Blastwall base policy</td><td data-label="What It Contributes">The named automation subject: <code>blastwall_u</code>, <code>blastwall_r</code>, and <code>blastwall_t</code>.</td><td data-label="Where It Hands Off">Deny scopes subtract specific risky surfaces from that subject.</td></tr>
+              <tr><td data-label="Layer">Blastwall CIL deny scopes</td><td data-label="What It Contributes">Explicit subtraction of risky or low-value surfaces from the automation domain.</td><td data-label="Where It Hands Off">Staging replay proves whether normal automation still works.</td></tr>
+              <tr><td data-label="Layer">Content pipeline</td><td data-label="What It Contributes">Versioned RPM build, promotion, rollback, and audit trail.</td><td data-label="Where It Hands Off">Host-local verification writes the marker AAP can consume.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="baseline-disposition">
+          <h2>Baseline Disposition</h2>
+          <p>A baseline disposition is the current answer to a narrow question: what should this class of privileged automation normally be able to do on a managed host? The answer should be specific to an automation population, not a universal claim about every process on the system.</p>
+          <p>The starting point is not a blank policy. Operators begin with the RHEL targeted policy substrate, the current Blastwall domain, and the automation they already run. Then they prune away surfaces that have high exploit value and low expected operational value for that automation path.</p>
+          <figure class="diagram-card" id="day2-baseline-disposition">
+            <figcaption>
+              <strong>Baseline posture comes from three signals.</strong>
+              <span>Exploit pressure, real automation behavior, and inherited RHEL policy grants become keep, deny, or split decisions.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-baseline-disposition.svg" alt="Baseline disposition flow from exploit pressure and automation behavior to keep deny or split decisions">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Signal</th><th>Operator Question</th><th>Disposition Result</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Signal">Known exploit pressure</td><td data-label="Operator Question">Does this surface appear in current CVE or exploit-chain work?</td><td data-label="Disposition Result">Candidate deny scope.</td></tr>
+              <tr><td data-label="Signal">Automation corpus</td><td data-label="Operator Question">Do normal jobs actually need this capability?</td><td data-label="Disposition Result">Keep, deny, or split the automation identity.</td></tr>
+              <tr><td data-label="Signal">Targeted policy grants</td><td data-label="Operator Question">Is this permission inherited because it is generally useful, or because this automation needs it?</td><td data-label="Disposition Result">Prune broad grants when the automation path does not need them.</td></tr>
+              <tr><td data-label="Signal">Verification output</td><td data-label="Operator Question">Can the deny scope be probed safely and recorded clearly?</td><td data-label="Disposition Result">Promote only after proof and marker state exist.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="automation-as-test-case">
+          <h2>Use Automation As The Test Case</h2>
+          <p>The most useful test corpus is the automation already running in the environment. Replay normal jobs in staging under <code>blastwall_t</code>, collect denials, and classify each finding before changing production posture.</p>
+          <p>A denial is not automatically a bug. It can mean the policy is too tight, the job is doing work that belongs in a different automation identity, or the policy correctly blocked behavior the job never should have needed.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Observation</th><th>Interpretation</th><th>Next Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Observation">Normal job fails on expected file, package, or service work.</td><td data-label="Interpretation">The baseline is too narrow for this automation class.</td><td data-label="Next Action">Add a targeted allow or split the workflow into a more specific domain.</td></tr>
+              <tr><td data-label="Observation">Job tries to create BPF, packet sockets, user namespaces, io_uring, xfrm state, or RxRPC sockets.</td><td data-label="Interpretation">The job is crossing into a high-risk surface with little expected automation value.</td><td data-label="Next Action">Keep the deny scope and investigate why the job wanted that surface.</td></tr>
+              <tr><td data-label="Observation">Only one job needs a broad capability.</td><td data-label="Interpretation">The shared automation identity may be too broad.</td><td data-label="Next Action">Consider a separate identity, host group, or policy domain for that workflow.</td></tr>
+              <tr><td data-label="Observation">Probe output and audit logs agree.</td><td data-label="Interpretation">The policy is enforceable and explainable.</td><td data-label="Next Action">Promote the artifact and write verified marker state.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="policy-pipeline">
+          <h2>Policy Pipeline</h2>
+          <p>The policy repository should behave like any other production control. The main branch holds the master policy baseline. A new deny scope starts on a feature branch, proves that the policy still compiles, proves that normal automation still works, proves that the new surface is denied, and only then becomes a promoted artifact.</p>
+          <p>The runner can be GitHub Actions, a GitLab runner, Tekton, AAP, or a mix of them. The important part is the contract: build the RPM, run unit checks, replay the automation corpus, run safe denial probes, keep the logs, and promote only when the evidence says the baseline is still usable.</p>
+          <p>The Calabi lab now has that loop as a runnable AAP workflow. <code>Blastwall policy pipeline</code> starts with the synced Git project, builds a candidate <code>blastwall-selinux</code> RPM from <code>policy/</code>, renders an OpenShift/SPO CR bundle from the same policy version, installs the RPM on the selected lab endpoint, verifies the confined context and deny probes, then updates the IdM host marker through the FreeIPA collection. After the marker moves, the workflow resyncs inventory through <code>eigenstate.ipa</code> and runs preflight against the promoted state.</p>
+          <p>There are two targeting controls in this design. Runtime/preflight verify is
+          profile-aware: it reads <code>BLASTWALL_AAP_VERIFY_TARGET_GROUP</code>, which defaults to
+          <code>blastwall_profile_base</code>, and should be switched to
+          <code>blastwall_profile_strange_socket_v1</code> for strange-socket dry-run runs.
+          The policy pipeline itself is cohort-based and is controlled separately by
+          <code>BLASTWALL_POLICY_PIPELINE_CANDIDATE_GROUP</code>. Strange-socket dry-run rollout
+          should use an explicit lab cohort for this variable rather than reusing the base verify
+          group.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-aap-policy-pipeline">
+            <figcaption>
+              <strong>The Day 2 loop is runnable in AAP.</strong>
+              <span>A policy source change becomes a candidate RPM, then a verified IdM marker that AAP preflight can consume.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-aap-policy-pipeline.svg" alt="AAP policy pipeline from Git policy source through RPM build, candidate install, host verification, IdM marker update, inventory sync, and AAP preflight">
+          </figure>
+          <pre><code class="language-bash">awx workflow_job_templates launch 'Blastwall policy pipeline' \
+  --extra_vars '{"BLASTWALL_POLICY_VERSION":"0.5.2","BLASTWALL_POLICY_RELEASE":"1"}' \
+  -f json |
+  tee /tmp/blastwall-policy-pipeline-launch.json |
+  jq '{workflow_job, status, launched_by: .launched_by.name}'
+
+workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-policy-pipeline-launch.json)"
+
+awx workflow_jobs monitor "${workflow_id}"
+
+awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
+  jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'</code></pre>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>AAP Node</th><th>Evidence It Produces</th><th>Why It Matters</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="AAP Node"><code>policy_project_sync</code></td><td data-label="Evidence It Produces">The workflow starts from the selected Git state.</td><td data-label="Why It Matters">Policy is sourced from the repository, not hand-edited on a host.</td></tr>
+              <tr><td data-label="AAP Node"><code>build_policy_rpm</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_build: passed</code> and the candidate NEVRA.</td><td data-label="Why It Matters">The RPM is a versioned artifact built from checked-out <code>policy/</code> source.</td></tr>
+              <tr><td data-label="AAP Node"><code>render_spo_policy_crs</code></td><td data-label="Evidence It Produces"><code>spo_policy_crs_render: passed</code> and <code>blastwall-spo-crs.yaml</code>.</td><td data-label="Why It Matters">The same policy version produces an OpenShift/SPO workload-profile bundle without requiring cluster credentials.</td></tr>
+              <tr><td data-label="AAP Node"><code>apply_validate_spo_policy_crs</code></td><td data-label="Evidence It Produces"><code>spo_policy_apply_validate: passed</code>, profile readiness, SCC presence, and both validation summaries.</td><td data-label="Why It Matters">When an OpenShift kubeconfig is configured, AAP can apply the rendered bundle and prove the UBI validation path.</td></tr>
+              <tr><td data-label="AAP Node"><code>install_candidate_policy_rpm</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_install: passed</code> and installed package state.</td><td data-label="Why It Matters">The candidate artifact is on the host before verification starts.</td></tr>
+              <tr><td data-label="AAP Node"><code>verify_candidate_host</code></td><td data-label="Evidence It Produces">Confined SELinux context and blocked probe output.</td><td data-label="Why It Matters">The new marker is not trusted until the host-local boundary is proven.</td></tr>
+              <tr><td data-label="AAP Node"><code>promote_policy_marker</code></td><td data-label="Evidence It Produces"><code>policy_pipeline_promotion: passed</code> and the promoted marker.</td><td data-label="Why It Matters">The marker write uses the FreeIPA collection after host verification succeeds.</td></tr>
+              <tr><td data-label="AAP Node"><code>post_promotion_preflight</code></td><td data-label="Evidence It Produces">Selected current hosts from the refreshed IdM inventory.</td><td data-label="Why It Matters">AAP consumes the promoted state before future privileged automation runs.</td></tr>
+            </tbody>
+          </table>
+          <figure class="diagram-card diagram-card--focus" id="day2-ci-pipeline">
+            <figcaption>
+              <strong>Policy change becomes a promoted artifact.</strong>
+              <span>A feature branch adds the scope, the pipeline rebuilds the policy RPM, unit and replay tests prove it, and promotion feeds AAP preflight state.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-ci-pipeline.svg" alt="Mock CI pipeline from feature branch policy change through RPM build, tests, promotion, IdM marker, and AAP preflight">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Pipeline Stage</th><th>What It Proves</th><th>Who Can Run It</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Pipeline Stage">Feature branch</td><td data-label="What It Proves">The deny scope is reviewable as source, not a one-off host mutation.</td><td data-label="Who Can Run It">GitHub Actions, GitLab CI, Tekton, or an AAP workflow triggered by SCM.</td></tr>
+              <tr><td data-label="Pipeline Stage">Build and unit checks</td><td data-label="What It Proves">The reference policy module and CIL deny files compile, and neverallow guards still hold.</td><td data-label="Who Can Run It">Any runner with the policy toolchain and RPM build environment.</td></tr>
+              <tr><td data-label="Pipeline Stage">Staging replay</td><td data-label="What It Proves">Normal automation still completes under <code>blastwall_t</code>, or the workflow needs a split identity.</td><td data-label="Who Can Run It">AAP workflow jobs, GitLab runners with lab access, Tekton tasks, or GitHub self-hosted runners.</td></tr>
+              <tr><td data-label="Pipeline Stage">Safe probes</td><td data-label="What It Proves">The new high-risk surface is actually denied without exploiting a vulnerability.</td><td data-label="Who Can Run It">AAP verification jobs or CI jobs that can reach a disposable managed host.</td></tr>
+              <tr><td data-label="Pipeline Stage">Promotion</td><td data-label="What It Proves">The artifact, logs, marker update, and AAP preflight requirement all refer to the same policy version.</td><td data-label="Who Can Run It">AAP for controlled rollout, or CI/CD publishing into the content repository followed by AAP verification.</td></tr>
+            </tbody>
+          </table>
+          <figure class="diagram-card" id="day2-pipeline-engines">
+            <figcaption>
+              <strong>The runner is replaceable; the evidence contract is not.</strong>
+              <span>GitHub Actions, GitLab runners, Tekton pipelines, and AAP workflows can all drive the same build-test-promote contract.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-pipeline-engines.svg" alt="Pipeline engine options feeding a common evidence bundle, promotion decision, content repository, and AAP preflight">
+          </figure>
+          <p>In a live enterprise shape, I would let CI own fast build and unit feedback, then let AAP own operator-visible rollout and verification. That gives developers quick branch feedback without hiding the production gate from the automation platform that will enforce it.</p>
+          <p>The pipeline now has two governed outputs: a RHEL/IdM policy RPM for managed-host SSH automation and an <a href="openshift-spo.html">OpenShift/SPO</a> CR bundle for selected pod workloads. The SPO source manifests stay in Git under <code>openshift/spo</code>, the render node emits a versioned <code>blastwall-spo-crs.yaml</code> bundle as a workflow artifact, and applying that artifact in OpenShift is a separate cluster change-control step.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-spo-artifact-pipeline">
+            <figcaption>
+              <strong>OpenShift/SPO artifact path.</strong>
+              <span>Policy source manifests render inside the AAP workflow, then the bundle artifact is pulled and applied as live OpenShift objects.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-spo-artifact-pipeline.svg" alt="SPO policy source manifests from Git render to AAP job artifact, then OpenShift object apply">
+          </figure>
+        </section>
+
+        <section id="run-policy-pipeline">
+          <h2>Run The Policy Pipeline</h2>
+          <p>This tutorial path is for an operator who wants to try the Day 2 policy loop in the Calabi lab. The point is not to let a public runner reach into a private lab. The runner that talks to AAP must live where it can reach the Controller API, and AAP remains the system that performs the visible lab work.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-calabi-runner-boundary">
+            <figcaption>
+              <strong>The runner crosses the GitHub-to-lab gap.</strong>
+              <span>GitHub starts the run, but the self-hosted runner inside the lab launches AAP and collects the evidence.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-calabi-runner-boundary.svg" alt="GitHub dispatch to a Calabi self-hosted runner, AAP Controller, managed host verification, IdM marker, eigenstate.ipa inventory, and AAP preflight">
+          </figure>
+          <p>Start by applying the Controller configuration from the Calabi AAP runbooks. That creates the project, IdM inventory source, execution environment, runtime verification workflow, and policy pipeline workflow.</p>
+          <pre><code class="language-bash">cd /opt/openshift/aws-metal-openshift-demo/blastwall
+
+ansible-playbook poc-calabi/aap/20-configure-controller.yml
+
+ansible-playbook poc-calabi/aap/25-seed-selection-fixture.yml</code></pre>
+          <p>The policy pipeline is deliberately split into evidence-producing AAP nodes. The candidate RPM is installed first, then the existing managed-host verification job proves the SELinux context and deny probes. Only after that proof does the marker promotion job update IdM.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-aap-node-evidence">
+            <figcaption>
+              <strong>Each AAP node has a job-shaped proof.</strong>
+              <span>The marker is promoted after host verification, then inventory and preflight consume the new state.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-aap-node-evidence.svg" alt="AAP nodes and evidence from project sync through build, candidate install, host verification, FreeIPA marker promotion, and eigenstate.ipa preflight">
+          </figure>
+          <p>Launch the workflow with a candidate version. In the lab this can be done directly with <code>awx</code> from a host that can reach the Controller API, or through the <code>policy-pipeline-smoke</code> GitHub Actions workflow on the <code>blastwall-lab</code> self-hosted runner.</p>
+          <pre><code class="language-bash">awx workflow_job_templates launch 'Blastwall policy pipeline' \
+  --extra_vars '{"BLASTWALL_POLICY_VERSION":"0.5.2","BLASTWALL_POLICY_RELEASE":"1"}' \
+  -f json |
+  tee /tmp/blastwall-policy-pipeline-launch.json |
+  jq '{workflow_job, status, launched_by: .launched_by.name}'
+
+workflow_id="$(jq -r '.workflow_job' /tmp/blastwall-policy-pipeline-launch.json)"
+
+awx workflow_jobs monitor "${workflow_id}"</code></pre>
+          <p>After the workflow finishes, read the node list and then inspect the jobs that matter. I want four signals before trusting the promotion: the build reported the candidate NEVRA, the install job confirmed the package and modules, the verification job showed the confined context and blocked probes, and the promotion job wrote the marker that inventory can consume.</p>
+          <pre><code class="language-bash">awx workflow_job_nodes list --workflow_job "${workflow_id}" -f json |
+  tee /tmp/blastwall-policy-pipeline-nodes.json |
+  jq -r '.results[] | [.identifier, .summary_fields.job.id, .summary_fields.job.type, .summary_fields.job.status] | @tsv'
+
+build_id="$(jq -r '.results[] | select(.identifier == "build_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+install_id="$(jq -r '.results[] | select(.identifier == "install_candidate_policy_rpm") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+verify_id="$(jq -r '.results[] | select(.identifier == "verify_candidate_host") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+promote_id="$(jq -r '.results[] | select(.identifier == "promote_policy_marker") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+render_id="$(jq -r '.results[] | select(.identifier == "render_spo_policy_crs") | .summary_fields.job.id' /tmp/blastwall-policy-pipeline-nodes.json)"
+
+awx jobs stdout "${build_id}" | grep -E 'policy_pipeline_build|blastwall-selinux-0.5.2-1'
+awx jobs stdout "${install_id}" | grep -E 'policy_pipeline_install|blastwall-selinux-0.5.2-1'
+awx jobs stdout "${verify_id}" | grep -E 'blastwall_u:blastwall_r:blastwall_t:s0|BLOCKED:|SKIP:'
+awx jobs stdout "${promote_id}" | grep -E 'policy_pipeline_promotion|blastwall:state=active;rpm=blastwall-selinux-0.5.2-1|rpm_sha256=[0-9a-f]{64}'
+awx jobs get "${render_id}" -f json \
+  | tee /tmp/blastwall-render-spo-job.json \
+  | jq '.artifacts | {
+      policy_nevra,
+      blastwall_spo_bundle_path,
+      blastwall_spo_bundle_sha256
+    }'
+
+awx jobs get "${render_id}" -f json \
+  | jq -r '.artifacts.blastwall_spo_bundle_yaml' \
+  > /tmp/blastwall-spo-crs.yaml</code></pre>
+          <p>Use the render job JSON <code>.artifacts</code> map to retrieve the versioned SPO bundle and stage it for a separate OpenShift apply.</p>
+          <pre><code class="language-bash">[[ -f /tmp/blastwall-spo-crs.yaml ]] || exit 1
+oc apply -f /tmp/blastwall-spo-crs.yaml
+</code></pre>
+          <p>If the AAP Controller has the <code>Blastwall OpenShift Admin</code> kubeconfig credential, the optional <code>apply_validate_spo_policy_crs</code> node performs that apply and waits for the standard and nested UBI validation jobs. Without that credential, the render node remains an artifact-only proof.</p>
+          <p>To turn this from a versioned rebuild into a real feature branch exercise, add or adjust a CIL deny scope under <code>policy/</code>, update <code>DENY_POLICIES</code> in <code>policy/Makefile</code>, add a safe probe or verification check, and use the pipeline to prove that normal automation still works. If one automation path needs the surface, split the identity or host group instead of weakening the shared baseline for every privileged job.</p>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Operator Step</th><th>File Or Object</th><th>Expected Evidence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Operator Step">Add candidate policy source</td><td data-label="File Or Object"><code>policy/*.cil</code> and <code>policy/Makefile</code></td><td data-label="Expected Evidence">Policy checks and RPM build succeed from Git source.</td></tr>
+              <tr><td data-label="Operator Step">Install candidate artifact</td><td data-label="File Or Object"><code>Blastwall install candidate policy RPM</code></td><td data-label="Expected Evidence">Package NEVRA and SELinux modules are present on the endpoint.</td></tr>
+              <tr><td data-label="Operator Step">Verify host behavior</td><td data-label="File Or Object"><code>Blastwall verify managed host</code></td><td data-label="Expected Evidence">The session is in <code>blastwall_t</code> and safe probes are blocked or skipped for a clear platform reason.</td></tr>
+              <tr><td data-label="Operator Step">Promote suitability state</td><td data-label="File Or Object"><code>Blastwall promote policy marker</code></td><td data-label="Expected Evidence">FreeIPA host <code>userClass</code> (built-in host tagging attribute) records the policy version (NEVRA) and policy RPM SHA-256 with coverage markers.</td></tr>
+              <tr><td data-label="Operator Step">Gate future automation</td><td data-label="File Or Object"><code>eigenstate.ipa</code> inventory and AAP preflight</td><td data-label="Expected Evidence">The refreshed inventory selects the endpoint as <code>blastwall_policy_current</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="scope-lifecycle">
+          <h2>How A New Scope Enters The Baseline</h2>
+          <p>A new scope should move through the same path every time. The decision starts as an exploit signal or posture decision, becomes policy source, becomes a build artifact, gets tested locally, becomes host-marker state, and finally becomes an AAP preflight condition.</p>
+          <figure class="diagram-card" id="day2-scope-lifecycle">
+            <figcaption>
+              <strong>A deny scope earns its place in the baseline.</strong>
+              <span>Source, build, replay, probe, marker, and preflight promotion keep the mitigation reviewable and reversible.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-scope-lifecycle.svg" alt="Day 2 lifecycle for adding a new Blastwall deny scope to the baseline">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Stage</th><th>Policy Shape</th><th>Evidence Shape</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Stage">Source</td><td data-label="Policy Shape">A CIL deny scope with a matching neverallow guard and a place in <code>DENY_POLICIES</code>.</td><td data-label="Evidence Shape">The policy source says exactly what is being removed from <code>blastwall_t</code>.</td></tr>
+              <tr><td data-label="Stage">Probe</td><td data-label="Policy Shape">A safe test that exercises the surface without exploiting a vulnerability.</td><td data-label="Evidence Shape"><code>BLOCKED</code>, <code>FAIL</code>, or <code>SKIP</code> output that an operator can read.</td></tr>
+              <tr><td data-label="Stage">Verification</td><td data-label="Policy Shape">A managed-host check that confirms the session is in <code>blastwall_t</code> and the denial applies there.</td><td data-label="Evidence Shape">Command output and audit evidence agree.</td></tr>
+              <tr><td data-label="Stage">Marker</td><td data-label="Policy Shape">A verified host claim such as <code>blastwall:state=active;rpm=...;rpm_sha256=...;userns=deny</code>.</td><td data-label="Evidence Shape">AAP inventory can distinguish current hosts from stale hosts.</td></tr>
+              <tr><td data-label="Stage">Promotion</td><td data-label="Policy Shape">A versioned policy RPM in the normal content path.</td><td data-label="Evidence Shape">The baseline is reviewable, reversible, and tied to a specific policy version.</td></tr>
+            </tbody>
+          </table>
+          <p>Optional SELinux object classes need special care. The current io_uring scope is wrapped in a CIL optional block so older kernels can ignore an unknown class while newer kernels still enforce it. The marker state must reflect what the host can actually enforce.</p>
+        </section>
+
+        <section id="new-cve">
+          <h2>When A New CVE Lands</h2>
+          <p>A new CVE should not immediately become a permanent Blastwall rule. It should become a triage question: is this surface reachable from the automation domain, does normal automation need it, and can the denial be verified safely?</p>
+          <p>Dirty Frag and Fragnesia are the current examples. Dirty Frag public disclosure landed on May 7, 2026; Fragnesia followed on May 13, 2026 as a separate ESP-in-TCP/XFRM issue in the same mitigation family. The Blastwall response uses narrow policy files for the enforceable surfaces: <code>policy/blastwall-xfrm-deny.cil</code>, <code>policy/blastwall-rxrpc-deny.cil</code>, <code>policy/blastwall-alg-socket-deny.cil</code>, and the existing user namespace deny. The safe probe only checks entry-point reachability. The exploit mechanics are not part of the test path.</p>
+          <p>That deny-scope decision now has two artifact targets. The RHEL path subtracts xfrm, RxRPC, AF_ALG, and user namespace creation from <code>blastwall_t</code> for login-domain automation. The OpenShift/SPO path carries two workload classes: <code>blastwall</code> for standard workloads and <code>blastwall-nested</code> for the explicit pod-level user namespace exception. Both OpenShift classes preserve the native pod context shape <code>system_u:system_r:&lt;spo-type&gt;:s0:cX,cY</code>.</p>
+          <figure class="diagram-card" id="day2-new-cve-loop">
+            <figcaption>
+              <strong>New CVEs enter as triage before baseline.</strong>
+              <span>Reachability, replay, split decisions, and host proof determine whether the candidate scope becomes a gate or a baseline rule.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-new-cve-loop.svg" alt="New CVE triage loop for Blastwall deny scopes and AAP gating">
+          </figure>
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Question</th><th>Emergency Answer</th><th>Posture Answer</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Question">Can the automation identity reach the vulnerable surface?</td><td data-label="Emergency Answer">Deny quickly in staging and prove the probe fails.</td><td data-label="Posture Answer">Decide whether the surface should ever be available to this automation class.</td></tr>
+              <tr><td data-label="Question">Will normal jobs break?</td><td data-label="Emergency Answer">Run the current automation corpus against the candidate policy.</td><td data-label="Posture Answer">Split identities or domains when one workflow needs a risky capability.</td></tr>
+              <tr><td data-label="Question">Can AAP tell which hosts are safe?</td><td data-label="Emergency Answer">Publish marker state only after local verification.</td><td data-label="Posture Answer">Make the deny scope part of the baseline preflight for sensitive jobs.</td></tr>
+              <tr><td data-label="Question">What happens after patching?</td><td data-label="Emergency Answer">Keep the mitigation until the fleet state is proven.</td><td data-label="Posture Answer">Retire only when the capability is worth restoring for automation.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="day2-loop">
+          <h2>The Day 2 Loop</h2>
+          <p>The operating loop is deliberately boring: decide, encode, build, test, promote, verify, mark, and gate. That loop is what turns a clever deny rule into something an enterprise automation team can live with.</p>
+          <figure class="diagram-card diagram-card--focus" id="day2-loop-diagram">
+            <figcaption>
+              <strong>The operating loop is the control.</strong>
+              <span>Every policy change returns as evidence before AAP treats a host as suitable for privileged automation.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/day2-operating-loop.svg" alt="Day 2 operating loop from baseline disposition to policy source, verification, marker state, and AAP preflight selection">
+          </figure>
+          <p>The strongest Blastwall posture is not the largest deny list. It is the smallest set of capabilities that still lets the automation do its intended work, with evidence that the boundary is current before a high-value job runs.</p>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Model</h2>
+          <p class="context-kicker">Living with the boundary</p>
+          <p class="context-copy">Policy starts as source, becomes an artifact, is tested against real automation, and returns as preflight state.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#where-policy-comes-from">Policy Source</a></li>
+            <li><a href="#baseline-disposition">Baseline Disposition</a></li>
+            <li><a href="#automation-as-test-case">Automation Tests</a></li>
+            <li><a href="#policy-pipeline">Policy Pipeline</a></li>
+            <li><a href="#run-policy-pipeline">Run Pipeline</a></li>
+            <li><a href="#scope-lifecycle">Scope Lifecycle</a></li>
+            <li><a href="#new-cve">New CVE</a></li>
+            <li><a href="#day2-loop">Day 2 Loop</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Short Version</h2>
+          <p>The policy comes from versioned source and a CI/CD path, not from AAP or IdM. AAP and IdM decide whether the verified policy state is suitable for a job.</p>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="selinux-control-model.html">SELinux Control Model</a> explains host-local enforcement. <a href="openshift-spo.html">OpenShift/SPO</a> covers workload confinement. <a href="openshift-spo-demo.html">OpenShift/SPO Demo</a> covers the CLI proof path. <a href="reference.html#policy-artifacts">Reference</a> lists exact policy artifacts.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>

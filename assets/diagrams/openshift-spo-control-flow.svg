@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenShift SPO control flow Red Hat styled diagram" width="1280" height="460" viewBox="0 0 1280 460">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .lane rect { fill: #fafafa; stroke: #c7c7c7; stroke-width: 1.4; filter: url(#shadow); }
+      .lane-title { fill: #151515; font: 700 22px "Red Hat Display", "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 17px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .subtitle { fill: #151515; font: 400 13px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .chip text { fill: #be0000; font: 600 12.4px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .icon { fill: none; stroke: #ee0000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1280" height="460"/>
+  <rect class="grain" width="1280" height="460"/>
+  <g class="lane">
+    <rect x="42" y="54" width="1196" height="318" rx="14"/>
+    <text class="lane-title" x="640" y="92">OpenShift control flow</text>
+  </g>
+  <g class="edges">
+    <path class="connector" d="M 268 180 H 340" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 536 180 H 608" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 804 180 H 876" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 1072 180 H 1132 V 264" marker-end="url(#arrow)"/>
+  </g>
+  <g class="node">
+    <rect class="card" x="72" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(94 157)">
+      <path d="M 16 0 L 32 8 V 20 C 32 29 25 36 16 40 C 7 36 0 29 0 20 V 8 Z"/>
+    </g>
+    <text class="title" x="150" y="164">SPO profile</text>
+    <text class="subtitle" x="150" y="185">RawSelinuxProfile</text>
+    <text class="subtitle" x="150" y="203">install + ready</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="340" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(362 160)">
+      <rect x="0" y="0" width="34" height="30" rx="4"/>
+      <path d="M 8 10 H 26"/>
+      <path d="M 8 18 H 22"/>
+    </g>
+    <text class="title" x="418" y="164">SCC selects</text>
+    <text class="title" x="418" y="185">type</text>
+    <text class="subtitle" x="418" y="205">blastwall process</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="608" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(630 160)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 10 17 H 24"/>
+      <path d="M 17 10 V 24"/>
+    </g>
+    <text class="title" x="686" y="164">RBAC names</text>
+    <text class="title" x="686" y="185">runner</text>
+    <text class="subtitle" x="686" y="205">service account</text>
+    <text class="subtitle" x="686" y="221">can use SCC</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="876" y="130" width="196" height="100" rx="8"/>
+    <g class="icon" transform="translate(898 160)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 12 10 L 24 17 L 12 24 Z"/>
+    </g>
+    <text class="title" x="954" y="164">Pod runtime</text>
+    <text class="title" x="954" y="185">context</text>
+    <text class="subtitle" x="954" y="205">system_u</text>
+    <text class="subtitle" x="954" y="221">system_r + MCS</text>
+  </g>
+  <g class="node">
+    <rect class="card" x="1038" y="264" width="188" height="74" rx="8"/>
+    <g class="icon" transform="translate(1058 279)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 8 17 L 14 23 L 26 11"/>
+    </g>
+    <text class="title" x="1112" y="293">UBI probes</text>
+    <text class="subtitle" x="1112" y="309">pass / blocked</text>
+    <text class="subtitle" x="1112" y="327">skip</text>
+  </g>
+  <g class="chip">
+    <rect x="134" y="258" width="92" height="28" rx="5"/>
+    <text x="180" y="277.5">profile</text>
+  </g>
+  <g class="chip">
+    <rect x="402" y="258" width="92" height="28" rx="5"/>
+    <text x="448" y="277.5">admission</text>
+  </g>
+  <g class="chip">
+    <rect x="670" y="258" width="92" height="28" rx="5"/>
+    <text x="716" y="277.5">authority</text>
+  </g>
+  <g class="chip">
+    <rect x="926" y="258" width="96" height="28" rx="5"/>
+    <text x="974" y="277.5">runtime</text>
+  </g>
+</svg>

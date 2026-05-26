@@ -1,0 +1,7 @@
+flowchart LR
+    A["Decide<br/>baseline disposition"] --> B["Encode<br/>policy source"]
+    B --> C["Build<br/>policy RPM"]
+    C --> D["Test<br/>replay + probes"]
+    D --> E["Promote<br/>verified marker"]
+    E --> F["Gate<br/>AAP preflight"]
+    F -. evidence .-> A

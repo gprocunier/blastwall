@@ -1,0 +1,8 @@
+flowchart TD
+    SPO["SPO installs profile<br/>RawSelinuxProfile"]
+    SCC["SCC selects type<br/>blastwall process"]
+    RBAC["RBAC names runner<br/>service account may use SCC"]
+    TYPE["Pod runtime context<br/>system_u:system_r:*:s0:cX,cY"]
+    PROBE["Safe UBI probes<br/>PASS / BLOCKED / SKIP"]
+
+    SPO --> SCC --> RBAC --> TYPE --> PROBE

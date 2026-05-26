@@ -1,0 +1,11 @@
+flowchart TB
+  verifier[stable-v3 verifier] --> parse[Marker parse states]
+  verifier --> artifact[Artifact visibility states]
+  verifier --> signature[Signature and signer states]
+  verifier --> replay[Replay and revocation states]
+  verifier --> binding[Binding and live drift states]
+  parse --> outcome[Fail closed and route by class]
+  artifact --> outcome
+  signature --> outcome
+  replay --> outcome
+  binding --> outcome

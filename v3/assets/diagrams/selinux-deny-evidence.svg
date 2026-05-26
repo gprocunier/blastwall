@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blastwall SELinux deny and evidence path Red Hat styled diagram" width="1280" height="470" viewBox="0 0 1280 470">
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.025"/></feComponentTransfer>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#ee0000"/>
+    </marker>
+    <style>
+      .canvas { fill: #f7f7f7; }
+      .grain { filter: url(#paper); opacity: 0.65; }
+      .card { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .decision { fill: #ffffff; stroke: #c7c7c7; stroke-width: 1.35; filter: url(#shadow); }
+      .title { fill: #151515; font: 700 17px "Red Hat Display", "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .center-title { text-anchor: middle; }
+      .subtitle { fill: #151515; font: 400 13.2px "Red Hat Text", Arial, sans-serif; letter-spacing: 0; }
+      .connector { fill: none; stroke: #ee0000; stroke-width: 2.45; stroke-linecap: round; stroke-linejoin: round; }
+      .chip rect { fill: #f7f7f7; stroke: #ee0000; stroke-width: 1.1; }
+      .chip text { fill: #be0000; font: 600 12.5px "Red Hat Text", Arial, sans-serif; text-anchor: middle; letter-spacing: 0; }
+      .icon { fill: none; stroke: #ee0000; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1280" height="470"/>
+  <rect class="grain" width="1280" height="470"/>
+
+  <g class="edges">
+    <path class="connector" d="M 292 236 H 382" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 538 236 H 604"/>
+    <path class="connector" d="M 604 236 V 146 H 676" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 604 236 V 326 H 676" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 954 146 H 984 V 236 H 1020" marker-end="url(#arrow)"/>
+    <path class="connector" d="M 954 326 H 984 V 236 H 1020" marker-end="url(#arrow)"/>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="62" y="176" width="230" height="120" rx="8"/>
+    <g class="icon" transform="translate(84 208)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 10 17 H 24"/>
+      <path d="M 17 10 V 24"/>
+    </g>
+    <text class="title" x="140" y="215">blastwall_t</text>
+    <text class="title" x="140" y="236">process</text>
+    <text class="subtitle" x="140" y="258">automation command</text>
+    <text class="subtitle" x="140" y="276">or probe attempt</text>
+  </g>
+
+  <g class="node">
+    <path class="decision" d="M 460 166 L 538 236 L 460 306 L 382 236 Z"/>
+    <text class="title center-title" x="460" y="229">Policy</text>
+    <text class="title center-title" x="460" y="250">decision</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="676" y="92" width="278" height="108" rx="8"/>
+    <g class="icon" transform="translate(698 124)">
+      <path d="M 6 18 L 14 26 L 30 8"/>
+      <circle cx="17" cy="17" r="16"/>
+    </g>
+    <text class="title" x="754" y="129">Allowed work</text>
+    <text class="subtitle" x="754" y="151">ordinary fleet task</text>
+    <text class="subtitle" x="754" y="169">continues under</text>
+    <text class="subtitle" x="754" y="187">the same domain</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="676" y="272" width="278" height="108" rx="8"/>
+    <g class="icon" transform="translate(698 304)">
+      <circle cx="17" cy="17" r="16"/>
+      <path d="M 7 7 L 27 27"/>
+    </g>
+    <text class="title" x="754" y="309">Denied surfaces</text>
+    <text class="subtitle" x="754" y="331">AF_ALG, BPF, userns,</text>
+    <text class="subtitle" x="754" y="349">io_uring, xfrm, RxRPC,</text>
+    <text class="subtitle" x="754" y="367">policy self-protection</text>
+  </g>
+
+  <g class="node">
+    <rect class="card" x="1020" y="174" width="210" height="124" rx="8"/>
+    <g class="icon" transform="translate(1042 218)">
+      <rect x="0" y="0" width="34" height="34" rx="4"/>
+      <path d="M 8 10 H 26"/>
+      <path d="M 8 17 H 20"/>
+      <path d="M 8 24 H 26"/>
+    </g>
+    <text class="title" x="1098" y="227">Evidence</text>
+    <text class="title" x="1098" y="248">bundle</text>
+    <text class="subtitle" x="1098" y="266">stdout + AVC</text>
+    <text class="subtitle" x="1098" y="284">records</text>
+  </g>
+
+  <g class="chip">
+    <rect x="552" y="104" width="78" height="28" rx="5"/>
+    <text x="591" y="123.5">allow</text>
+  </g>
+  <g class="chip">
+    <rect x="552" y="342" width="78" height="28" rx="5"/>
+    <text x="591" y="361.5">deny</text>
+  </g>
+</svg>

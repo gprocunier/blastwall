@@ -1,0 +1,51 @@
+flowchart TD
+  Start["Preflight receives selected host"] --> MarkerCheck{"Marker present?"}
+
+  MarkerCheck -- "No" --> Stale["Fail: missing marker"]
+  MarkerCheck -- "Yes" --> Version{"Marker version"}
+
+  Version -- "v1/v2" --> LegacyPolicy{"Unsigned marker mode allowed?"}
+  LegacyPolicy -- "No" --> RejectUnsigned["Reject unsigned marker"]
+  LegacyPolicy -- "Yes" --> ParserV2["Run v2 parser checks"]
+
+  Version -- "v3" --> ParseV3["Parse v3 marker"]
+  ParseV3 --> Reserved{"Duplicate reserved fields?"}
+  Reserved -- "Yes" --> RejectDup["Reject duplicate semantic field"]
+  Reserved -- "No" --> State{"state suitable?"}
+
+  State -- "revoked/failed/expired" --> RejectState["Reject marker state"]
+  State -- "active/lab-active" --> Fetch["Retrieve attestation from IdM vault"]
+
+  Fetch --> FetchOK{"Artifact retrieved?"}
+  FetchOK -- "No" --> RejectMissing["Reject missing attestation"]
+  FetchOK -- "Yes" --> Digest{"Artifact sha256 matches marker?"}
+
+  Digest -- "No" --> RejectDigest["Reject digest mismatch"]
+  Digest -- "Yes" --> Env{"Envelope version supported?"}
+
+  Env -- "No" --> RejectEnv["Reject unsupported envelope"]
+  Env -- "Yes" --> Sig{"Signature valid to IdM CA?"}
+
+  Sig -- "No" --> RejectSig["Reject bad signature"]
+  Sig -- "Yes" --> Signer{"Signer allowed?"}
+
+  Signer -- "No" --> RejectSigner["Reject unauthorized signer"]
+  Signer -- "Yes" --> Index["Retrieve signed latest-generation index"]
+
+  Index --> IndexOK{"Index valid and latest?"}
+  IndexOK -- "No" --> RejectReplay["Reject replay / missing index"]
+  IndexOK -- "Yes" --> LiveHash["Compute current host policy hash"]
+
+  LiveHash --> HashOK{"Host hash matches payload?"}
+  HashOK -- "No" --> RejectDrift["Reject drifted host"]
+  HashOK -- "Yes" --> Binding{"Payload matches marker, host, profile, registry?"}
+
+  Binding -- "No" --> RejectBinding["Reject binding mismatch"]
+  Binding -- "Yes" --> Fresh{"Within validity window?"}
+
+  Fresh -- "No" --> RejectFresh["Reject stale attestation"]
+  Fresh -- "Yes" --> Allow["Preflight PASS"]
+
+  ParserV2 --> AllowV2{"Parser suitable?"}
+  AllowV2 -- "No" --> RejectV2["Reject invalid v2 marker"]
+  AllowV2 -- "Yes" --> AllowRC["Allow only under configured unsigned-marker mode"]

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ansible Demo | blastwall</title>
+    <meta name="description" content="Blastwall proof recorded in the Calabi lab with IdM, eigenstate.ipa, SELinux user mapping, AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, self-protection denial probes, and audit evidence.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="stylesheet" href="assets/site.css">
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <p class="eyebrow">Blastwall Documentation</p>
+        <div class="site-brand">
+          <div>
+            <h1 class="site-brand__title"><a href="./">blastwall</a></h1>
+            <p class="site-brand__tagline">An Ansible-only proof that IdM state, host suitability, SELinux mapping, and runtime denial line up on a real lab host.</p>
+          </div>
+        </div>
+        <nav class="site-header__actions" aria-label="Project links">
+          <a href="https://github.com/gprocunier/blastwall"><kbd>GitHub Repo</kbd></a>
+          <a href="https://gprocunier.github.io/eigenstate-ipa/"><kbd>eigenstate.ipa</kbd></a>
+          <a href="https://galaxy.ansible.com/ui/repo/published/eigenstate/ipa/"><kbd>Ansible Galaxy</kbd></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <article class="content-column markdown-body">
+        <p class="lead">This Blastwall proof was recorded in <a href="glossary.html#calabi">Calabi</a>, my nested-KVM lab for modeling disconnected OpenShift and support-service boundaries in a controlled environment. Calabi gives this run a real <a href="glossary.html#idm">IdM</a> server, bastion host, mirror registry, <a href="glossary.html#kerberos">Kerberos</a> flow, and managed endpoint; Blastwall itself does not require Calabi.</p>
+
+        <section id="what-this-proves">
+          <h2>What This Proves</h2>
+          <p>This demo shows the whole control path without requiring <a href="glossary.html#aap">AAP</a>. AAP is not needed to prove the local behavior: the same IdM state AAP would consume is visible before the mutation step, and the final denial is enforced by the target host <a href="glossary.html#selinux">SELinux</a> policy.</p>
+          <p>The run starts from <code>bastion-01</code>, uses <a href="glossary.html#eigenstate-ipa"><code>eigenstate.ipa</code></a> to read IdM state before enforcement, deploys policy to <code>mirror-registry</code>, runs <a href="glossary.html#af-alg">AF_ALG</a>, <a href="glossary.html#bpf">BPF</a>, <a href="glossary.html#packet-socket">packet_socket</a>, <a href="glossary.html#userns">userns</a>, and <a href="glossary.html#io-uring">io_uring</a> probes as the mapped automation identity, then proves self-protection by blocking sudo-expanded policy manipulation.</p>
+          <p>The observable flow is:</p>
+          <ul>
+            <li><code>bastion-01</code> runs the Calabi PoC playbooks locally.</li>
+            <li><code>eigenstate.ipa</code> validates the IdM SELinux user map, HBAC rule, sudo rule, and candidate host view.</li>
+            <li><code>mirror-registry</code> receives the Blastwall policy RPM.</li>
+            <li>The automation identity logs in with the expected SELinux context.</li>
+            <li>The AF_ALG/authencesn, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC probes are blocked for that mapped automation session.</li>
+            <li>The target audit log shows denied <code>socket</code>, <code>bpf</code>, and namespace syscall evidence for <code>blastwall_t</code>; the <code>io_uring</code> denial is visible in the probe output.</li>
+            <li>A temporary sudo expansion exposes <code>/usr/sbin/semodule</code>, and SELinux still prevents the automation identity from removing a deny module.</li>
+          </ul>
+          <figure class="diagram-card diagram-card--focus" id="ansible-demo-flow">
+            <figcaption>
+              <strong>Ansible Demo Flow</strong>
+              <span>The non-AAP proof starts on the bastion, reads IdM state before mutation, deploys policy, runs probes, and finishes with audit and self-protection evidence.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/ansible-demo-flow.svg" alt="Ansible demo flow from bastion PoC tree through IdM read-side proof, policy deployment, denied probes, and audit self-protection evidence">
+          </figure>
+        </section>
+
+        <section id="what-this-does-not-prove">
+          <h2>What This Does Not Prove</h2>
+          <ul>
+            <li>It does not compete with the AAP demo as the main operator-facing proof. This is the bootstrap and host-local proof.</li>
+            <li>It does not require AAP to prove the local behavior. AAP later consumes and records the state shown here.</li>
+            <li>It does not run live exploit payloads. The probes exercise safe entry points that should be denied before useful exploit behavior.</li>
+          </ul>
+        </section>
+
+        <section id="demo-player">
+          <h2>Ansible Demo</h2>
+          <div
+            data-asciinema-src="blastwall-poc.cast"
+            data-asciinema-poster="npt:0:08"
+            data-asciinema-speed="1.5"
+            data-asciinema-idle-time-limit="5"
+            data-asciinema-terminal-font-family="'MesloGL Nerd Font Mono', 'MesloLGL Nerd Font Mono', 'Red Hat Mono', Consolas, monospace"
+            data-asciinema-terminal-font-size="7pt"
+            data-asciinema-cols="220"
+            data-asciinema-rows="42"
+          ></div>
+        </section>
+
+        <section id="evidence-map">
+          <h2>Evidence Map</h2>
+          <ol>
+            <li>The IdM side is not assumed. It is queried before the endpoint enforcement play runs.</li>
+            <li>The inventory candidate view includes <code>mirror-registry.workshop.lan</code> through the Blastwall policy objects.</li>
+            <li>The target host can install or refresh the Blastwall SELinux policy RPM through an ordinary Ansible workflow.</li>
+            <li>The mapped automation session reports <code>blastwall_u:blastwall_r:blastwall_t:s0</code>.</li>
+            <li>The AF_ALG/authencesn probe reports <code>BLOCKED</code>.</li>
+            <li>The BPF probe reports <code>BLOCKED</code> for both <code>BPF_MAP_CREATE</code> and <code>BPF_PROG_LOAD</code>.</li>
+            <li>The packet_socket probe reports <code>BLOCKED</code> for AF_PACKET socket creation.</li>
+            <li>The userns probe reports <code>BLOCKED</code> for <code>unshare(CLONE_NEWUSER)</code>.</li>
+            <li>The io_uring probe reports <code>BLOCKED</code> for <code>io_uring_setup</code>, or <code>SKIP</code> on kernels without that object class.</li>
+            <li>The Dirty Frag probe reports <code>BLOCKED</code> for <code>NETLINK_XFRM</code> and <code>AF_RXRPC</code> socket creation.</li>
+            <li>The self-protection play shows sudo can be expanded while SELinux still denies <code>semodule</code> execution from <code>blastwall_t</code>.</li>
+            <li>A conventional audit-log check shows the SELinux denial evidence from the target host.</li>
+          </ol>
+        </section>
+
+        <section id="recording-guide">
+          <h2>Recording Guide</h2>
+          <h3>1. Start from the bastion-local PoC tree</h3>
+          <pre><code class="language-bash">pwd
+cd ~/blastwall/poc-calabi</code></pre>
+          <p>Execution starts from the staged repository on <code>bastion-01</code>. That keeps the boundary honest: the workstation is not directly driving guest configuration.</p>
+
+          <h3>2. Create and prove the IdM identity boundary</h3>
+          <pre><code class="language-bash">ansible-playbook 10-configure-idm.yml
+kinit admin
+ipa user-show svc-ansible-runner --all --raw | grep -E 'uid:|memberof_group:|memberOf:'
+ipa group-show blastwall --all --raw | grep -E 'cn:|member_user:|member:'</code></pre>
+          <p>The service identity, the <code>blastwall</code> group, and membership are visible before the enforcement play touches <code>mirror-registry</code>.</p>
+
+          <h3>3. Run the read-side IdM gate</h3>
+          <pre><code class="language-bash">ansible-playbook 15-validate-idm-with-eigenstate.yml | tee /tmp/blastwall-eigenstate.log</code></pre>
+          <p><code>eigenstate.ipa</code> reads the SELinux map, HBAC rule, sudo rule, and inventory candidate view before the enforcement play touches <code>mirror-registry</code>.</p>
+          <pre><code class="language-text">hbac_rule: blastwall-ssh
+selinux_map: blastwall-root-local-map
+sudo_rule: blastwall-root-local-sudo
+target: mirror-registry.workshop.lan</code></pre>
+
+          <h3>4. Deploy policy and run the playbook proof</h3>
+          <pre><code class="language-bash">ansible-playbook 30-deploy-and-test.yml | tee /tmp/blastwall-proof.log</code></pre>
+          <p>The target host installs the Blastwall RPM, refreshes local policy state, and runs the automated validation for AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, and RxRPC.</p>
+
+          <h3>5. Mark the Dirty Frag response date</h3>
+          <pre><code class="language-bash">date -u '+Dirty Frag response marker: %Y-%m-%d %H:%M:%S UTC'
+echo 'Blastwall 0.5.2: verify xfrm and RxRPC are denied for confined automation'</code></pre>
+          <p>This callout keeps the timing visible in the non-AAP proof: Dirty Frag was publicly documented on May 7, 2026, and Fragnesia followed on May 13, 2026. The run verifies the same deny family against xfrm, RxRPC, and AF_ALG entry points.</p>
+
+          <h3>6. Inspect and run the probes directly</h3>
+          <pre><code class="language-bash">kinit svc-ansible-runner
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-copyfail-afalg.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-bpf-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-packet-socket-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-userns-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-io-uring-deny.py
+
+ssh -o GSSAPIAuthentication=yes \
+  svc-ansible-runner@mirror-registry.workshop.lan \
+  /usr/local/libexec/blastwall-poc/trigger-dirtyfrag-deny.py</code></pre>
+          <p>The operator inspects the probe source, gets a Kerberos ticket for <code>svc-ansible-runner</code>, and runs the probes over GSSAPI SSH so the denial is visible as normal command output.</p>
+          <pre><code class="language-text">blastwall_u:blastwall_r:blastwall_t:s0
+BLOCKED: AF_ALG socket creation denied with errno 13
+BLOCKED: bpf(BPF_MAP_CREATE) denied with errno 13
+BLOCKED: bpf(BPF_PROG_LOAD) denied with errno 13
+BLOCKED: AF_PACKET socket creation denied with errno 13
+BLOCKED: unshare(CLONE_NEWUSER) denied with EACCES errno 13
+BLOCKED: io_uring_setup denied with EPERM  [CVE-2026-43006]
+BLOCKED: Dirty Frag NETLINK_XFRM socket creation denied with errno 13
+BLOCKED: Dirty Frag AF_RXRPC socket creation denied with errno 13
+BLOCKED: Fragnesia AF_ALG socket creation denied with errno 13</code></pre>
+
+          <h3>7. Read the target audit log</h3>
+          <pre><code class="language-bash">ansible automation_endpoints -i inventory.yml -b -m shell -a '
+  grep -a '\''subj=blastwall'\'' /var/log/audit/audit.log |
+  tr '\''\035'\'' '\''\n'\'' |
+  grep -E '\''type=SYSCALL.*(syscall=41|syscall=321|syscall=272).*exit=-13|SYSCALL=(socket|bpf|unshare).*AUID="svc-ansible-runner"'\'' |
+  sed -E '\''s/.*audit\(([^)]*)\).*syscall=([0-9]+).*exit=(-?[0-9]+).*comm="([^"]+)".*subj=([^ ]+).*/type=SYSCALL audit(\1) syscall=\2 exit=\3 comm="\4" subj=\5/; s/.*SYSCALL=([^ ]+).*AUID="([^"]+)".*/ARCH SYSCALL=\1 AUID="\2"/'\'' |
+  tail -n 16'</code></pre>
+          <p>The audit check is intentionally conventional, but it is executed through Ansible against the target endpoint. It is there to show SELinux enforcement from the target host, not just stored Ansible variables.</p>
+
+          <h3>8. Prove the policy protects itself</h3>
+          <pre><code class="language-bash">ansible-playbook 35-test-self-protection.yml | tee /tmp/blastwall-selfprotect.log
+grep -E \
+  'sudo_expansion_seen|semodule_attempt_rc|semodule_attempt_stderr|Permission denied|blastwall-(alg|bpf|packet|userns|io-uring|xfrm|rxrpc|policy)' \
+  /tmp/blastwall-selfprotect.log</code></pre>
+          <p>The self-protection play temporarily adds <code>/usr/sbin/semodule</code> to the Blastwall sudo command group, verifies the automation identity can see that sudo expansion, then attempts to remove a deny module. Sudo is not the final boundary: SELinux denies <code>semodule</code> from <code>blastwall_t</code>, and the deny modules remain installed.</p>
+        </section>
+
+        <section id="expected-result">
+          <h2>Expected Result</h2>
+          <p>A successful bootstrap proof shows the mapped context <code>blastwall_u:blastwall_r:blastwall_t:s0</code>, sudo UID 0 without leaving that context, blocked AF_ALG, BPF, packet_socket, userns, io_uring, xfrm, RxRPC, and Fragnesia AF_ALG probes, audit evidence on the target host, and a self-protection denial when the confined automation identity attempts policy manipulation.</p>
+        </section>
+
+        <section id="replay-link">
+          <h2>Replay Link</h2>
+          <p>Use <a href="ansible-lab.html">Ansible Lab</a> for the task-first replay procedure and compact playbook chain.</p>
+        </section>
+
+        <section id="does-not-claim">
+          <h2>Scope Notes</h2>
+          <ul>
+            <li>It does not replace a kernel fix.</li>
+            <li>SELinux does not inspect the same kernel hook arguments as BPF LSM.</li>
+            <li>It does not require AAP to prove the local behavior.</li>
+            <li>It does not run live exploit payloads. The probes exercise safe entry points that should be denied before reaching the dangerous path.</li>
+            <li>It does not say host markers are proof by themselves. They are useful only after a local verification workflow writes them.</li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="side-column" aria-label="Page context">
+        <section class="context-block context-block--meta">
+          <h2>Demo Boundary</h2>
+          <p class="context-kicker">Calabi lab proof</p>
+          <p class="context-copy">Use this page when the question is whether the IdM read-side gate, policy rollout, SELinux mapping, AF_ALG/BPF/packet_socket/userns/io_uring/xfrm/RxRPC denials, self-protection, and audit evidence can be seen in one operator run.</p>
+        </section>
+        <section class="toc-block">
+          <h2>On This Page</h2>
+          <ol class="path-list">
+            <li><a href="#what-this-proves">Proves</a></li>
+            <li><a href="#what-this-does-not-prove">Does Not Prove</a></li>
+            <li><a href="#demo-player">Ansible Demo</a></li>
+            <li><a href="#evidence-map">Evidence Map</a></li>
+            <li><a href="#recording-guide">Recording Guide</a></li>
+            <li><a href="#expected-result">Expected Result</a></li>
+            <li><a href="#replay-link">Replay</a></li>
+            <li><a href="#does-not-claim">Boundaries</a></li>
+          </ol>
+        </section>
+        <section class="source-block">
+          <h2>Related</h2>
+          <p><a href="architecture.html">Architecture</a> explains the control chain. <a href="ansible-lab.html#source-run-order">Ansible Lab</a> traces the playbook chain behind the recording. <a href="glossary.html">Glossary</a> defines the lab and kernel terms used here.</p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p>Source lives at <a href="https://github.com/gprocunier/blastwall">github.com/gprocunier/blastwall</a>.</p>
+    </footer>
+  </body>
+</html>
