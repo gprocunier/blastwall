@@ -61,6 +61,30 @@ const htmlIds = (filePath) => {
   return new Set(Array.from(html.matchAll(/\sid="([^"]+)"/g), (match) => match[1]));
 };
 
+const walkFiles = (directory, predicate) => {
+  const entries = fs.readdirSync(directory, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if ([".git", "build", "node_modules", "test-results"].includes(entry.name)) {
+        continue;
+      }
+
+      files.push(...walkFiles(fullPath, predicate));
+      continue;
+    }
+
+    if (predicate(fullPath)) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+};
+
 const markdownAnchors = (filePath) => {
   const markdown = readText(filePath);
   return new Set(Array.from(markdown.matchAll(/^#{1,6}\s+(.+)$/gm), (match) => markdownHeadingAnchor(match[1])));
@@ -308,6 +332,39 @@ test.describe("GitHub Pages rendering", () => {
       );
       expect(labels, path).toEqual(expectedHighValueNav);
     }
+  });
+
+  test("root site and main markdown do not expose v3 paths yet", () => {
+    const forbiddenRootPatterns = [
+      /\/v3\//,
+      /https:\/\/github\.com\/gprocunier\/blastwall\/(?:blob|tree)\/v3/,
+      /v3 Branch README/,
+      /current v3 signed-evidence branch/
+    ];
+    const failures = [];
+
+    for (const pagePath of pages) {
+      const html = readText(path.join(docsRoot, pagePath));
+
+      for (const pattern of forbiddenRootPatterns) {
+        if (pattern.test(html)) {
+          failures.push(`${pagePath}: ${pattern}`);
+        }
+      }
+    }
+
+    for (const markdownPath of walkFiles(repoRoot, (filePath) => filePath.endsWith(".md"))) {
+      const markdown = readText(markdownPath);
+      const relativePath = path.relative(repoRoot, markdownPath);
+
+      for (const pattern of forbiddenRootPatterns) {
+        if (pattern.test(markdown)) {
+          failures.push(`${relativePath}: ${pattern}`);
+        }
+      }
+    }
+
+    expect(failures).toEqual([]);
   });
 
   test("wide browser windows use available layout space", async ({ page }, testInfo) => {
