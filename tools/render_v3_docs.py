@@ -101,6 +101,15 @@ DIAGRAMS_BY_DOC: dict[str, tuple[tuple[str, str, str], ...]] = {
 }
 
 
+MERMAID_DIAGRAMS_BY_DOC: dict[str, tuple[tuple[str, str, str], ...]] = {
+    "signed-attestation-design.md": (
+        ("v3-attestation-architecture.svg", "Signed Attestation Architecture", "Build evidence, sign it, store it in the IdM trust fabric, and verify it before launch."),
+        ("v3-attestation-sequence.svg", "Signed Attestation Sequence", "The reference workflow turns source validation and host evidence into a signed launch gate."),
+        ("v3-verification-flow-detail.svg", "Stable-v3 Verification Flow", "Preflight resolves marker compatibility, verifies signed proof, checks live host state, then allows or fails closed."),
+    ),
+}
+
+
 @dataclass(frozen=True)
 class RenderedPage:
     source: Path
@@ -240,6 +249,7 @@ class MarkdownRenderer:
         self.heading_ids: dict[str, int] = {}
         self.headings: list[tuple[int, str, str]] = []
         self.first_h1_seen = False
+        self.mermaid_index = 0
 
     def render(self) -> str:
         chunks: list[str] = []
@@ -292,9 +302,22 @@ class MarkdownRenderer:
             self.index += 1
         if self.index < len(self.lines):
             self.index += 1
+        if language == "mermaid":
+            diagram = self.render_mermaid_diagram()
+            if diagram:
+                return diagram
         code = html.escape("\n".join(code_lines), quote=False)
         language_class = re.sub(r"[^A-Za-z0-9_-]", "", language) or "text"
         return f'<pre><code class="language-{language_class}">{code}</code></pre>'
+
+    def render_mermaid_diagram(self) -> str | None:
+        diagrams = MERMAID_DIAGRAMS_BY_DOC.get(self.source.name, ())
+        if self.mermaid_index >= len(diagrams):
+            self.mermaid_index += 1
+            return None
+        filename, title, caption = diagrams[self.mermaid_index]
+        self.mermaid_index += 1
+        return figure_html(filename, title, caption)
 
     def render_table(self) -> str:
         table_lines: list[str] = []
@@ -414,23 +437,25 @@ def extract_description(source: Path) -> str:
     return description or "Blastwall v3 signed-evidence reference documentation."
 
 
+def figure_html(filename: str, title: str, caption: str) -> str:
+    return "\n".join(
+        [
+            f'<figure class="diagram-card diagram-card--focus" id="{Path(filename).stem}">',
+            "<figcaption>",
+            f"<strong>{html.escape(title)}</strong>",
+            f"<span>{html.escape(caption)}</span>",
+            "</figcaption>",
+            f'<img class="diagram-artifact" src="../assets/diagrams/{filename}" alt="{html.escape(title, quote=True)}">',
+            "</figure>",
+        ]
+    )
+
+
 def diagram_figures(source: Path) -> str:
-    figures = []
-    for filename, title, caption in DIAGRAMS_BY_DOC.get(source.name, ()):
-        alt = title
-        figures.append(
-            "\n".join(
-                [
-                    f'<figure class="diagram-card diagram-card--focus" id="{Path(filename).stem}">',
-                    "<figcaption>",
-                    f"<strong>{html.escape(title)}</strong>",
-                    f"<span>{html.escape(caption)}</span>",
-                    "</figcaption>",
-                    f'<img class="diagram-artifact" src="../assets/diagrams/{filename}" alt="{html.escape(alt, quote=True)}">',
-                    "</figure>",
-                ]
-            )
-        )
+    figures = [
+        figure_html(filename, title, caption)
+        for filename, title, caption in DIAGRAMS_BY_DOC.get(source.name, ())
+    ]
     return "\n".join(figures)
 
 

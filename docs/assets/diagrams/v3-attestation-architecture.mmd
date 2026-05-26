@@ -1,0 +1,47 @@
+flowchart TB
+  subgraph Build["Build and Verification"]
+    Git["Git source<br/>policy, profiles.yml, probes"]
+    BuildJob["AAP build and drift validation"]
+    Install["Install / activate policy on host"]
+    Verify["Run safe probes"]
+    Hash["Compute installed policy hash"]
+  end
+
+  subgraph Attest["Attestation Creation"]
+    Payload["Canonical attestation JSON"]
+    Signer["Blastwall attestation signer<br/>IdM CA-issued certificate"]
+    Sig["Detached signature"]
+    Envelope["Signed attestation envelope"]
+    Index["Signed latest-generation index"]
+  end
+
+  subgraph IdM["IdM Trust Fabric"]
+    CA["IdM / Dogtag CA"]
+    Vault["IdM vault<br/>via eigenstate.ipa"]
+    Marker["Host userClass marker v3<br/>attest_ref + digest"]
+  end
+
+  subgraph Runtime["Selection and Gate"]
+    Inventory["eigenstate.ipa inventory"]
+    Groups["current / stale / profile groups"]
+    Preflight["AAP preflight"]
+    Gate["Allow or fail closed"]
+  end
+
+  Git --> BuildJob --> Install --> Verify
+  Install --> Hash
+  Verify --> Payload
+  Hash --> Payload
+  BuildJob --> Payload
+  CA --> Signer
+  Payload --> Signer --> Sig
+  Payload --> Envelope
+  Sig --> Envelope
+  Envelope --> Vault
+  Envelope --> Index
+  Index --> Vault
+  Vault --> Marker
+  Marker --> Inventory --> Groups --> Preflight
+  Vault --> Preflight
+  CA --> Preflight
+  Preflight --> Gate

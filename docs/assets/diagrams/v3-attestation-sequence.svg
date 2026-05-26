@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="600" viewBox="0 0 1280 600" role="img" aria-labelledby="v3-attestation-sequence-title v3-attestation-sequence-desc">
+<title id="v3-attestation-sequence-title">Signed Attestation Sequence</title>
+<desc id="v3-attestation-sequence-desc">The reference workflow turns source validation and host evidence into a signed launch gate.</desc>
+<defs>
+<marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ee0000" /></marker>
+<marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4d4d4d" /></marker>
+<marker id="arrow-success" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3d7317" /></marker>
+<marker id="arrow-warning" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f0ab00" /></marker>
+</defs>
+<style>
+svg { background: #ffffff; font-family: 'Red Hat Text', 'Helvetica Neue', Arial, sans-serif; }
+.diagram-title { fill: #151515; font: 700 26px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.diagram-subtitle { fill: #4d4d4d; font: 400 15px 'Red Hat Text', Arial, sans-serif; }
+.lane rect { fill: #f5f5f5; stroke: #e0e0e0; stroke-width: 1.5; }
+.lane--red rect { fill: #fff5f5; stroke: #f4b7b7; }
+.lane--blue rect { fill: #f1f7ff; stroke: #b8d8ff; }
+.lane-title { fill: #a30000; font: 700 16px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card rect { fill: #ffffff; stroke: #e0e0e0; stroke-width: 1.5; }
+.card--gate rect { stroke: #ee0000; stroke-width: 2.2; }
+.card--proof rect { stroke: #0066cc; stroke-width: 2; }
+.card--success rect { stroke: #3d7317; stroke-width: 2; }
+.card--warning rect { stroke: #f0ab00; stroke-width: 2; }
+.card--muted rect { fill: #f5f5f5; stroke: #c7c7c7; }
+.card-title { fill: #151515; font: 700 17px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card-body { fill: #4d4d4d; font: 400 13.5px 'Red Hat Text', Arial, sans-serif; }
+.connector { fill: none; stroke: #ee0000; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.connector--muted { stroke: #4d4d4d; }
+.connector--success { stroke: #3d7317; }
+.connector--warning { stroke: #f0ab00; }
+.connector--dashed { stroke-dasharray: 7 7; }
+.connector-label { fill: #4d4d4d; font: 700 12px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label { fill: #151515; font: 700 15px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label--muted { fill: #4d4d4d; font-weight: 500; }
+.standalone-label--red { fill: #a30000; }
+</style>
+<text class="diagram-title" x="32" y="42">Signed Attestation Sequence</text>
+<text class="diagram-subtitle" x="32" y="68">The reference workflow turns source validation and host evidence into a signed launch gate.</text>
+<polyline class="connector connector--default" points="234,178 286,178" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="456,178 508,178" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="678,178 730,178" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="900,178 952,178" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="1037,226 1037,345" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="952,393 900,393" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--muted" points="730,393 678,393" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--default" points="508,393 456,393" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--success" points="286,393 234,393" marker-end="url(#arrow-success)" />
+<g class="card card--muted">
+<rect x="64" y="130" width="170" height="96" rx="6" />
+<text class="card-title" x="82" y="160" text-anchor="start">
+<tspan x="82" dy="0">1. Sync</tspan>
+<tspan x="82" dy="16">source</tspan>
+</text>
+<text class="card-body" x="82" y="194" text-anchor="start">
+<tspan x="82" dy="0">pinned branch</tspan>
+<tspan x="82" dy="13">profiles.yml</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="286" y="130" width="170" height="96" rx="6" />
+<text class="card-title" x="304" y="160" text-anchor="start">
+<tspan x="304" dy="0">2. Validate</tspan>
+<tspan x="304" dy="16">and install</tspan>
+</text>
+<text class="card-body" x="304" y="194" text-anchor="start">
+<tspan x="304" dy="0">registry, drift,</tspan>
+<tspan x="304" dy="13">policy RPM</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="508" y="130" width="170" height="96" rx="6" />
+<text class="card-title" x="526" y="160" text-anchor="start">
+<tspan x="526" dy="0">3. Probe</tspan>
+<tspan x="526" dy="16">host</tspan>
+</text>
+<text class="card-body" x="526" y="194" text-anchor="start">
+<tspan x="526" dy="0">required probes</tspan>
+<tspan x="526" dy="13">policy hash</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="730" y="130" width="170" height="96" rx="6" />
+<text class="card-title" x="748" y="160" text-anchor="start">
+<tspan x="748" dy="0">4. Build</tspan>
+<tspan x="748" dy="16">payload</tspan>
+</text>
+<text class="card-body" x="748" y="194" text-anchor="start">
+<tspan x="748" dy="0">canonical JSON</tspan>
+<tspan x="748" dy="13">profile binding</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="952" y="130" width="170" height="96" rx="6" />
+<text class="card-title" x="970" y="160" text-anchor="start">
+<tspan x="970" dy="0">5. Sign</tspan>
+<tspan x="970" dy="16">payload</tspan>
+</text>
+<text class="card-body" x="970" y="194" text-anchor="start">
+<tspan x="970" dy="0">signer cert</tspan>
+<tspan x="970" dy="13">IdM CA chain</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="952" y="345" width="170" height="96" rx="6" />
+<text class="card-title" x="970" y="375" text-anchor="start">
+<tspan x="970" dy="0">6. Store</tspan>
+<tspan x="970" dy="16">evidence</tspan>
+</text>
+<text class="card-body" x="970" y="409" text-anchor="start">
+<tspan x="970" dy="0">vault envelope</tspan>
+<tspan x="970" dy="13">latest index</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="730" y="345" width="170" height="96" rx="6" />
+<text class="card-title" x="748" y="375" text-anchor="start">
+<tspan x="748" dy="0">7. Publish</tspan>
+<tspan x="748" dy="16">marker</tspan>
+</text>
+<text class="card-body" x="748" y="409" text-anchor="start">
+<tspan x="748" dy="0">attest_ref</tspan>
+<tspan x="748" dy="13">digest</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="508" y="345" width="170" height="96" rx="6" />
+<text class="card-title" x="526" y="375" text-anchor="start">
+<tspan x="526" dy="0">8. Inventory</tspan>
+<tspan x="526" dy="16">selects</tspan>
+</text>
+<text class="card-body" x="526" y="409" text-anchor="start">
+<tspan x="526" dy="0">current/stale</tspan>
+<tspan x="526" dy="13">profile groups</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="286" y="345" width="170" height="96" rx="6" />
+<text class="card-title" x="304" y="375" text-anchor="start">
+<tspan x="304" dy="0">9. Preflight</tspan>
+<tspan x="304" dy="16">verifies</tspan>
+</text>
+<text class="card-body" x="304" y="409" text-anchor="start">
+<tspan x="304" dy="0">signature, replay,</tspan>
+<tspan x="304" dy="13">binding, drift</tspan>
+</text>
+</g>
+<g class="card card--success">
+<rect x="64" y="345" width="170" height="96" rx="6" />
+<text class="card-title" x="82" y="375" text-anchor="start">
+<tspan x="82" dy="0">10. Launch</tspan>
+<tspan x="82" dy="16">or stop</tspan>
+</text>
+<text class="card-body" x="82" y="409" text-anchor="start">
+<tspan x="82" dy="0">allow only</tspan>
+<tspan x="82" dy="13">after proof</tspan>
+</text>
+</g>
+<text class="standalone-label standalone-label--muted" x="640" y="278" text-anchor="middle">
+<tspan x="640" dy="0">Forward path creates signed evidence</tspan>
+</text>
+<text class="standalone-label standalone-label--red" x="640" y="505" text-anchor="middle">
+<tspan x="640" dy="0">Return path consumes proof before runtime launch</tspan>
+</text>
+</svg>

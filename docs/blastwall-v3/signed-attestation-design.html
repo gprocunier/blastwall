@@ -161,97 +161,21 @@ Risk:
 <p>---</p>
 <h2 id="6-proposed-architecture">6. Proposed Architecture</h2>
 <h3 id="61-high-level-flow">6.1 High-level flow</h3>
-<pre><code class="language-mermaid">flowchart TB
-  subgraph Build["Build and Verification"]
-    Git["Git source&lt;br/&gt;policy, profiles.yml, probes"]
-    BuildJob["AAP build and drift validation"]
-    Install["Install / activate policy on host"]
-    Verify["Run safe probes"]
-    Hash["Compute installed policy hash"]
-  end
-
-  subgraph Attest["Attestation Creation"]
-    Payload["Canonical attestation JSON"]
-    Signer["Blastwall attestation signer&lt;br/&gt;IdM CA-issued certificate"]
-    Sig["Detached signature"]
-    Envelope["Signed attestation envelope"]
-    Index["Signed latest-generation index"]
-  end
-
-  subgraph IdM["IdM Trust Fabric"]
-    CA["IdM / Dogtag CA"]
-    Vault["IdM vault&lt;br/&gt;via eigenstate.ipa"]
-    Marker["Host userClass marker v3&lt;br/&gt;attest_ref + digest"]
-  end
-
-  subgraph Runtime["Selection and Gate"]
-    Inventory["eigenstate.ipa inventory"]
-    Groups["current / stale / profile groups"]
-    Preflight["AAP preflight"]
-    Gate["Allow or fail closed"]
-  end
-
-  Git --&gt; BuildJob --&gt; Install --&gt; Verify
-  Install --&gt; Hash
-  Verify --&gt; Payload
-  Hash --&gt; Payload
-  BuildJob --&gt; Payload
-  CA --&gt; Signer
-  Payload --&gt; Signer --&gt; Sig
-  Payload --&gt; Envelope
-  Sig --&gt; Envelope
-  Envelope --&gt; Vault
-  Envelope --&gt; Index
-  Index --&gt; Vault
-  Vault --&gt; Marker
-  Marker --&gt; Inventory --&gt; Groups --&gt; Preflight
-  Vault --&gt; Preflight
-  CA --&gt; Preflight
-  Preflight --&gt; Gate</code></pre>
+<figure class="diagram-card diagram-card--focus" id="v3-attestation-architecture">
+<figcaption>
+<strong>Signed Attestation Architecture</strong>
+<span>Build evidence, sign it, store it in the IdM trust fabric, and verify it before launch.</span>
+</figcaption>
+<img class="diagram-artifact" src="../assets/diagrams/v3-attestation-architecture.svg" alt="Signed Attestation Architecture">
+</figure>
 <h3 id="62-sequence-flow">6.2 Sequence flow</h3>
-<pre><code class="language-mermaid">sequenceDiagram
-  autonumber
-
-  participant Git as Git / profiles.yml
-  participant AAP as AAP Workflow
-  participant Host as Managed RHEL Host
-  participant Probe as Blastwall Probes
-  participant Signer as Marker Signer
-  participant CA as IdM CA
-  participant Vault as IdM Vault / eigenstate.ipa
-  participant IdM as IdM host userClass
-  participant Inv as eigenstate.ipa Inventory
-  participant PF as AAP Preflight
-
-  AAP-&gt;&gt;Git: Sync pinned branch / source revision
-  AAP-&gt;&gt;Git: Validate registry, drift, tests
-  AAP-&gt;&gt;Host: Install or refresh Blastwall policy RPM
-  Host-&gt;&gt;Host: Activate SELinux modules and login context
-  Host-&gt;&gt;Probe: Run probes required by profile
-  Probe--&gt;&gt;AAP: Return BLOCKED / SKIP_ABSENT / failure evidence
-  Host--&gt;&gt;AAP: Return installed policy payload hash
-
-  AAP-&gt;&gt;AAP: Build canonical attestation payload
-  AAP-&gt;&gt;Signer: Request signature over canonical payload bytes
-  Signer-&gt;&gt;CA: Use IdM CA-issued signer certificate
-  Signer--&gt;&gt;AAP: Detached signature and signer certificate metadata
-
-  AAP-&gt;&gt;Vault: Store signed attestation envelope
-  AAP-&gt;&gt;Vault: Store signed latest-generation index
-  Vault--&gt;&gt;AAP: Return attestation reference
-  AAP-&gt;&gt;AAP: Compute envelope digest
-  AAP-&gt;&gt;IdM: Publish v3 marker with attestation reference and digest
-
-  Inv-&gt;&gt;IdM: Read host marker
-  Inv--&gt;&gt;AAP: Place host in marker-derived groups
-
-  PF-&gt;&gt;IdM: Read marker
-  PF-&gt;&gt;Vault: Retrieve signed attestation envelope
-  PF-&gt;&gt;Vault: Retrieve signed latest-generation index
-  PF-&gt;&gt;CA: Verify signer certificate chain and allowlist
-  PF-&gt;&gt;Host: Recompute current installed policy hash in stable-v3
-  PF-&gt;&gt;PF: Verify digest, expiry, host/profile/policy binding, generation
-  PF--&gt;&gt;AAP: Allow launch only if attestation verifies</code></pre>
+<figure class="diagram-card diagram-card--focus" id="v3-attestation-sequence">
+<figcaption>
+<strong>Signed Attestation Sequence</strong>
+<span>The reference workflow turns source validation and host evidence into a signed launch gate.</span>
+</figcaption>
+<img class="diagram-artifact" src="../assets/diagrams/v3-attestation-sequence.svg" alt="Signed Attestation Sequence">
+</figure>
 <h3 id="63-ldap-marker-plane-versus-kra-artifact-plane">6.3 LDAP marker plane versus KRA artifact plane</h3>
 <p>Stable-v3 separates two IdM-backed planes that have different behavior:</p>
 <pre><code class="language-text">LDAP marker plane:
@@ -913,57 +837,13 @@ failure_state: FAIL_KRA_REPLICATION_LAG</code></pre>
 <pre><code class="language-text">KRA infrastructure failure may justify breakglass.
 Host verification failure must not justify breakglass.</code></pre>
 <h3 id="124-verification-flow">12.4 Verification flow</h3>
-<pre><code class="language-mermaid">flowchart TD
-  Start["Preflight receives selected host"] --&gt; MarkerCheck{"Marker present?"}
-
-  MarkerCheck -- "No" --&gt; Stale["Fail: missing marker"]
-  MarkerCheck -- "Yes" --&gt; Version{"Marker version"}
-
-  Version -- "v1/v2" --&gt; LegacyPolicy{"Unsigned marker mode allowed?"}
-  LegacyPolicy -- "No" --&gt; RejectUnsigned["Reject unsigned marker"]
-  LegacyPolicy -- "Yes" --&gt; ParserV2["Run v2 parser checks"]
-
-  Version -- "v3" --&gt; ParseV3["Parse v3 marker"]
-  ParseV3 --&gt; Reserved{"Duplicate reserved fields?"}
-  Reserved -- "Yes" --&gt; RejectDup["Reject duplicate semantic field"]
-  Reserved -- "No" --&gt; State{"state suitable?"}
-
-  State -- "revoked/failed/expired" --&gt; RejectState["Reject marker state"]
-  State -- "active/lab-active" --&gt; Fetch["Retrieve attestation from IdM vault"]
-
-  Fetch --&gt; FetchOK{"Artifact retrieved?"}
-  FetchOK -- "No" --&gt; RejectMissing["Reject missing attestation"]
-  FetchOK -- "Yes" --&gt; Digest{"Artifact sha256 matches marker?"}
-
-  Digest -- "No" --&gt; RejectDigest["Reject digest mismatch"]
-  Digest -- "Yes" --&gt; Env{"Envelope version supported?"}
-
-  Env -- "No" --&gt; RejectEnv["Reject unsupported envelope"]
-  Env -- "Yes" --&gt; Sig{"Signature valid to IdM CA?"}
-
-  Sig -- "No" --&gt; RejectSig["Reject bad signature"]
-  Sig -- "Yes" --&gt; Signer{"Signer allowed?"}
-
-  Signer -- "No" --&gt; RejectSigner["Reject unauthorized signer"]
-  Signer -- "Yes" --&gt; Index["Retrieve signed latest-generation index"]
-
-  Index --&gt; IndexOK{"Index valid and latest?"}
-  IndexOK -- "No" --&gt; RejectReplay["Reject replay / missing index"]
-  IndexOK -- "Yes" --&gt; LiveHash["Compute current host policy hash"]
-
-  LiveHash --&gt; HashOK{"Host hash matches payload?"}
-  HashOK -- "No" --&gt; RejectDrift["Reject drifted host"]
-  HashOK -- "Yes" --&gt; Binding{"Payload matches marker, host, profile, registry?"}
-
-  Binding -- "No" --&gt; RejectBinding["Reject binding mismatch"]
-  Binding -- "Yes" --&gt; Fresh{"Within validity window?"}
-
-  Fresh -- "No" --&gt; RejectFresh["Reject stale attestation"]
-  Fresh -- "Yes" --&gt; Allow["Preflight PASS"]
-
-  ParserV2 --&gt; AllowV2{"Parser suitable?"}
-  AllowV2 -- "No" --&gt; RejectV2["Reject invalid v2 marker"]
-  AllowV2 -- "Yes" --&gt; AllowRC["Allow only under configured unsigned-marker mode"]</code></pre>
+<figure class="diagram-card diagram-card--focus" id="v3-verification-flow-detail">
+<figcaption>
+<strong>Stable-v3 Verification Flow</strong>
+<span>Preflight resolves marker compatibility, verifies signed proof, checks live host state, then allows or fails closed.</span>
+</figcaption>
+<img class="diagram-artifact" src="../assets/diagrams/v3-verification-flow-detail.svg" alt="Stable-v3 Verification Flow">
+</figure>
 <p>---</p>
 <h2 id="13-revocation">13. Revocation</h2>
 <h3 id="131-why-revocation-is-required">13.1 Why revocation is required</h3>

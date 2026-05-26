@@ -1,0 +1,213 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="670" viewBox="0 0 1280 670" role="img" aria-labelledby="v3-attestation-architecture-title v3-attestation-architecture-desc">
+<title id="v3-attestation-architecture-title">Signed Attestation Architecture</title>
+<desc id="v3-attestation-architecture-desc">Build evidence, sign it, store it in the IdM trust fabric, and verify it before launch.</desc>
+<defs>
+<marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ee0000" /></marker>
+<marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4d4d4d" /></marker>
+<marker id="arrow-success" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3d7317" /></marker>
+<marker id="arrow-warning" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f0ab00" /></marker>
+</defs>
+<style>
+svg { background: #ffffff; font-family: 'Red Hat Text', 'Helvetica Neue', Arial, sans-serif; }
+.diagram-title { fill: #151515; font: 700 26px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.diagram-subtitle { fill: #4d4d4d; font: 400 15px 'Red Hat Text', Arial, sans-serif; }
+.lane rect { fill: #f5f5f5; stroke: #e0e0e0; stroke-width: 1.5; }
+.lane--red rect { fill: #fff5f5; stroke: #f4b7b7; }
+.lane--blue rect { fill: #f1f7ff; stroke: #b8d8ff; }
+.lane-title { fill: #a30000; font: 700 16px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card rect { fill: #ffffff; stroke: #e0e0e0; stroke-width: 1.5; }
+.card--gate rect { stroke: #ee0000; stroke-width: 2.2; }
+.card--proof rect { stroke: #0066cc; stroke-width: 2; }
+.card--success rect { stroke: #3d7317; stroke-width: 2; }
+.card--warning rect { stroke: #f0ab00; stroke-width: 2; }
+.card--muted rect { fill: #f5f5f5; stroke: #c7c7c7; }
+.card-title { fill: #151515; font: 700 17px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card-body { fill: #4d4d4d; font: 400 13.5px 'Red Hat Text', Arial, sans-serif; }
+.connector { fill: none; stroke: #ee0000; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.connector--muted { stroke: #4d4d4d; }
+.connector--success { stroke: #3d7317; }
+.connector--warning { stroke: #f0ab00; }
+.connector--dashed { stroke-dasharray: 7 7; }
+.connector-label { fill: #4d4d4d; font: 700 12px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label { fill: #151515; font: 700 15px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label--muted { fill: #4d4d4d; font-weight: 500; }
+.standalone-label--red { fill: #a30000; }
+</style>
+<text class="diagram-title" x="32" y="42">Signed Attestation Architecture</text>
+<text class="diagram-subtitle" x="32" y="68">Build evidence, sign it, store it in the IdM trust fabric, and verify it before launch.</text>
+<g class="lane lane--blue">
+<rect x="32" y="98" width="280" height="445" rx="8" />
+<text class="lane-title" x="50" y="126" text-anchor="start">
+<tspan x="50" dy="0">Build and verification</tspan>
+</text>
+</g>
+<g class="lane lane--default">
+<rect x="344" y="98" width="280" height="445" rx="8" />
+<text class="lane-title" x="362" y="126" text-anchor="start">
+<tspan x="362" dy="0">Attestation creation</tspan>
+</text>
+</g>
+<g class="lane lane--red">
+<rect x="656" y="98" width="280" height="445" rx="8" />
+<text class="lane-title" x="674" y="126" text-anchor="start">
+<tspan x="674" dy="0">IdM trust fabric</tspan>
+</text>
+</g>
+<g class="lane lane--default">
+<rect x="968" y="98" width="280" height="445" rx="8" />
+<text class="lane-title" x="986" y="126" text-anchor="start">
+<tspan x="986" dy="0">Selection and gate</tspan>
+</text>
+</g>
+<polyline class="connector connector--muted" points="172,246 172,270" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--default" points="172,366 172,390" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="276,318 380,198" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="276,438 380,198" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="484,246 484,270" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="484,366 484,390" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--muted connector--dashed" points="692,183 588,318" marker-end="url(#arrow-muted)" />
+<text class="connector-label" x="620" y="235" text-anchor="middle">trusts signer</text>
+<polyline class="connector connector--default" points="588,438 692,303" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="900,303 1004,318" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--muted" points="796,351 796,375" marker-end="url(#arrow-muted)" />
+<polyline class="connector connector--muted connector--dashed" points="900,423 1004,198" marker-end="url(#arrow-muted)" />
+<text class="connector-label" x="950" y="302" text-anchor="middle">locator</text>
+<polyline class="connector connector--default" points="1108,246 1108,270" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--success" points="1108,366 1108,390" marker-end="url(#arrow-success)" />
+<g class="card card--muted">
+<rect x="68" y="150" width="208" height="96" rx="6" />
+<text class="card-title" x="86" y="180" text-anchor="start">
+<tspan x="86" dy="0">Git source</tspan>
+</text>
+<text class="card-body" x="86" y="199" text-anchor="start">
+<tspan x="86" dy="0">policy, profiles,</tspan>
+<tspan x="86" dy="13">probes</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="68" y="270" width="208" height="96" rx="6" />
+<text class="card-title" x="86" y="300" text-anchor="start">
+<tspan x="86" dy="0">AAP build</tspan>
+<tspan x="86" dy="16">validation</tspan>
+</text>
+<text class="card-body" x="86" y="334" text-anchor="start">
+<tspan x="86" dy="0">registry, drift,</tspan>
+<tspan x="86" dy="13">tests</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="68" y="390" width="208" height="96" rx="6" />
+<text class="card-title" x="86" y="420" text-anchor="start">
+<tspan x="86" dy="0">Managed host</tspan>
+<tspan x="86" dy="16">evidence</tspan>
+</text>
+<text class="card-body" x="86" y="454" text-anchor="start">
+<tspan x="86" dy="0">install, probes,</tspan>
+<tspan x="86" dy="13">policy hash</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="380" y="150" width="208" height="96" rx="6" />
+<text class="card-title" x="398" y="180" text-anchor="start">
+<tspan x="398" dy="0">Canonical</tspan>
+<tspan x="398" dy="16">payload</tspan>
+</text>
+<text class="card-body" x="398" y="214" text-anchor="start">
+<tspan x="398" dy="0">host, profile,</tspan>
+<tspan x="398" dy="13">hash, evidence</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="380" y="270" width="208" height="96" rx="6" />
+<text class="card-title" x="398" y="300" text-anchor="start">
+<tspan x="398" dy="0">Blastwall</tspan>
+<tspan x="398" dy="16">signer</tspan>
+</text>
+<text class="card-body" x="398" y="334" text-anchor="start">
+<tspan x="398" dy="0">IdM CA-issued</tspan>
+<tspan x="398" dy="13">certificate</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="380" y="390" width="208" height="96" rx="6" />
+<text class="card-title" x="398" y="420" text-anchor="start">
+<tspan x="398" dy="0">Signed</tspan>
+<tspan x="398" dy="16">envelope</tspan>
+</text>
+<text class="card-body" x="398" y="454" text-anchor="start">
+<tspan x="398" dy="0">payload plus</tspan>
+<tspan x="398" dy="13">detached signature</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="692" y="135" width="208" height="96" rx="6" />
+<text class="card-title" x="710" y="165" text-anchor="start">
+<tspan x="710" dy="0">IdM / Dogtag</tspan>
+<tspan x="710" dy="16">CA</tspan>
+</text>
+<text class="card-body" x="710" y="199" text-anchor="start">
+<tspan x="710" dy="0">signer chain</tspan>
+<tspan x="710" dy="13">trust root</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="692" y="255" width="208" height="96" rx="6" />
+<text class="card-title" x="710" y="285" text-anchor="start">
+<tspan x="710" dy="0">KRA vault</tspan>
+</text>
+<text class="card-body" x="710" y="304" text-anchor="start">
+<tspan x="710" dy="0">attestation</tspan>
+<tspan x="710" dy="13">latest index</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="692" y="375" width="208" height="96" rx="6" />
+<text class="card-title" x="710" y="405" text-anchor="start">
+<tspan x="710" dy="0">Host marker</tspan>
+</text>
+<text class="card-body" x="710" y="424" text-anchor="start">
+<tspan x="710" dy="0">locator plus</tspan>
+<tspan x="710" dy="13">digest binding</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="1004" y="150" width="208" height="96" rx="6" />
+<text class="card-title" x="1022" y="180" text-anchor="start">
+<tspan x="1022" dy="0">Inventory</tspan>
+<tspan x="1022" dy="16">groups</tspan>
+</text>
+<text class="card-body" x="1022" y="214" text-anchor="start">
+<tspan x="1022" dy="0">current, stale,</tspan>
+<tspan x="1022" dy="13">profile match</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="1004" y="270" width="208" height="96" rx="6" />
+<text class="card-title" x="1022" y="300" text-anchor="start">
+<tspan x="1022" dy="0">AAP preflight</tspan>
+</text>
+<text class="card-body" x="1022" y="319" text-anchor="start">
+<tspan x="1022" dy="0">signature, replay,</tspan>
+<tspan x="1022" dy="13">binding, drift</tspan>
+</text>
+</g>
+<g class="card card--success">
+<rect x="1004" y="390" width="208" height="96" rx="6" />
+<text class="card-title" x="1022" y="420" text-anchor="start">
+<tspan x="1022" dy="0">Launch</tspan>
+<tspan x="1022" dy="16">decision</tspan>
+</text>
+<text class="card-body" x="1022" y="454" text-anchor="start">
+<tspan x="1022" dy="0">allow or</tspan>
+<tspan x="1022" dy="13">fail closed</tspan>
+</text>
+</g>
+<text class="standalone-label standalone-label--muted" x="172" y="520" text-anchor="middle">
+<tspan x="172" dy="0">Build output must match</tspan>
+<tspan x="172" dy="16">the signed payload</tspan>
+</text>
+<text class="standalone-label standalone-label--red" x="796" y="520" text-anchor="middle">
+<tspan x="796" dy="0">Vault artifact is proof;</tspan>
+<tspan x="796" dy="16">marker is only a locator</tspan>
+</text>
+</svg>

@@ -222,6 +222,21 @@ test.describe("GitHub Pages rendering", () => {
     await expect(lightbox).toBeHidden();
   });
 
+  test("v3 Mermaid sources render as diagram assets", () => {
+    const pageHtml = readText(path.join(docsRoot, "blastwall-v3/signed-attestation-design.html"));
+    const expectedDiagrams = [
+      "v3-attestation-architecture.svg",
+      "v3-attestation-sequence.svg",
+      "v3-verification-flow-detail.svg"
+    ];
+
+    expect(pageHtml).not.toContain("language-mermaid");
+    for (const filename of expectedDiagrams) {
+      expect(pageHtml).toContain(`../assets/diagrams/${filename}`);
+      expect(fs.existsSync(path.join(docsRoot, `assets/diagrams/${filename}`))).toBe(true);
+    }
+  });
+
   test("diagram cards do not silently shrink diagrams", async ({ page }, testInfo) => {
     const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
     const paths = [

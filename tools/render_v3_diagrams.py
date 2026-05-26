@@ -191,6 +191,284 @@ def render_svg(diagram: Diagram) -> str:
 def diagrams() -> tuple[Diagram, ...]:
     return (
         Diagram(
+            name="v3-attestation-architecture",
+            title="Signed Attestation Architecture",
+            desc="Build evidence, sign it, store it in the IdM trust fabric, and verify it before launch.",
+            width=1280,
+            height=670,
+            lanes=(
+                Lane(32, 98, 280, 445, "Build and verification", "blue"),
+                Lane(344, 98, 280, 445, "Attestation creation", "default"),
+                Lane(656, 98, 280, 445, "IdM trust fabric", "red"),
+                Lane(968, 98, 280, 445, "Selection and gate", "default"),
+            ),
+            cards=(
+                Card(68, 150, 208, 96, ("Git source",), ("policy, profiles,", "probes"), "muted"),
+                Card(68, 270, 208, 96, ("AAP build", "validation"), ("registry, drift,", "tests"), "proof"),
+                Card(68, 390, 208, 96, ("Managed host", "evidence"), ("install, probes,", "policy hash"), "proof"),
+                Card(380, 150, 208, 96, ("Canonical", "payload"), ("host, profile,", "hash, evidence"), "proof"),
+                Card(380, 270, 208, 96, ("Blastwall", "signer"), ("IdM CA-issued", "certificate"), "gate"),
+                Card(380, 390, 208, 96, ("Signed", "envelope"), ("payload plus", "detached signature"), "proof"),
+                Card(692, 135, 208, 96, ("IdM / Dogtag", "CA"), ("signer chain", "trust root"), "proof"),
+                Card(692, 255, 208, 96, ("KRA vault",), ("attestation", "latest index"), "proof"),
+                Card(692, 375, 208, 96, ("Host marker",), ("locator plus", "digest binding"), "muted"),
+                Card(1004, 150, 208, 96, ("Inventory", "groups"), ("current, stale,", "profile match"), "muted"),
+                Card(1004, 270, 208, 96, ("AAP preflight",), ("signature, replay,", "binding, drift"), "gate"),
+                Card(1004, 390, 208, 96, ("Launch", "decision"), ("allow or", "fail closed"), "success"),
+            ),
+            connectors=(
+                Connector(((172, 246), (172, 270)), "muted"),
+                Connector(((172, 366), (172, 390)), "default"),
+                Connector(((276, 318), (380, 198)), "default"),
+                Connector(((276, 438), (380, 198)), "default"),
+                Connector(((484, 246), (484, 270)), "default"),
+                Connector(((484, 366), (484, 390)), "default"),
+                Connector(((692, 183), (588, 318)), "muted", True, "trusts signer", (620, 235)),
+                Connector(((588, 438), (692, 303)), "default"),
+                Connector(((900, 303), (1004, 318)), "default"),
+                Connector(((796, 351), (796, 375)), "muted"),
+                Connector(((900, 423), (1004, 198)), "muted", True, "locator", (950, 302)),
+                Connector(((1108, 246), (1108, 270)), "default"),
+                Connector(((1108, 366), (1108, 390)), "success"),
+            ),
+            labels=(
+                Label(172, 520, ("Build output must match", "the signed payload"), "muted"),
+                Label(796, 520, ("Vault artifact is proof;", "marker is only a locator"), "red"),
+            ),
+            mermaid="""flowchart TB
+  subgraph Build["Build and Verification"]
+    Git["Git source<br/>policy, profiles.yml, probes"]
+    BuildJob["AAP build and drift validation"]
+    Install["Install / activate policy on host"]
+    Verify["Run safe probes"]
+    Hash["Compute installed policy hash"]
+  end
+
+  subgraph Attest["Attestation Creation"]
+    Payload["Canonical attestation JSON"]
+    Signer["Blastwall attestation signer<br/>IdM CA-issued certificate"]
+    Sig["Detached signature"]
+    Envelope["Signed attestation envelope"]
+    Index["Signed latest-generation index"]
+  end
+
+  subgraph IdM["IdM Trust Fabric"]
+    CA["IdM / Dogtag CA"]
+    Vault["IdM vault<br/>via eigenstate.ipa"]
+    Marker["Host userClass marker v3<br/>attest_ref + digest"]
+  end
+
+  subgraph Runtime["Selection and Gate"]
+    Inventory["eigenstate.ipa inventory"]
+    Groups["current / stale / profile groups"]
+    Preflight["AAP preflight"]
+    Gate["Allow or fail closed"]
+  end
+
+  Git --> BuildJob --> Install --> Verify
+  Install --> Hash
+  Verify --> Payload
+  Hash --> Payload
+  BuildJob --> Payload
+  CA --> Signer
+  Payload --> Signer --> Sig
+  Payload --> Envelope
+  Sig --> Envelope
+  Envelope --> Vault
+  Envelope --> Index
+  Index --> Vault
+  Vault --> Marker
+  Marker --> Inventory --> Groups --> Preflight
+  Vault --> Preflight
+  CA --> Preflight
+  Preflight --> Gate
+""",
+        ),
+        Diagram(
+            name="v3-attestation-sequence",
+            title="Signed Attestation Sequence",
+            desc="The reference workflow turns source validation and host evidence into a signed launch gate.",
+            width=1280,
+            height=600,
+            cards=(
+                Card(64, 130, 170, 96, ("1. Sync", "source"), ("pinned branch", "profiles.yml"), "muted"),
+                Card(286, 130, 170, 96, ("2. Validate", "and install"), ("registry, drift,", "policy RPM"), "proof"),
+                Card(508, 130, 170, 96, ("3. Probe", "host"), ("required probes", "policy hash"), "proof"),
+                Card(730, 130, 170, 96, ("4. Build", "payload"), ("canonical JSON", "profile binding"), "proof"),
+                Card(952, 130, 170, 96, ("5. Sign", "payload"), ("signer cert", "IdM CA chain"), "gate"),
+                Card(952, 345, 170, 96, ("6. Store", "evidence"), ("vault envelope", "latest index"), "proof"),
+                Card(730, 345, 170, 96, ("7. Publish", "marker"), ("attest_ref", "digest"), "muted"),
+                Card(508, 345, 170, 96, ("8. Inventory", "selects"), ("current/stale", "profile groups"), "muted"),
+                Card(286, 345, 170, 96, ("9. Preflight", "verifies"), ("signature, replay,", "binding, drift"), "gate"),
+                Card(64, 345, 170, 96, ("10. Launch", "or stop"), ("allow only", "after proof"), "success"),
+            ),
+            connectors=(
+                Connector(((234, 178), (286, 178)), "default"),
+                Connector(((456, 178), (508, 178)), "default"),
+                Connector(((678, 178), (730, 178)), "default"),
+                Connector(((900, 178), (952, 178)), "default"),
+                Connector(((1037, 226), (1037, 345)), "default"),
+                Connector(((952, 393), (900, 393)), "default"),
+                Connector(((730, 393), (678, 393)), "muted"),
+                Connector(((508, 393), (456, 393)), "default"),
+                Connector(((286, 393), (234, 393)), "success"),
+            ),
+            labels=(
+                Label(640, 278, ("Forward path creates signed evidence",), "muted"),
+                Label(640, 505, ("Return path consumes proof before runtime launch",), "red"),
+            ),
+            mermaid="""sequenceDiagram
+  autonumber
+
+  participant Git as Git / profiles.yml
+  participant AAP as AAP Workflow
+  participant Host as Managed RHEL Host
+  participant Probe as Blastwall Probes
+  participant Signer as Marker Signer
+  participant CA as IdM CA
+  participant Vault as IdM Vault / eigenstate.ipa
+  participant IdM as IdM host userClass
+  participant Inv as eigenstate.ipa Inventory
+  participant PF as AAP Preflight
+
+  AAP->>Git: Sync pinned branch / source revision
+  AAP->>Git: Validate registry, drift, tests
+  AAP->>Host: Install or refresh Blastwall policy RPM
+  Host->>Host: Activate SELinux modules and login context
+  Host->>Probe: Run probes required by profile
+  Probe-->>AAP: Return BLOCKED / SKIP_ABSENT / failure evidence
+  Host-->>AAP: Return installed policy payload hash
+
+  AAP->>AAP: Build canonical attestation payload
+  AAP->>Signer: Request signature over canonical payload bytes
+  Signer->>CA: Use IdM CA-issued signer certificate
+  Signer-->>AAP: Detached signature and signer certificate metadata
+
+  AAP->>Vault: Store signed attestation envelope
+  AAP->>Vault: Store signed latest-generation index
+  Vault-->>AAP: Return attestation reference
+  AAP->>AAP: Compute envelope digest
+  AAP->>IdM: Publish v3 marker with attestation reference and digest
+
+  Inv->>IdM: Read host marker
+  Inv-->>AAP: Place host in marker-derived groups
+
+  PF->>IdM: Read marker
+  PF->>Vault: Retrieve signed attestation envelope
+  PF->>Vault: Retrieve signed latest-generation index
+  PF->>CA: Verify signer certificate chain and allowlist
+  PF->>Host: Recompute current installed policy hash in stable-v3
+  PF->>PF: Verify digest, expiry, host/profile/policy binding, generation
+  PF-->>AAP: Allow launch only if attestation verifies
+""",
+        ),
+        Diagram(
+            name="v3-verification-flow-detail",
+            title="Stable-v3 Verification Flow",
+            desc="Preflight resolves marker compatibility, verifies signed proof, checks live host state, then allows or fails closed.",
+            width=1280,
+            height=780,
+            lanes=(
+                Lane(34, 100, 1212, 145, "Marker compatibility", "blue"),
+                Lane(34, 292, 1212, 205, "Stable-v3 proof path", "red"),
+                Lane(34, 548, 1212, 135, "Terminal outcomes", "default"),
+            ),
+            cards=(
+                Card(70, 145, 150, 70, ("Selected", "host"), ("from inventory",), "muted"),
+                Card(258, 145, 160, 70, ("Marker", "present?"), ("missing fails",), "gate"),
+                Card(456, 145, 160, 70, ("Marker", "version"), ("v3 or legacy",), "gate"),
+                Card(655, 145, 180, 70, ("Legacy", "mode check"), ("v1/v2 parser", "only if allowed"), "warning"),
+                Card(1000, 145, 170, 70, ("Reject", "unsigned mode"), ("when legacy is", "not configured"), "warning"),
+                Card(70, 338, 142, 82, ("Parse", "v3 marker"), ("reserved fields", "state"), "gate"),
+                Card(250, 338, 142, 82, ("Fetch", "artifact"), ("KRA vault", "envelope"), "proof"),
+                Card(430, 338, 142, 82, ("Digest", "binding"), ("sha256 matches", "marker"), "gate"),
+                Card(610, 338, 142, 82, ("Envelope", "support"), ("version and", "schema"), "gate"),
+                Card(790, 338, 142, 82, ("Signature", "chain"), ("IdM CA", "and allowlist"), "gate"),
+                Card(970, 338, 142, 82, ("Replay", "guard"), ("latest index", "not revoked"), "gate"),
+                Card(430, 455, 142, 82, ("Live", "hash"), ("current policy", "matches payload"), "proof"),
+                Card(610, 455, 142, 82, ("Request", "binding"), ("host, profile,", "registry"), "gate"),
+                Card(790, 455, 142, 82, ("Validity", "window"), ("fresh enough", "for launch"), "gate"),
+                Card(105, 585, 320, 70, ("Fail closed",), ("missing, malformed, unauthorized,", "stale, drifted, or revoked"), "warning"),
+                Card(490, 585, 300, 70, ("Preflight PASS",), ("stable-v3 proof and", "live checks agree"), "success"),
+                Card(890, 585, 300, 70, ("RC / transition only",), ("legacy marker path", "remains explicit"), "muted"),
+            ),
+            connectors=(
+                Connector(((220, 180), (258, 180)), "default"),
+                Connector(((418, 180), (456, 180)), "default"),
+                Connector(((616, 180), (655, 180)), "warning", False, "v1/v2", (636, 160)),
+                Connector(((835, 180), (1000, 180)), "warning", True, "not allowed", (918, 160)),
+                Connector(((746, 215), (1035, 585)), "muted", True, "allowed", (895, 260)),
+                Connector(((536, 215), (141, 338)), "default", False, "v3", (365, 258)),
+                Connector(((212, 379), (250, 379)), "default"),
+                Connector(((392, 379), (430, 379)), "default"),
+                Connector(((572, 379), (610, 379)), "default"),
+                Connector(((752, 379), (790, 379)), "default"),
+                Connector(((932, 379), (970, 379)), "default"),
+                Connector(((1041, 420), (1041, 505), (572, 505)), "default"),
+                Connector(((572, 496), (610, 496)), "default"),
+                Connector(((752, 496), (790, 496)), "default"),
+                Connector(((861, 537), (640, 585)), "success"),
+                Connector(((330, 420), (330, 548), (225, 548), (225, 585)), "warning", True, "any failure", (390, 520)),
+                Connector(((681, 537), (681, 548), (345, 548), (345, 585)), "warning", True),
+                Connector(((861, 420), (861, 548), (345, 548), (345, 585)), "warning", True),
+            ),
+            labels=(
+                Label(720, 725, ("Every proof-path disagreement produces a named failure state.",), "red"),
+            ),
+            mermaid="""flowchart TD
+  Start["Preflight receives selected host"] --> MarkerCheck{"Marker present?"}
+
+  MarkerCheck -- "No" --> Stale["Fail: missing marker"]
+  MarkerCheck -- "Yes" --> Version{"Marker version"}
+
+  Version -- "v1/v2" --> LegacyPolicy{"Unsigned marker mode allowed?"}
+  LegacyPolicy -- "No" --> RejectUnsigned["Reject unsigned marker"]
+  LegacyPolicy -- "Yes" --> ParserV2["Run v2 parser checks"]
+
+  Version -- "v3" --> ParseV3["Parse v3 marker"]
+  ParseV3 --> Reserved{"Duplicate reserved fields?"}
+  Reserved -- "Yes" --> RejectDup["Reject duplicate semantic field"]
+  Reserved -- "No" --> State{"state suitable?"}
+
+  State -- "revoked/failed/expired" --> RejectState["Reject marker state"]
+  State -- "active/lab-active" --> Fetch["Retrieve attestation from IdM vault"]
+
+  Fetch --> FetchOK{"Artifact retrieved?"}
+  FetchOK -- "No" --> RejectMissing["Reject missing attestation"]
+  FetchOK -- "Yes" --> Digest{"Artifact sha256 matches marker?"}
+
+  Digest -- "No" --> RejectDigest["Reject digest mismatch"]
+  Digest -- "Yes" --> Env{"Envelope version supported?"}
+
+  Env -- "No" --> RejectEnv["Reject unsupported envelope"]
+  Env -- "Yes" --> Sig{"Signature valid to IdM CA?"}
+
+  Sig -- "No" --> RejectSig["Reject bad signature"]
+  Sig -- "Yes" --> Signer{"Signer allowed?"}
+
+  Signer -- "No" --> RejectSigner["Reject unauthorized signer"]
+  Signer -- "Yes" --> Index["Retrieve signed latest-generation index"]
+
+  Index --> IndexOK{"Index valid and latest?"}
+  IndexOK -- "No" --> RejectReplay["Reject replay / missing index"]
+  IndexOK -- "Yes" --> LiveHash["Compute current host policy hash"]
+
+  LiveHash --> HashOK{"Host hash matches payload?"}
+  HashOK -- "No" --> RejectDrift["Reject drifted host"]
+  HashOK -- "Yes" --> Binding{"Payload matches marker, host, profile, registry?"}
+
+  Binding -- "No" --> RejectBinding["Reject binding mismatch"]
+  Binding -- "Yes" --> Fresh{"Within validity window?"}
+
+  Fresh -- "No" --> RejectFresh["Reject stale attestation"]
+  Fresh -- "Yes" --> Allow["Preflight PASS"]
+
+  ParserV2 --> AllowV2{"Parser suitable?"}
+  AllowV2 -- "No" --> RejectV2["Reject invalid v2 marker"]
+  AllowV2 -- "Yes" --> AllowRC["Allow only under configured unsigned-marker mode"]
+""",
+        ),
+        Diagram(
             name="v3-marker-locator-flow",
             title="Marker Is Locator, Evidence Is Proof",
             desc="Inventory may select a candidate from IdM, but stable-v3 trusts only verified signed evidence.",

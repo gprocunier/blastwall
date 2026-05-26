@@ -1125,6 +1125,7 @@ for case_id, expected_state in expected_manifest_cases.items():
     if case_id not in {"missing_envelope", "missing_index"} and case.get("breakglass") == "allowed_if_explicit_scope":
         fail(f"failure-state manifest must not allow breakglass for {case_id}")
 guidance = (ROOT / "docs" / "blastwall-v3" / "operational-guidance.md").read_text(encoding="utf-8")
+guidance_normalized = re.sub(r"\s+", " ", guidance)
 for required_guidance_section in [
     "## Service-Owned Signer And Vault Custody",
     "## Signer Separation And Lifecycle",
@@ -1140,11 +1141,11 @@ for required_guidance_section in [
 for required_guidance_phrase in [
     "Stable-v3 must use service-owned or named-user custody",
     "Shared vault scope is lab/RC custody",
-    "not full remote attestation",
+    "reference exemplar for signed evidence gate operation",
     "Calabi evidence proves the current reference path",
     "Fleet-scale evidence remains future validation",
 ]:
-    if required_guidance_phrase not in guidance:
+    if required_guidance_phrase not in guidance_normalized:
         fail(f"operational guidance missing required claim boundary phrase: {required_guidance_phrase}")
 for doc_name in [
     "stable-v3-readiness-checklist.md",

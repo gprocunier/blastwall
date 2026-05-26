@@ -1,0 +1,43 @@
+sequenceDiagram
+  autonumber
+
+  participant Git as Git / profiles.yml
+  participant AAP as AAP Workflow
+  participant Host as Managed RHEL Host
+  participant Probe as Blastwall Probes
+  participant Signer as Marker Signer
+  participant CA as IdM CA
+  participant Vault as IdM Vault / eigenstate.ipa
+  participant IdM as IdM host userClass
+  participant Inv as eigenstate.ipa Inventory
+  participant PF as AAP Preflight
+
+  AAP->>Git: Sync pinned branch / source revision
+  AAP->>Git: Validate registry, drift, tests
+  AAP->>Host: Install or refresh Blastwall policy RPM
+  Host->>Host: Activate SELinux modules and login context
+  Host->>Probe: Run probes required by profile
+  Probe-->>AAP: Return BLOCKED / SKIP_ABSENT / failure evidence
+  Host-->>AAP: Return installed policy payload hash
+
+  AAP->>AAP: Build canonical attestation payload
+  AAP->>Signer: Request signature over canonical payload bytes
+  Signer->>CA: Use IdM CA-issued signer certificate
+  Signer-->>AAP: Detached signature and signer certificate metadata
+
+  AAP->>Vault: Store signed attestation envelope
+  AAP->>Vault: Store signed latest-generation index
+  Vault-->>AAP: Return attestation reference
+  AAP->>AAP: Compute envelope digest
+  AAP->>IdM: Publish v3 marker with attestation reference and digest
+
+  Inv->>IdM: Read host marker
+  Inv-->>AAP: Place host in marker-derived groups
+
+  PF->>IdM: Read marker
+  PF->>Vault: Retrieve signed attestation envelope
+  PF->>Vault: Retrieve signed latest-generation index
+  PF->>CA: Verify signer certificate chain and allowlist
+  PF->>Host: Recompute current installed policy hash in stable-v3
+  PF->>PF: Verify digest, expiry, host/profile/policy binding, generation
+  PF-->>AAP: Allow launch only if attestation verifies

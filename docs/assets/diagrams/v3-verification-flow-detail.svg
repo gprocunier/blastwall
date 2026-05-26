@@ -1,0 +1,263 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="780" viewBox="0 0 1280 780" role="img" aria-labelledby="v3-verification-flow-detail-title v3-verification-flow-detail-desc">
+<title id="v3-verification-flow-detail-title">Stable-v3 Verification Flow</title>
+<desc id="v3-verification-flow-detail-desc">Preflight resolves marker compatibility, verifies signed proof, checks live host state, then allows or fails closed.</desc>
+<defs>
+<marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ee0000" /></marker>
+<marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4d4d4d" /></marker>
+<marker id="arrow-success" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3d7317" /></marker>
+<marker id="arrow-warning" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f0ab00" /></marker>
+</defs>
+<style>
+svg { background: #ffffff; font-family: 'Red Hat Text', 'Helvetica Neue', Arial, sans-serif; }
+.diagram-title { fill: #151515; font: 700 26px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.diagram-subtitle { fill: #4d4d4d; font: 400 15px 'Red Hat Text', Arial, sans-serif; }
+.lane rect { fill: #f5f5f5; stroke: #e0e0e0; stroke-width: 1.5; }
+.lane--red rect { fill: #fff5f5; stroke: #f4b7b7; }
+.lane--blue rect { fill: #f1f7ff; stroke: #b8d8ff; }
+.lane-title { fill: #a30000; font: 700 16px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card rect { fill: #ffffff; stroke: #e0e0e0; stroke-width: 1.5; }
+.card--gate rect { stroke: #ee0000; stroke-width: 2.2; }
+.card--proof rect { stroke: #0066cc; stroke-width: 2; }
+.card--success rect { stroke: #3d7317; stroke-width: 2; }
+.card--warning rect { stroke: #f0ab00; stroke-width: 2; }
+.card--muted rect { fill: #f5f5f5; stroke: #c7c7c7; }
+.card-title { fill: #151515; font: 700 17px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card-body { fill: #4d4d4d; font: 400 13.5px 'Red Hat Text', Arial, sans-serif; }
+.connector { fill: none; stroke: #ee0000; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.connector--muted { stroke: #4d4d4d; }
+.connector--success { stroke: #3d7317; }
+.connector--warning { stroke: #f0ab00; }
+.connector--dashed { stroke-dasharray: 7 7; }
+.connector-label { fill: #4d4d4d; font: 700 12px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label { fill: #151515; font: 700 15px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label--muted { fill: #4d4d4d; font-weight: 500; }
+.standalone-label--red { fill: #a30000; }
+</style>
+<text class="diagram-title" x="32" y="42">Stable-v3 Verification Flow</text>
+<text class="diagram-subtitle" x="32" y="68">Preflight resolves marker compatibility, verifies signed proof, checks live host state, then allows or fails closed.</text>
+<g class="lane lane--blue">
+<rect x="34" y="100" width="1212" height="145" rx="8" />
+<text class="lane-title" x="52" y="128" text-anchor="start">
+<tspan x="52" dy="0">Marker compatibility</tspan>
+</text>
+</g>
+<g class="lane lane--red">
+<rect x="34" y="292" width="1212" height="205" rx="8" />
+<text class="lane-title" x="52" y="320" text-anchor="start">
+<tspan x="52" dy="0">Stable-v3 proof path</tspan>
+</text>
+</g>
+<g class="lane lane--default">
+<rect x="34" y="548" width="1212" height="135" rx="8" />
+<text class="lane-title" x="52" y="576" text-anchor="start">
+<tspan x="52" dy="0">Terminal outcomes</tspan>
+</text>
+</g>
+<polyline class="connector connector--default" points="220,180 258,180" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="418,180 456,180" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--warning" points="616,180 655,180" marker-end="url(#arrow-warning)" />
+<text class="connector-label" x="636" y="160" text-anchor="middle">v1/v2</text>
+<polyline class="connector connector--warning connector--dashed" points="835,180 1000,180" marker-end="url(#arrow-warning)" />
+<text class="connector-label" x="918" y="160" text-anchor="middle">not allowed</text>
+<polyline class="connector connector--muted connector--dashed" points="746,215 1035,585" marker-end="url(#arrow-muted)" />
+<text class="connector-label" x="895" y="260" text-anchor="middle">allowed</text>
+<polyline class="connector connector--default" points="536,215 141,338" marker-end="url(#arrow-default)" />
+<text class="connector-label" x="365" y="258" text-anchor="middle">v3</text>
+<polyline class="connector connector--default" points="212,379 250,379" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="392,379 430,379" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="572,379 610,379" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="752,379 790,379" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="932,379 970,379" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="1041,420 1041,505 572,505" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="572,496 610,496" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="752,496 790,496" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--success" points="861,537 640,585" marker-end="url(#arrow-success)" />
+<polyline class="connector connector--warning connector--dashed" points="330,420 330,548 225,548 225,585" marker-end="url(#arrow-warning)" />
+<text class="connector-label" x="390" y="520" text-anchor="middle">any failure</text>
+<polyline class="connector connector--warning connector--dashed" points="681,537 681,548 345,548 345,585" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--warning connector--dashed" points="861,420 861,548 345,548 345,585" marker-end="url(#arrow-warning)" />
+<g class="card card--muted">
+<rect x="70" y="145" width="150" height="70" rx="6" />
+<text class="card-title" x="88" y="175" text-anchor="start">
+<tspan x="88" dy="0">Selected</tspan>
+<tspan x="88" dy="16">host</tspan>
+</text>
+<text class="card-body" x="88" y="209" text-anchor="start">
+<tspan x="88" dy="0">from inventory</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="258" y="145" width="160" height="70" rx="6" />
+<text class="card-title" x="276" y="175" text-anchor="start">
+<tspan x="276" dy="0">Marker</tspan>
+<tspan x="276" dy="16">present?</tspan>
+</text>
+<text class="card-body" x="276" y="209" text-anchor="start">
+<tspan x="276" dy="0">missing fails</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="456" y="145" width="160" height="70" rx="6" />
+<text class="card-title" x="474" y="175" text-anchor="start">
+<tspan x="474" dy="0">Marker</tspan>
+<tspan x="474" dy="16">version</tspan>
+</text>
+<text class="card-body" x="474" y="209" text-anchor="start">
+<tspan x="474" dy="0">v3 or legacy</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="655" y="145" width="180" height="70" rx="6" />
+<text class="card-title" x="673" y="175" text-anchor="start">
+<tspan x="673" dy="0">Legacy</tspan>
+<tspan x="673" dy="16">mode check</tspan>
+</text>
+<text class="card-body" x="673" y="209" text-anchor="start">
+<tspan x="673" dy="0">v1/v2 parser</tspan>
+<tspan x="673" dy="13">only if allowed</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="1000" y="145" width="170" height="70" rx="6" />
+<text class="card-title" x="1018" y="175" text-anchor="start">
+<tspan x="1018" dy="0">Reject</tspan>
+<tspan x="1018" dy="16">unsigned mode</tspan>
+</text>
+<text class="card-body" x="1018" y="209" text-anchor="start">
+<tspan x="1018" dy="0">when legacy is</tspan>
+<tspan x="1018" dy="13">not configured</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="70" y="338" width="142" height="82" rx="6" />
+<text class="card-title" x="88" y="368" text-anchor="start">
+<tspan x="88" dy="0">Parse</tspan>
+<tspan x="88" dy="16">v3 marker</tspan>
+</text>
+<text class="card-body" x="88" y="402" text-anchor="start">
+<tspan x="88" dy="0">reserved fields</tspan>
+<tspan x="88" dy="13">state</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="250" y="338" width="142" height="82" rx="6" />
+<text class="card-title" x="268" y="368" text-anchor="start">
+<tspan x="268" dy="0">Fetch</tspan>
+<tspan x="268" dy="16">artifact</tspan>
+</text>
+<text class="card-body" x="268" y="402" text-anchor="start">
+<tspan x="268" dy="0">KRA vault</tspan>
+<tspan x="268" dy="13">envelope</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="430" y="338" width="142" height="82" rx="6" />
+<text class="card-title" x="448" y="368" text-anchor="start">
+<tspan x="448" dy="0">Digest</tspan>
+<tspan x="448" dy="16">binding</tspan>
+</text>
+<text class="card-body" x="448" y="402" text-anchor="start">
+<tspan x="448" dy="0">sha256 matches</tspan>
+<tspan x="448" dy="13">marker</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="610" y="338" width="142" height="82" rx="6" />
+<text class="card-title" x="628" y="368" text-anchor="start">
+<tspan x="628" dy="0">Envelope</tspan>
+<tspan x="628" dy="16">support</tspan>
+</text>
+<text class="card-body" x="628" y="402" text-anchor="start">
+<tspan x="628" dy="0">version and</tspan>
+<tspan x="628" dy="13">schema</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="790" y="338" width="142" height="82" rx="6" />
+<text class="card-title" x="808" y="368" text-anchor="start">
+<tspan x="808" dy="0">Signature</tspan>
+<tspan x="808" dy="16">chain</tspan>
+</text>
+<text class="card-body" x="808" y="402" text-anchor="start">
+<tspan x="808" dy="0">IdM CA</tspan>
+<tspan x="808" dy="13">and allowlist</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="970" y="338" width="142" height="82" rx="6" />
+<text class="card-title" x="988" y="368" text-anchor="start">
+<tspan x="988" dy="0">Replay</tspan>
+<tspan x="988" dy="16">guard</tspan>
+</text>
+<text class="card-body" x="988" y="402" text-anchor="start">
+<tspan x="988" dy="0">latest index</tspan>
+<tspan x="988" dy="13">not revoked</tspan>
+</text>
+</g>
+<g class="card card--proof">
+<rect x="430" y="455" width="142" height="82" rx="6" />
+<text class="card-title" x="448" y="485" text-anchor="start">
+<tspan x="448" dy="0">Live</tspan>
+<tspan x="448" dy="16">hash</tspan>
+</text>
+<text class="card-body" x="448" y="519" text-anchor="start">
+<tspan x="448" dy="0">current policy</tspan>
+<tspan x="448" dy="13">matches payload</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="610" y="455" width="142" height="82" rx="6" />
+<text class="card-title" x="628" y="485" text-anchor="start">
+<tspan x="628" dy="0">Request</tspan>
+<tspan x="628" dy="16">binding</tspan>
+</text>
+<text class="card-body" x="628" y="519" text-anchor="start">
+<tspan x="628" dy="0">host, profile,</tspan>
+<tspan x="628" dy="13">registry</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="790" y="455" width="142" height="82" rx="6" />
+<text class="card-title" x="808" y="485" text-anchor="start">
+<tspan x="808" dy="0">Validity</tspan>
+<tspan x="808" dy="16">window</tspan>
+</text>
+<text class="card-body" x="808" y="519" text-anchor="start">
+<tspan x="808" dy="0">fresh enough</tspan>
+<tspan x="808" dy="13">for launch</tspan>
+</text>
+</g>
+<g class="card card--warning">
+<rect x="105" y="585" width="320" height="70" rx="6" />
+<text class="card-title" x="123" y="615" text-anchor="start">
+<tspan x="123" dy="0">Fail closed</tspan>
+</text>
+<text class="card-body" x="123" y="634" text-anchor="start">
+<tspan x="123" dy="0">missing, malformed, unauthorized,</tspan>
+<tspan x="123" dy="13">stale, drifted, or revoked</tspan>
+</text>
+</g>
+<g class="card card--success">
+<rect x="490" y="585" width="300" height="70" rx="6" />
+<text class="card-title" x="508" y="615" text-anchor="start">
+<tspan x="508" dy="0">Preflight PASS</tspan>
+</text>
+<text class="card-body" x="508" y="634" text-anchor="start">
+<tspan x="508" dy="0">stable-v3 proof and</tspan>
+<tspan x="508" dy="13">live checks agree</tspan>
+</text>
+</g>
+<g class="card card--muted">
+<rect x="890" y="585" width="300" height="70" rx="6" />
+<text class="card-title" x="908" y="615" text-anchor="start">
+<tspan x="908" dy="0">RC / transition only</tspan>
+</text>
+<text class="card-body" x="908" y="634" text-anchor="start">
+<tspan x="908" dy="0">legacy marker path</tspan>
+<tspan x="908" dy="13">remains explicit</tspan>
+</text>
+</g>
+<text class="standalone-label standalone-label--red" x="720" y="725" text-anchor="middle">
+<tspan x="720" dy="0">Every proof-path disagreement produces a named failure state.</tspan>
+</text>
+</svg>
