@@ -1,0 +1,6 @@
+flowchart LR
+  marker[IdM host marker<br/>locator only] --> inventory[AAP inventory<br/>candidate group]
+  inventory -. attest_ref .-> artifact[KRA vault artifact<br/>signed envelope + latest index]
+  artifact --> verifier[stable-v3 verifier<br/>signature, signer, binding, replay]
+  verifier --> live[Live host checks<br/>policy hash + profile state]
+  live --> decision[Launch decision<br/>allow or fail closed]

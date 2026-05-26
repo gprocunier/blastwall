@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="560" viewBox="0 0 1280 560" role="img" aria-labelledby="v3-breakglass-scope-title v3-breakglass-scope-desc">
+<title id="v3-breakglass-scope-title">Breakglass Scope</title>
+<desc id="v3-breakglass-scope-desc">Breakglass is explicit, scoped, and limited to infrastructure visibility; it cannot bypass security proof failures.</desc>
+<defs>
+<marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ee0000" /></marker>
+<marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4d4d4d" /></marker>
+<marker id="arrow-success" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3d7317" /></marker>
+<marker id="arrow-warning" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f0ab00" /></marker>
+</defs>
+<style>
+svg { background: #ffffff; font-family: 'Red Hat Text', 'Helvetica Neue', Arial, sans-serif; }
+.diagram-title { fill: #151515; font: 700 26px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.diagram-subtitle { fill: #4d4d4d; font: 400 15px 'Red Hat Text', Arial, sans-serif; }
+.lane rect { fill: #f5f5f5; stroke: #e0e0e0; stroke-width: 1.5; }
+.lane--red rect { fill: #fff5f5; stroke: #f4b7b7; }
+.lane--blue rect { fill: #f1f7ff; stroke: #b8d8ff; }
+.lane-title { fill: #a30000; font: 700 16px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card rect { fill: #ffffff; stroke: #e0e0e0; stroke-width: 1.5; }
+.card--gate rect { stroke: #ee0000; stroke-width: 2.2; }
+.card--proof rect { stroke: #0066cc; stroke-width: 2; }
+.card--success rect { stroke: #3d7317; stroke-width: 2; }
+.card--warning rect { stroke: #f0ab00; stroke-width: 2; }
+.card--muted rect { fill: #f5f5f5; stroke: #c7c7c7; }
+.card-title { fill: #151515; font: 700 17px 'Red Hat Display', 'Red Hat Text', Arial, sans-serif; }
+.card-body { fill: #4d4d4d; font: 400 13.5px 'Red Hat Text', Arial, sans-serif; }
+.connector { fill: none; stroke: #ee0000; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.connector--muted { stroke: #4d4d4d; }
+.connector--success { stroke: #3d7317; }
+.connector--warning { stroke: #f0ab00; }
+.connector--dashed { stroke-dasharray: 7 7; }
+.connector-label { fill: #4d4d4d; font: 700 12px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label { fill: #151515; font: 700 15px 'Red Hat Text', Arial, sans-serif; }
+.standalone-label--muted { fill: #4d4d4d; font-weight: 500; }
+.standalone-label--red { fill: #a30000; }
+</style>
+<text class="diagram-title" x="32" y="42">Breakglass Scope</text>
+<text class="diagram-subtitle" x="32" y="68">Breakglass is explicit, scoped, and limited to infrastructure visibility; it cannot bypass security proof failures.</text>
+<g class="lane lane--blue">
+<rect x="44" y="105" width="562" height="330" rx="8" />
+<text class="lane-title" x="62" y="133" text-anchor="start">
+<tspan x="62" dy="0">Eligible infrastructure visibility failures</tspan>
+</text>
+</g>
+<g class="lane lane--red">
+<rect x="674" y="105" width="562" height="330" rx="8" />
+<text class="lane-title" x="692" y="133" text-anchor="start">
+<tspan x="692" dy="0">Security failures remain fail-closed</tspan>
+</text>
+</g>
+<polyline class="connector connector--warning" points="278,209 352,209" marker-end="url(#arrow-warning)" />
+<polyline class="connector connector--success" points="447,253 365,315" marker-end="url(#arrow-success)" />
+<polyline class="connector connector--default" points="908,191 986,191" marker-end="url(#arrow-default)" />
+<polyline class="connector connector--default" points="908,346 986,346" marker-end="url(#arrow-default)" />
+<g class="card card--warning">
+<rect x="88" y="165" width="190" height="88" rx="6" />
+<text class="card-title" x="106" y="195" text-anchor="start">
+<tspan x="106" dy="0">KRA artifact</tspan>
+<tspan x="106" dy="16">not visible</tspan>
+</text>
+<text class="card-body" x="106" y="229" text-anchor="start">
+<tspan x="106" dy="0">replica, canary,</tspan>
+<tspan x="106" dy="13">or access issue</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="352" y="165" width="190" height="88" rx="6" />
+<text class="card-title" x="370" y="195" text-anchor="start">
+<tspan x="370" dy="0">Explicit</tspan>
+<tspan x="370" dy="16">profile scope</tspan>
+</text>
+<text class="card-body" x="370" y="229" text-anchor="start">
+<tspan x="370" dy="0">requested profiles</tspan>
+<tspan x="370" dy="13">must match</tspan>
+</text>
+</g>
+<g class="card card--success">
+<rect x="220" y="315" width="210" height="82" rx="6" />
+<text class="card-title" x="238" y="345" text-anchor="start">
+<tspan x="238" dy="0">Audit package</tspan>
+</text>
+<text class="card-body" x="238" y="364" text-anchor="start">
+<tspan x="238" dy="0">ticket, approver,</tspan>
+<tspan x="238" dy="13">reason, timeout, review</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="718" y="150" width="190" height="82" rx="6" />
+<text class="card-title" x="736" y="180" text-anchor="start">
+<tspan x="736" dy="0">Signature</tspan>
+<tspan x="736" dy="16">failure</tspan>
+</text>
+<text class="card-body" x="736" y="214" text-anchor="start">
+<tspan x="736" dy="0">invalid or</tspan>
+<tspan x="736" dy="13">untrusted signer</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="986" y="150" width="190" height="82" rx="6" />
+<text class="card-title" x="1004" y="180" text-anchor="start">
+<tspan x="1004" dy="0">Revoked or</tspan>
+<tspan x="1004" dy="16">replayed</tspan>
+</text>
+<text class="card-body" x="1004" y="214" text-anchor="start">
+<tspan x="1004" dy="0">latest index</tspan>
+<tspan x="1004" dy="13">rejects trust</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="718" y="305" width="190" height="82" rx="6" />
+<text class="card-title" x="736" y="335" text-anchor="start">
+<tspan x="736" dy="0">Binding</tspan>
+<tspan x="736" dy="16">mismatch</tspan>
+</text>
+<text class="card-body" x="736" y="369" text-anchor="start">
+<tspan x="736" dy="0">wrong host</tspan>
+<tspan x="736" dy="13">or profile set</tspan>
+</text>
+</g>
+<g class="card card--gate">
+<rect x="986" y="305" width="190" height="82" rx="6" />
+<text class="card-title" x="1004" y="335" text-anchor="start">
+<tspan x="1004" dy="0">Live drift</tspan>
+</text>
+<text class="card-body" x="1004" y="354" text-anchor="start">
+<tspan x="1004" dy="0">policy hash or</tspan>
+<tspan x="1004" dy="13">host state mismatch</tspan>
+</text>
+</g>
+<text class="standalone-label standalone-label--muted" x="314" y="465" text-anchor="middle">
+<tspan x="314" dy="0">Allowed only when mode and scope are explicit</tspan>
+</text>
+<text class="standalone-label standalone-label--red" x="955" y="465" text-anchor="middle">
+<tspan x="955" dy="0">No bypass path for proof or host-state failures</tspan>
+</text>
+</svg>

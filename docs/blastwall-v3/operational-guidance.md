@@ -5,9 +5,9 @@
 This guidance defines the operating boundary for stable-v3 claims. Stable-v3
 is a signed evidence gate for a defined RHEL, IdM, AAP, KRA, and optional
 OpenShift/SPO reference topology. It is a reference exemplar for signed
-evidence gate operation; it is not full remote attestation. Adopters should
-collect local fleet-scale and portability evidence before expanding the claim
-beyond the Calabi reference topology.
+evidence gate operation. Adopters should collect local fleet-scale and
+portability evidence before expanding the claim beyond the Calabi reference
+topology.
 
 Use this document with:
 

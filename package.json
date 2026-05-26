@@ -2,7 +2,9 @@
   "name": "blastwall-docs",
   "private": true,
   "scripts": {
-    "test:docs": "playwright test tests/docs/docs-render.spec.js",
+    "build:v3-docs": "python3 tools/render_v3_diagrams.py && python3 tools/render_v3_docs.py",
+    "check:v3-docs": "python3 tools/render_v3_diagrams.py --check && python3 tools/render_v3_docs.py --check",
+    "test:docs": "npm run check:v3-docs && playwright test tests/docs/docs-render.spec.js",
     "test:openshift": "python3 tests/openshift/validate_spo_manifests.py",
     "test:policy": "python3 tools/validate_blastwall_profiles.py --registry policy/profiles.yml && python3 tools/check_blastwall_drift.py --registry policy/profiles.yml && python3 tests/test_validate_blastwall_profiles.py && python3 tests/test_check_blastwall_drift.py && python3 tests/test_blastwall_marker.py && python3 tests/test_strange_socket_probe.py && python3 tests/policy_static.py && python3 tests/inventory_grouping.py && python3 tests/openshift/validate_spo_manifests.py"
   },

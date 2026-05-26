@@ -1,0 +1,8 @@
+flowchart LR
+  owners[Assign local owners] --> custody[Choose signer and vault custody]
+  custody --> topology[Validate local topology]
+  topology --> evidence[Run healthy and failure evidence]
+  evidence --> corpus[Replay ordinary automation corpus]
+  corpus --> decision[Record adopter decision]
+  decision --> recapture[Plan recapture triggers]
+  recapture --> audit[Schedule audit loop]

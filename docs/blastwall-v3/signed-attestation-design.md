@@ -178,7 +178,7 @@ This design assumes:
 - IdM vault operations used for attestations target configured KRA-enabled replicas.
 - The LDAP marker plane and the KRA-backed vault artifact plane are operationally distinct.
 
-This design does **not** protect against:
+This design relies on surrounding platform and governance controls for:
 
 - full IdM compromise;
 - full AAP controller compromise;
@@ -188,7 +188,7 @@ This design does **not** protect against:
 - kernel compromise that disables MAC enforcement;
 - sudo expansion that routes around the intended boundary.
 
-Those are existing trust-boundary and governance risks. This document addresses cryptographic marker integrity, drift detection, and KRA-aware artifact delivery, not full remote attestation of the platform.
+Within that operating model, this document addresses cryptographic marker integrity, drift detection, and KRA-aware artifact delivery for the signed evidence gate.
 
 ### 5.1 Signer co-location with AAP
 

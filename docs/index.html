@@ -8,7 +8,7 @@
     <meta property="og:title" content="blastwall v3">
     <meta property="og:description" content="A signed-evidence reference exemplar for privileged automation on RHEL with IdM, AAP, KRA, and SELinux.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://blastwall.org/">
+    <meta property="og:url" content="https://blastwall.org/v3/">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="blastwall v3">
     <meta name="twitter:description" content="A signed-evidence reference exemplar for privileged automation on RHEL with IdM, AAP, KRA, and SELinux.">
@@ -57,16 +57,16 @@
               <tr><th>I need...</th><th>Start With</th><th>What You Will Know</th></tr>
             </thead>
             <tbody>
-              <tr><td data-label="I need...">The v3 trust model</td><td data-label="Start With"><a href="blastwall-v3/external-review-packet.md">External Review Packet</a></td><td data-label="What You Will Know">How marker selection, signed evidence, KRA visibility, live host state, and failure behavior fit together.</td></tr>
-              <tr><td data-label="I need...">The design details</td><td data-label="Start With"><a href="blastwall-v3/signed-attestation-design.md">Signed Attestation Design</a></td><td data-label="What You Will Know">The marker grammar, attestation envelope, latest index, signer boundary, and verifier behavior.</td></tr>
-              <tr><td data-label="I need...">To operate the path</td><td data-label="Start With"><a href="blastwall-v3/operator-runbook.md">Operator Runbook</a></td><td data-label="What You Will Know">The normal operating flow, decision tree, common failure pages, and evidence handling.</td></tr>
-              <tr><td data-label="I need...">Custody and ownership guidance</td><td data-label="Start With"><a href="blastwall-v3/operational-guidance.md">Operational Guidance</a></td><td data-label="What You Will Know">How to think about service-owned signer custody, breakglass, replay, destructive recapture, and topology positioning.</td></tr>
-              <tr><td data-label="I need...">KRA/vault topology details</td><td data-label="Start With"><a href="blastwall-v3/kra-topology-runbook.md">KRA Topology Runbook</a></td><td data-label="What You Will Know">Which vault visibility and custody assumptions stable-v3 checks before trusting evidence.</td></tr>
-              <tr><td data-label="I need...">Revocation and exception rules</td><td data-label="Start With"><a href="blastwall-v3/revocation-and-breakglass.md">Revocation and Breakglass</a></td><td data-label="What You Will Know">How revoked evidence fails closed and why breakglass is limited to scoped infrastructure visibility.</td></tr>
+              <tr><td data-label="I need...">The v3 trust model</td><td data-label="Start With"><a href="blastwall-v3/external-review-packet.html">External Review Packet</a></td><td data-label="What You Will Know">How marker selection, signed evidence, KRA visibility, live host state, and failure behavior fit together.</td></tr>
+              <tr><td data-label="I need...">The design details</td><td data-label="Start With"><a href="blastwall-v3/signed-attestation-design.html">Signed Attestation Design</a></td><td data-label="What You Will Know">The marker grammar, attestation envelope, latest index, signer boundary, and verifier behavior.</td></tr>
+              <tr><td data-label="I need...">To operate the path</td><td data-label="Start With"><a href="blastwall-v3/operator-runbook.html">Operator Runbook</a></td><td data-label="What You Will Know">The normal operating flow, decision tree, common failure pages, and evidence handling.</td></tr>
+              <tr><td data-label="I need...">Custody and ownership guidance</td><td data-label="Start With"><a href="blastwall-v3/operational-guidance.html">Operational Guidance</a></td><td data-label="What You Will Know">How to think about service-owned signer custody, breakglass, replay, destructive recapture, and topology positioning.</td></tr>
+              <tr><td data-label="I need...">KRA/vault topology details</td><td data-label="Start With"><a href="blastwall-v3/kra-topology-runbook.html">KRA Topology Runbook</a></td><td data-label="What You Will Know">Which vault visibility and custody assumptions stable-v3 checks before trusting evidence.</td></tr>
+              <tr><td data-label="I need...">Revocation and exception rules</td><td data-label="Start With"><a href="blastwall-v3/revocation-and-breakglass.html">Revocation and Breakglass</a></td><td data-label="What You Will Know">How revoked evidence fails closed and why breakglass is limited to scoped infrastructure visibility.</td></tr>
               <tr><td data-label="I need...">OpenShift workload confinement</td><td data-label="Start With"><a href="openshift-spo.html">OpenShift/SPO</a></td><td data-label="What You Will Know">How the OpenShift workload path keeps SPO profile usage explicit while v3 evidence covers selected targets.</td></tr>
               <tr><td data-label="I need...">To record the OpenShift proof</td><td data-label="Start With"><a href="openshift-spo-demo.html">OpenShift/SPO Demo</a></td><td data-label="What You Will Know">The recorded workload proof for profile readiness, SCC admission, pod context, and safe probes.</td></tr>
-              <tr><td data-label="I need...">Current evidence</td><td data-label="Start With"><a href="blastwall-v3/evidence-index.md">Evidence Index</a></td><td data-label="What You Will Know">Which Calabi jobs, artifacts, and failure states back the reference exemplar.</td></tr>
-              <tr><td data-label="I need...">Adopter readiness</td><td data-label="Start With"><a href="blastwall-v3/stable-v3-readiness-checklist.md">Readiness Checklist</a></td><td data-label="What You Will Know">What a local adopter should confirm before treating the pattern as an operating control.</td></tr>
+              <tr><td data-label="I need...">Current evidence</td><td data-label="Start With"><a href="blastwall-v3/evidence-index.html">Evidence Index</a></td><td data-label="What You Will Know">Which Calabi jobs, artifacts, and failure states back the reference exemplar.</td></tr>
+              <tr><td data-label="I need...">Adopter readiness</td><td data-label="Start With"><a href="blastwall-v3/stable-v3-readiness-checklist.html">Readiness Checklist</a></td><td data-label="What You Will Know">What a local adopter should confirm before treating the pattern as an operating control.</td></tr>
             </tbody>
           </table>
         </section>
@@ -74,12 +74,12 @@
         <section id="marker-proof">
           <h2>Marker Is Locator, Evidence Is Proof</h2>
           <p>v2 made host posture structured and release-checkable. v3 makes the trust boundary explicit: a host marker can help AAP select a candidate, but stable-v3 launch depends on signed evidence and live verification.</p>
-          <figure class="diagram-card" id="idm-aap-flow">
+          <figure class="diagram-card" id="v3-marker-locator-flow">
             <figcaption>
               <strong>Selection And Verification Boundary</strong>
               <span>IdM provides relationship state and marker hints. AAP consumes those hints, retrieves signed evidence, and proceeds only after verifier-owned checks pass.</span>
             </figcaption>
-            <img class="diagram-artifact" src="assets/diagrams/idm-aap-flow.svg" alt="IdM, eigenstate.ipa, AAP, SSH, and SELinux enforcement flow">
+            <img class="diagram-artifact" src="assets/diagrams/v3-marker-locator-flow.svg" alt="Blastwall v3 marker locator and signed evidence proof boundary">
           </figure>
         </section>
 
@@ -87,6 +87,13 @@
           <h2>Reference Topology</h2>
           <p>The Calabi evidence path exercises workstation to <code>virt-01</code> to bastion to IdM/AAP/KRA to managed host. It proves the reference path, failure behavior, custody wiring, and restoration flow for this exemplar.</p>
           <p>Adopters should use the same shape as a guide, then assign their own ownership, retention, escalation, and scale evidence before presenting the pattern as a local operating control.</p>
+          <figure class="diagram-card" id="v3-calabi-reference-topology">
+            <figcaption>
+              <strong>Calabi Reference Topology</strong>
+              <span>The v3 evidence packet follows the demonstration control chain from the workstation through the lab services to managed hosts.</span>
+            </figcaption>
+            <img class="diagram-artifact" src="assets/diagrams/v3-calabi-reference-topology.svg" alt="Calabi reference topology for Blastwall v3 evidence">
+          </figure>
         </section>
 
         <section id="threat-landscape">
@@ -97,12 +104,12 @@
         <section id="operating-loop">
           <h2>Operating Loop</h2>
           <p>Useful posture does not end at policy installation. The v3 loop signs current evidence, stores it in KRA-backed vault paths, publishes a locator marker, uses inventory for selection, verifies evidence before launch, and audits scheduled state over time.</p>
-          <figure class="diagram-card" id="candidate-flow">
+          <figure class="diagram-card" id="v3-operating-loop">
             <figcaption>
-              <strong>Candidate Selection With Signed Evidence</strong>
-              <span>A host can look eligible in inventory and still fail closed in preflight if signed evidence is missing, stale, revoked, mismatched, or inconsistent with live state.</span>
+              <strong>Signed Evidence Operating Loop</strong>
+              <span>Capture, signing, storage, marker publication, preflight, runtime launch, and scheduled audit are one repeatable demonstration loop.</span>
             </figcaption>
-            <img class="diagram-artifact" src="assets/diagrams/candidate-flow.svg" alt="AAP candidate selection with multiple coverage markers">
+            <img class="diagram-artifact" src="assets/diagrams/v3-operating-loop.svg" alt="Blastwall v3 signed evidence operating loop">
           </figure>
         </section>
 
@@ -113,10 +120,10 @@
               <tr><th>Control</th><th>v3 Behavior</th><th>Evidence Surface</th></tr>
             </thead>
             <tbody>
-              <tr><td data-label="Control">Signed host evidence</td><td data-label="v3 Behavior">Preflight verifies envelope signature, signer trust, digest binding, index freshness, and live policy hash.</td><td data-label="Evidence Surface"><a href="blastwall-v3/external-review-packet.md">Review packet</a></td></tr>
-              <tr><td data-label="Control">Custody separation</td><td data-label="v3 Behavior">Signer, promotion, verifier, KRA health, and inventory audit surfaces use separated credentials and checks.</td><td data-label="Evidence Surface"><a href="blastwall-v3/operational-guidance.md">Operational guidance</a></td></tr>
+              <tr><td data-label="Control">Signed host evidence</td><td data-label="v3 Behavior">Preflight verifies envelope signature, signer trust, digest binding, index freshness, and live policy hash.</td><td data-label="Evidence Surface"><a href="blastwall-v3/external-review-packet.html">Review packet</a></td></tr>
+              <tr><td data-label="Control">Custody separation</td><td data-label="v3 Behavior">Signer, promotion, verifier, KRA health, and inventory audit surfaces use separated credentials and checks.</td><td data-label="Evidence Surface"><a href="blastwall-v3/operational-guidance.html">Operational guidance</a></td></tr>
               <tr><td data-label="Control">Fail-closed states</td><td data-label="v3 Behavior">Missing artifacts, revoked attestations, replay, signer mismatch, drift, and binding failures have named outcomes.</td><td data-label="Evidence Surface"><a href="blastwall-v3/failure-state-manifest.yml">Failure manifest</a></td></tr>
-              <tr><td data-label="Control">Scoped breakglass</td><td data-label="v3 Behavior">Breakglass can expose infrastructure visibility problems but cannot bypass security failures.</td><td data-label="Evidence Surface"><a href="blastwall-v3/revocation-and-breakglass.md">Breakglass runbook</a></td></tr>
+              <tr><td data-label="Control">Scoped breakglass</td><td data-label="v3 Behavior">Breakglass can expose infrastructure visibility problems but cannot bypass security failures.</td><td data-label="Evidence Surface"><a href="blastwall-v3/revocation-and-breakglass.html">Breakglass runbook</a></td></tr>
             </tbody>
           </table>
         </section>

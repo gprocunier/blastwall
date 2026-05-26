@@ -1,0 +1,10 @@
+flowchart LR
+  capture[Capture host state] --> sign[Sign evidence]
+  sign --> store[Store artifact and latest index]
+  store --> marker[Publish marker locator]
+  marker --> select[Inventory selects candidate]
+  select --> verify[Stable-v3 preflight verifies]
+  verify --> launch[Confined runtime launch]
+  launch --> audit[Scheduled audit]
+  audit --> recapture[Recapture when contract or evidence changes]
+  recapture --> capture

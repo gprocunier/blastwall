@@ -1,0 +1,9 @@
+flowchart LR
+  workspace[Codex workspace<br/>v3 branch and docs] --> virt[virt-01 jump host]
+  virt --> bastion[Bastion access path]
+  bastion --> aap[AAP Controller<br/>inventory + preflight]
+  bastion --> idm[IdM + KRA<br/>markers + vault artifacts]
+  aap --> host[mirror-registry reference host]
+  idm --> host
+  aap --> ledger[Evidence ledger<br/>job IDs + bindings]
+  ledger --> mixed[Additional hosts<br/>mixed-state and schedules]

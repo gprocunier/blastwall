@@ -32,9 +32,14 @@ const viewports = [
   { name: "mobile", width: 390, height: 844 }
 ];
 
-const pageSlug = (path) => path.replace(/\.html$/, "").replace(/^index$/, "home");
+const pageSlug = (path) => path.replace(/\.html$/, "").replace(/^index$/, "home").replace(/\//g, "-");
 const docsRoot = path.resolve(__dirname, "../../docs");
 const repoRoot = path.resolve(__dirname, "../..");
+const v3Pages = fs.readdirSync(path.join(docsRoot, "blastwall-v3"))
+  .filter((entry) => entry.endsWith(".html"))
+  .sort()
+  .map((entry) => `blastwall-v3/${entry}`);
+const renderedPages = [...pages, ...v3Pages];
 
 const expectedHighValueNav = ["GitHub Repo", "eigenstate.ipa", "Ansible Galaxy"];
 
@@ -62,7 +67,7 @@ test.describe("GitHub Pages rendering", () => {
     test.describe(`${viewport.name} ${viewport.width}x${viewport.height}`, () => {
       test.use({ viewport });
 
-      for (const path of pages) {
+      for (const path of renderedPages) {
         test(`${path} has no viewport overflow`, async ({ page }, testInfo) => {
           const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
           const failedLocalResponses = [];
@@ -196,22 +201,22 @@ test.describe("GitHub Pages rendering", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${baseUrl}/index.html`, { waitUntil: "domcontentloaded" });
 
-    const idmDiagram = page.locator("#idm-aap-flow .diagram-artifact");
-    const candidateDiagram = page.locator("#candidate-flow .diagram-artifact");
-    await expect(idmDiagram).toBeVisible();
-    await expect(candidateDiagram).toBeVisible();
+    const markerDiagram = page.locator("#v3-marker-locator-flow .diagram-artifact");
+    const operatingLoopDiagram = page.locator("#v3-operating-loop .diagram-artifact");
+    await expect(markerDiagram).toBeVisible();
+    await expect(operatingLoopDiagram).toBeVisible();
 
-    const idmBox = await idmDiagram.boundingBox();
-    const candidateBox = await candidateDiagram.boundingBox();
-    const idmFigureBox = await page.locator("#idm-aap-flow").boundingBox();
-    const candidateFigureBox = await page.locator("#candidate-flow").boundingBox();
-    expect(idmBox.width / idmFigureBox.width).toBeGreaterThan(0.92);
-    expect(candidateBox.width / candidateFigureBox.width).toBeGreaterThan(0.92);
+    const markerBox = await markerDiagram.boundingBox();
+    const operatingLoopBox = await operatingLoopDiagram.boundingBox();
+    const markerFigureBox = await page.locator("#v3-marker-locator-flow").boundingBox();
+    const operatingLoopFigureBox = await page.locator("#v3-operating-loop").boundingBox();
+    expect(markerBox.width / markerFigureBox.width).toBeGreaterThan(0.92);
+    expect(operatingLoopBox.width / operatingLoopFigureBox.width).toBeGreaterThan(0.92);
 
-    await candidateDiagram.click();
+    await operatingLoopDiagram.click();
     const lightbox = page.locator(".diagram-lightbox");
     await expect(lightbox).toBeVisible();
-    await expect(page.locator(".diagram-lightbox__image")).toHaveAttribute("src", /candidate-flow\.svg$/);
+    await expect(page.locator(".diagram-lightbox__image")).toHaveAttribute("src", /v3-operating-loop\.svg$/);
 
     await page.locator(".diagram-lightbox__image").click();
     await expect(lightbox).toBeHidden();
@@ -231,7 +236,8 @@ test.describe("GitHub Pages rendering", () => {
       "idm-control-model.html",
       "openshift-spo.html",
       "openshift-spo-demo.html",
-      "threat-model.html"
+      "threat-model.html",
+      ...v3Pages
     ];
 
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -268,7 +274,7 @@ test.describe("GitHub Pages rendering", () => {
   test("site nav is reserved for high-value destinations", async ({ page }, testInfo) => {
     const baseUrl = testInfo.project.use.baseURL || process.env.BLASTWALL_DOCS_BASE_URL || "http://127.0.0.1:8765";
 
-    for (const path of pages) {
+    for (const path of renderedPages) {
       await page.goto(`${baseUrl}/${path}`, { waitUntil: "domcontentloaded" });
       const labels = await page.locator(".site-header__actions a").evaluateAll((links) =>
         links.map((link) => link.textContent.trim())
@@ -362,14 +368,37 @@ test.describe("GitHub Pages rendering", () => {
   });
 
   test("local and repository hash links resolve", async () => {
-    const idsByPage = new Map(pages.map((pagePath) => [
+    const idsByPage = new Map(renderedPages.map((pagePath) => [
       pagePath,
       htmlIds(path.join(docsRoot, pagePath))
     ]));
     const readmeAnchors = markdownAnchors(path.join(repoRoot, "README.md"));
     const failures = [];
 
-    for (const pagePath of pages) {
+    const normalizeLocalTarget = (pagePath, targetPath) => {
+      if (!targetPath) {
+        return pagePath;
+      }
+
+      if (targetPath.startsWith("/")) {
+        return targetPath.replace(/^\/+/, "");
+      }
+
+      const pageDir = path.posix.dirname(pagePath);
+      const normalized = path.posix.normalize(path.posix.join(pageDir === "." ? "" : pageDir, targetPath));
+
+      if (normalized === "." || normalized === "") {
+        return "index.html";
+      }
+
+      if (normalized.endsWith("/")) {
+        return path.posix.join(normalized, "index.html");
+      }
+
+      return normalized;
+    };
+
+    for (const pagePath of renderedPages) {
       const html = readText(path.join(docsRoot, pagePath));
       const hrefs = Array.from(html.matchAll(/href="([^"]+)"/g), (match) => match[1]);
 
@@ -401,26 +430,40 @@ test.describe("GitHub Pages rendering", () => {
 
         const [targetPathRaw, hash] = href.split("#");
         const targetPath = targetPathRaw || pagePath;
+        const normalizedTarget = targetPathRaw ? normalizeLocalTarget(pagePath, targetPath) : pagePath;
 
-        if (targetPath === "./") {
-          if (hash && !idsByPage.get("index.html").has(hash)) {
+        if (targetPath === "./" || targetPath === "../" || targetPath.endsWith("/")) {
+          const directoryTarget = normalizedTarget.endsWith(".html")
+            ? normalizedTarget
+            : path.posix.join(normalizedTarget, "index.html");
+          if (!idsByPage.has(directoryTarget)) {
+            failures.push(`${pagePath}: missing local directory page ${href}`);
+            continue;
+          }
+          if (hash && !idsByPage.get(directoryTarget).has(hash)) {
             failures.push(`${pagePath}: missing index hash ${href}`);
           }
           continue;
         }
 
-        if (targetPath.startsWith("assets/")) {
-          if (!fs.existsSync(path.join(docsRoot, targetPath))) {
+        if (normalizedTarget.startsWith("assets/")) {
+          if (!fs.existsSync(path.join(docsRoot, normalizedTarget))) {
             failures.push(`${pagePath}: missing asset ${href}`);
           }
           continue;
         }
 
         if (!targetPath.endsWith(".html")) {
+          if (
+            !targetPath.startsWith("#") &&
+            !fs.existsSync(path.join(docsRoot, normalizedTarget)) &&
+            !targetPath.startsWith("..")
+          ) {
+            failures.push(`${pagePath}: missing local resource ${href}`);
+          }
           continue;
         }
 
-        const normalizedTarget = targetPath.replace(/^\.\//, "");
         if (!idsByPage.has(normalizedTarget)) {
           failures.push(`${pagePath}: missing local page ${href}`);
           continue;

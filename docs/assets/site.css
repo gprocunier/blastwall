@@ -180,6 +180,36 @@ a {
   margin-top: 0;
   color: var(--rh-gray-90);
   font-size: 1.18rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.doc-title {
+  margin: 0 0 0.75rem;
+  max-width: 72rem;
+  color: var(--rh-gray-90);
+  font-family: "Red Hat Display", "Red Hat Text", Arial, sans-serif;
+  font-size: 2.25rem;
+  line-height: 1.12;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.v3-doc > .eyebrow {
+  margin-bottom: 0.35rem;
+}
+
+.markdown-body blockquote {
+  margin: 1rem 0 1.5rem;
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--rh-red);
+  background: var(--rh-gray-10);
+  color: var(--rh-gray-80);
+}
+
+.markdown-body blockquote p:last-child {
+  margin-bottom: 0;
 }
 
 .flow-image {
