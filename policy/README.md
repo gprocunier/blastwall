@@ -10,6 +10,26 @@ complete the `pam_selinux` selected-context transition into `blastwall_t` so
 GSSAPI automation can enter the confined domain before the deny scopes are
 tested.
 
+## Deployment ordering
+
+The install steps must happen in this order. Missing or reordering
+causes silent fallback to `staff_t` or PAM login failures.
+
+| Step | Command | What breaks if skipped |
+|------|---------|----------------------|
+| 1. Install CIL modules | `cd policy && make install` | No `blastwall_t` domain |
+| 2. Register SELinux user | `semanage user -a -R "blastwall_r" -r "s0-s0:c0.c1023" blastwall_u` | SSSD `selinux_child` crashes (error 4) |
+| 3. Install context file | `cp policy/contexts/blastwall_u /etc/selinux/targeted/contexts/users/` | pam_selinux falls back to `staff_t` silently |
+| 4. Create SELinux user map | (IPA/LDAP-specific — map users to `blastwall_u` on target hosts) | Users don't get the confined context |
+
+> **Warning:** Step 3 failure is the most dangerous — there is no error,
+> no log entry, and no warning. Users log in successfully but run in
+> `staff_t` with no kernel deny enforcement. Always verify with
+> `id -Z` after first login.
+
+Steps 2 and 3 are handled automatically by `make install` if
+[PR #1](https://github.com/gprocunier/blastwall/pull/1) is merged.
+
 ## Optional blocks
 
 Some SELinux object classes are only present on newer kernels.  For
