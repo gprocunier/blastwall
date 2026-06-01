@@ -10,6 +10,7 @@ DENY_CIL := $(addsuffix .cil,$(DENY_POLICIES))
 ALL_CIL := $(ROLE_CIL) $(SUPPORT_CIL) $(DENY_CIL)
 CONTEXT_FILE := contexts/blastwall_u
 CONTEXT_DIR := /etc/selinux/targeted/contexts/users
+SELINUX_MCS ?= s0
 
 .PHONY: all clean install uninstall check
 
@@ -26,8 +27,8 @@ check:
 install: $(POLICY).pp
 	semodule -i $(POLICY).pp $(ALL_CIL)
 	install -m 0644 $(CONTEXT_FILE) $(CONTEXT_DIR)/blastwall_u
-	semanage user -a -R "blastwall_r" -r "s0-s0:c0.c1023" blastwall_u 2>/dev/null || \
-		semanage user -m -R "blastwall_r" -r "s0-s0:c0.c1023" blastwall_u
+	semanage user -a -R "blastwall_r" -r "$(SELINUX_MCS)" blastwall_u 2>/dev/null || \
+		semanage user -m -R "blastwall_r" -r "$(SELINUX_MCS)" blastwall_u
 
 uninstall:
 	@for p in $(DENY_POLICIES); do semodule -r $$p 2>/dev/null || true; done
